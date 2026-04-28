@@ -17,12 +17,10 @@
     <style>
         body { font-family: 'Sarabun', sans-serif; background-color: #f4f6f9; overflow-x: hidden; }
         
-        /* 🌟 ระบบ Navbar สำหรับมือถือ 🌟 */
         .mobile-header { display: none; background-color: #2c3e50; color: white; padding: 15px 20px; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 1020; box-shadow: 0 2px 5px rgba(0,0,0,0.1);}
         .mobile-header h5 { margin: 0; font-weight: bold; }
         .hamburger-btn { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; }
 
-        /* Sidebar */
         .sidebar { height: 100vh; width: 250px; position: fixed; top: 0; left: 0; background-color: #2c3e50; color: white; padding-top: 20px; z-index: 1050; transition: transform 0.3s ease-in-out; box-shadow: 2px 0 10px rgba(0,0,0,0.2); }
         .sidebar .nav-link { color: #ecf0f1; margin: 10px 15px; border-radius: 8px; transition: all 0.3s; font-size: 1.1rem; cursor: pointer; }
         .sidebar .nav-link:hover, .sidebar .nav-link.active { background-color: #34495e; color: #3498db; transform: translateX(5px); }
@@ -50,7 +48,6 @@
         .btn-scan:hover { background: #1a2529; color: white; }
         #reader { width: 100%; border-radius: 15px; overflow: hidden; display: none; border: 4px dashed #00bfa5; margin-bottom: 15px; background: #fff; }
         
-        /* 🌟 ปรับแต่งสำหรับมือถือโดยเฉพาะ 🌟 */
         @media (max-width: 768px) { 
             .mobile-header { display: flex; }
             .sidebar { transform: translateX(-100%); }
@@ -61,7 +58,9 @@
             .action-btn { width: 100%; margin-bottom: 5px; }
             .d-flex.flex-wrap.gap-2 { flex-direction: column; }
         }
-        .desktop-only { display: block; }
+
+        /* 🌟 ซ่อนปุ่มของโปรแกรม Python เป็นค่าเริ่มต้น (สำหรับหน้าเว็บ) 🌟 */
+        .desktop-only { display: none !important; }
     </style>
 </head>
 <body>
@@ -90,8 +89,8 @@
     <div class="main-content">
         <h2 class="header-title w-100 mb-3 d-none d-md-block">แดชบอร์ด - ภาพรวมสต๊อกพัสดุ (Hybrid System)</h2>
         
-        <div id="web-notice" class="alert alert-info fw-bold shadow-sm" style="display: none; border-radius: 10px; font-size: 0.95rem;">
-            <i class="fas fa-mobile-alt me-2"></i> โหมด Web/Mobile สำหรับสแกนพัสดุแบบพกพา
+        <div id="web-notice" class="alert alert-info fw-bold shadow-sm mb-4" style="border-radius: 10px; font-size: 0.95rem;">
+            <i class="fas fa-mobile-alt me-2"></i> โหมด Web/Mobile (เปิดใช้งานฟังก์ชันสแกนและตัดสต๊อกออนไลน์)
         </div>
 
         <div class="row mb-4 desktop-only">
@@ -146,7 +145,8 @@
                                         <th class="text-center">คลังหลัก (ตู้ใหญ่)</th>
                                         <th class="text-center">คลังย่อย (พร้อมใช้)</th>
                                         <th class="text-center">สถานะ</th>
-                                        <th class="text-center">จัดการ</th> </tr>
+                                        <th class="text-center">จัดการ</th>
+                                    </tr>
                                 </thead>
                                 <tbody id="inventory-table-body">
                                     <tr><td colspan="7" class="text-center py-5 text-muted">กำลังดึงข้อมูล...</td></tr>
@@ -162,27 +162,28 @@
     <audio id="soundScan" src="https://www.soundjay.com/buttons/sounds/beep-07.mp3"></audio>
 
     <script>
-        // 🌟 สลับเมนูด้านข้างสำหรับมือถือ 🌟
+        // ==========================================
+        // 🌟 ตรวจจับการเปิดผ่านโปรแกรม Python ทันที!
+        // ==========================================
+        window.addEventListener('pywebviewready', function() {
+            // เมื่อเปิดในคอมพิวเตอร์ผ่าน Python ค่อยโชว์ปุ่มเมนูต่างๆ
+            document.querySelectorAll('.desktop-only').forEach(el => {
+                el.classList.remove('desktop-only');
+            });
+            // ซ่อนป้ายประกาศโหมดมือถือทิ้งไป
+            document.getElementById('web-notice').style.display = 'none';
+        });
+
         function toggleSidebar() {
             document.getElementById('sidebar').classList.toggle('open');
             document.querySelector('.sidebar-overlay').classList.toggle('open');
         }
-
-        setTimeout(() => {
-            if (typeof pywebview === 'undefined') {
-                document.querySelectorAll('.desktop-only').forEach(el => el.style.display = 'none');
-                document.getElementById('web-notice').style.display = 'block';
-            }
-        }, 1000);
 
         let allItems = []; 
         let currentMode = 'out';
         let scanner = null;
         let db = null;
 
-        // ==========================================
-        // 1. ระบบดึงข้อมูล Firebase (Real-time)
-        // ==========================================
         function initApp() {
             try {
                 const firebaseConfig = {
@@ -253,9 +254,7 @@
                 let min_alert = parseInt(item.min_alert || 10);
                 let unit = item.unit || 'ชิ้น';
                 
-                // หา index เดิมใน allItems เพื่อส่งไปให้ปุ่ม Edit
                 let originalIndex = allItems.indexOf(item);
-                
                 let statusHtml = total <= 0 ? `<span class="badge bg-danger rounded-pill px-3">หมด!</span>` : 
                                  total <= min_alert ? `<span class="badge bg-warning text-dark rounded-pill px-3">ใกล้หมด</span>` : 
                                  `<span class="badge bg-success rounded-pill px-3">ปกติ</span>`;
@@ -277,9 +276,6 @@
             });
         }
 
-        // ==========================================
-        // 2. ฟังก์ชันแก้ไขรายการ (Edit Item)
-        // ==========================================
         function editItem(idx) {
             const item = allItems[idx];
             Swal.fire({
@@ -287,49 +283,30 @@
                 html: `
                     <div class="text-start mb-1"><small class="fw-bold text-muted">รหัสพัสดุ</small></div>
                     <input id="edit-code" class="swal2-input mt-0 mb-3" value="${item.code || ''}">
-                    
                     <div class="text-start mb-1"><small class="fw-bold text-muted">ชื่อรายการ</small></div>
                     <input id="edit-name" class="swal2-input mt-0 mb-3" value="${item.name || ''}">
-                    
                     <div class="text-start mb-1"><small class="fw-bold text-muted">หน่วยนับ</small></div>
                     <input id="edit-unit" class="swal2-input mt-0 mb-3" value="${item.unit || 'ชิ้น'}">
-                    
                     <div class="text-start mb-1"><small class="fw-bold text-muted">แจ้งเตือนใกล้หมด</small></div>
                     <input id="edit-min" type="number" class="swal2-input mt-0" value="${item.min_alert || 10}">
                 `,
-                showCancelButton: true,
-                confirmButtonText: 'บันทึกการแก้ไข',
-                confirmButtonColor: '#3498db',
+                showCancelButton: true, confirmButtonText: 'บันทึกการแก้ไข', confirmButtonColor: '#3498db',
                 preConfirm: () => {
-                    return {
-                        code: document.getElementById('edit-code').value.trim(),
-                        name: document.getElementById('edit-name').value.trim(),
-                        unit: document.getElementById('edit-unit').value.trim(),
-                        min_alert: parseInt(document.getElementById('edit-min').value)
-                    }
+                    return { code: document.getElementById('edit-code').value.trim(), name: document.getElementById('edit-name').value.trim(), unit: document.getElementById('edit-unit').value.trim(), min_alert: parseInt(document.getElementById('edit-min').value) }
                 }
             }).then((res) => {
                 if (res.isConfirmed) {
                     if(!res.value.name || !res.value.code) return Swal.fire('ผิดพลาด', 'กรุณากรอกชื่อและรหัสให้ครบ', 'warning');
-
-                    // บันทึกขึ้น Cloud
                     if (db && document.getElementById('syncStatus').innerText.includes('ออนไลน์')) {
                         db.ref(`inventory_data/${idx}`).update(res.value).then(() => Swal.fire('สำเร็จ!', 'แก้ไขข้อมูลเรียบร้อยแล้ว', 'success'));
-                    } 
-                    // บันทึกแบบออฟไลน์
-                    else if (typeof pywebview !== 'undefined' && pywebview.api && pywebview.api.edit_item_from_web) {
+                    } else if (typeof pywebview !== 'undefined' && pywebview.api && pywebview.api.edit_item_from_web) {
                         pywebview.api.edit_item_from_web(idx, res.value).then(r => forceReload());
                         Swal.fire('สำเร็จ!', 'แก้ไขข้อมูลในเครื่องแล้ว', 'success');
-                    } else {
-                        Swal.fire('ข้อผิดพลาด', 'ไม่สามารถบันทึกการแก้ไขได้', 'error');
                     }
                 }
             });
         }
 
-        // ==========================================
-        // 3. ระบบสแกนและจัดการสต๊อก
-        // ==========================================
         function setMode(m) {
             currentMode = m;
             document.getElementById('btnModeOut').className = m === 'out' ? 'btn btn-warning flex-fill fw-bold py-2 shadow-sm active' : 'btn btn-outline-warning flex-fill fw-bold py-2 shadow-sm';
@@ -354,18 +331,15 @@
         function handleScanResult(code) {
             code = code.trim();
             if(!code) return;
-            
             const idx = allItems.findIndex(i => i && i.code === code);
             if (idx > -1) {
                 showStockDialog(idx, currentMode === 'out' ? 'use' : 'receive_sub');
             } else {
                 Swal.fire({
                     title: 'ไม่พบรหัสนี้ในระบบ!',
-                    html: `รหัสบาร์โค้ด: <b class="text-danger fs-5">${code}</b><br><br>คุณต้องการนำรหัสนี้ไปลงทะเบียนเป็นพัสดุใหม่หรือไม่?`,
+                    html: `รหัสบาร์โค้ด: <b class="text-danger fs-5">${code}</b><br><br>ต้องการนำรหัสนี้ไปลงทะเบียนเป็นพัสดุใหม่หรือไม่?`,
                     icon: 'warning', showCancelButton: true, confirmButtonText: '➕ ลงทะเบียนใหม่', cancelButtonText: 'ยกเลิก', confirmButtonColor: '#2ecc71'
-                }).then((res) => {
-                    if (res.isConfirmed) manualAction('add_item', code); 
-                });
+                }).then((res) => { if (res.isConfirmed) manualAction('add_item', code); });
             }
         }
 
@@ -404,7 +378,7 @@
                         } else if (typeof pywebview !== 'undefined' && pywebview.api) {
                             pywebview.api.add_item_from_web(newItem).then(r => forceReload());
                             Swal.fire('สำเร็จ', 'บันทึกในเครื่องแล้ว', 'success');
-                        } else { Swal.fire('ข้อผิดพลาด', 'ไม่สามารถบันทึกได้', 'error'); }
+                        }
                     }
                 });
                 return;
@@ -473,7 +447,7 @@
                 });
             } else if (typeof pywebview !== 'undefined' && pywebview.api) {
                 pywebview.api.update_stock_from_web(item.code, qty, action).then(r => { if(r.success) { Swal.fire({title:'สำเร็จ!', icon:'success', timer:1500}); forceReload(); } else Swal.fire('Error', r.message, 'error'); });
-            } else { Swal.fire('ข้อผิดพลาด', 'ไม่ได้เชื่อมต่ออินเทอร์เน็ต', 'error'); }
+            } 
         }
 
         function openPythonApp(mode) {
