@@ -394,91 +394,107 @@
             }
         }
 
+        // ==========================================
+        // 1. ฟังก์ชันสแกน (เพิ่มระบบถามเมื่อไม่พบรหัส)
+        // ==========================================
         function handleScanResult(code) {
-            const idx = allItems.findIndex(i => i && i.code === code.trim());
-            if (idx > -1) showStockDialog(idx, currentMode === 'out' ? 'use' : 'receive_sub');
-            else Swal.fire('ไม่พบรหัส!', `รหัส: ${code} ไม่ได้ลงทะเบียนไว้`, 'error');
-        }
-
-        function showStockDialog(idx, mode) {
-            const item = allItems[idx];
-            let title = '', btnColor = '', extraHtml = '';
+            code = code.trim();
+            if(!code) return;
             
-            if (mode === 'receive_main') { title = '📥 รับของเข้าคลังหลัก'; btnColor = '#2ecc71'; }
-            else if (mode === 'use') { title = '📤 เบิกจ่าย (หักคลังย่อย)'; btnColor = '#e67e22'; }
-            else if (mode === 'receive_sub') { title = '📥 รับของเข้าคลังย่อย'; btnColor = '#3498db'; }
-            else if (mode === 'transfer') { 
-                title = '🔄 โอนย้ายคลัง'; btnColor = '#3498db'; 
-                extraHtml = `
-                    <select id="transfer-dir" class="swal2-input" style="height:50px;">
-                        <option value="transfer_to_sub">โอนจาก คลังหลัก ➡️ ไปคลังย่อย</option>
-                        <option value="transfer_to_main">โอนจาก คลังย่อย ➡️ กลับคลังหลัก</option>
-                    </select>
-                `;
-            }
-
-            Swal.fire({
-                title: title,
-                html: `
-                    <h5 class="text-primary fw-bold">${item.name}</h5>
-                    <div class="p-2 bg-light mb-3 mt-2 rounded text-center">
-                        คลังหลัก: <b>${item.main_stock || 0}</b> | คลังย่อย: <b class="text-danger">${item.sub_stock || 0}</b>
-                    </div>
-                    ${extraHtml}
-                    <div class="mt-2 text-start">จำนวนที่ต้องการทำรายการ (${item.unit || 'ชิ้น'}):</div>
-                `,
-                input: 'number', inputValue: 1, showCancelButton: true, confirmButtonText: 'ยืนยัน', confirmButtonColor: btnColor,
-                preConfirm: (val) => {
-                    let q = parseInt(val);
-                    if (!q || q <= 0) return Swal.showValidationMessage('กรุณาใส่จำนวนที่มากกว่า 0');
-                    if (mode === 'use' && q > parseInt(item.sub_stock)) return Swal.showValidationMessage('ของในคลังย่อยไม่พอเบิก!');
-                    
-                    if (mode === 'transfer') {
-                        let dir = document.getElementById('transfer-dir').value;
-                        if(dir === 'transfer_to_sub' && q > parseInt(item.main_stock)) return Swal.showValidationMessage('คลังหลักมีไม่พอให้โอน');
-                        if(dir === 'transfer_to_main' && q > parseInt(item.sub_stock)) return Swal.showValidationMessage('คลังย่อยมีไม่พอให้โอน');
-                        return { qty: q, action: dir };
+            const idx = allItems.findIndex(i => i && i.code === code);
+            if (idx > -1) {
+                // ถ้ารู้จัก ให้เปิดหน้าต่างตัดสต๊อกปกติ
+                showStockDialog(idx, currentMode === 'out' ? 'use' : 'receive_sub');
+            } else {
+                // 🌟 ถ้าไม่รู้จัก ให้เด้งถามว่าอยากเอาไปลงทะเบียนใหม่ไหม 🌟
+                Swal.fire({
+                    title: 'ไม่พบรหัสนี้ในระบบ!',
+                    html: `รหัสบาร์โค้ด: <b class="text-danger fs-5">${code}</b><br><br>คุณต้องการนำรหัสนี้ไปลงทะเบียนเป็นพัสดุใหม่หรือไม่?`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: '➕ นำไปลงทะเบียนใหม่',
+                    cancelButtonText: 'ยกเลิก',
+                    confirmButtonColor: '#2ecc71'
+                }).then((res) => {
+                    if (res.isConfirmed) {
+                        // ส่งรหัสที่สแกนได้ ไปยังหน้าฟอร์มเพิ่มพัสดุ
+                        manualAction('add_item', code); 
                     }
-                    return { qty: q, action: mode };
-                }
-            }).then(res => {
-                if (res.isConfirmed) {
-                    processStockUpdate(item, idx, res.value.qty, res.value.action);
-                }
-            });
+                });
+            }
         }
 
-        function processStockUpdate(item, idx, qty, action) {
-            let n_main = parseInt(item.main_stock || 0);
-            let n_sub = parseInt(item.sub_stock || 0);
-            let actText = "";
+        // ==========================================
+        // 2. ฟังก์ชันทำรายการแมนนวล (รับค่าที่สแกนมาใส่ฟอร์ม)
+        // ==========================================
+        function manualAction(mode, scannedCode = "") {
+            if (mode === 'add_item') {
+                Swal.fire({
+                    title: '➕ เพิ่มทะเบียนพัสดุใหม่',
+                    html: `
+                        <div class="text-start mb-1"><small class="text-muted fw-bold">รหัสพัสดุ (บาร์โค้ด / QR Code)</small></div>
+                        <input id="swal-code" class="swal2-input mt-0 mb-3" placeholder="รหัสพัสดุ..." value="${scannedCode}">
+                        
+                        <div class="text-start mb-1"><small class="text-muted fw-bold">ชื่อรายการพัสดุ / น้ำยา</small></div>
+                        <input id="swal-name" class="swal2-input mt-0 mb-3" placeholder="เช่น น้ำยา A">
+                        
+                        <div class="text-start mb-1"><small class="text-muted fw-bold">หมวดหมู่</small></div>
+                        <select id="swal-cat" class="swal2-input mt-0 mb-3" style="height:50px;">
+                            <option value="เวชภัณฑ์ทางการแพทย์">เวชภัณฑ์ทางการแพทย์</option>
+                            <option value="อุปกรณ์สำนักงาน">อุปกรณ์สำนักงาน</option>
+                            <option value="น้ำยาไต (ทั่วไป)">น้ำยาไต (ทั่วไป)</option>
+                            <option value="อื่นๆ">อื่นๆ</option>
+                        </select>
+                        
+                        <div class="text-start mb-1"><small class="text-muted fw-bold">หน่วยนับ</small></div>
+                        <input id="swal-unit" class="swal2-input mt-0" placeholder="เช่น ชิ้น, แกลลอน, กล่อง">
+                    `,
+                    showCancelButton: true, confirmButtonText: 'บันทึกข้อมูล', confirmButtonColor: '#2ecc71',
+                    preConfirm: () => {
+                        return {
+                            code: document.getElementById('swal-code').value.trim(), 
+                            name: document.getElementById('swal-name').value.trim(),
+                            category: document.getElementById('swal-cat').value, 
+                            unit: document.getElementById('swal-unit').value.trim() || 'ชิ้น'
+                        }
+                    }
+                }).then(res => {
+                    if (res.isConfirmed) {
+                        if(!res.value.name || !res.value.code) return Swal.fire('ผิดพลาด', 'กรุณากรอกชื่อและรหัสให้ครบ', 'warning');
+                        
+                        // เช็คป้องกันไม่ให้บันทึกรหัสซ้ำ
+                        let isDuplicate = allItems.some(i => i && i.code === res.value.code);
+                        if (isDuplicate) return Swal.fire('ผิดพลาด', 'รหัสบาร์โค้ดนี้มีในระบบแล้ว!', 'error');
+                        
+                        let newItem = {
+                            id: "ITM" + String(allItems.length + 1).padStart(4, '0'),
+                            code: res.value.code, name: res.value.name, category: res.value.category, unit: res.value.unit,
+                            main_stock: 0, sub_stock: 0, min_alert: 10, monthly_usage: 0, target_stock: 0
+                        };
 
-            if (action === 'receive_main') { n_main += qty; actText = "รับเข้าคลังหลัก 📥"; }
-            else if (action === 'receive_sub') { n_sub += qty; actText = "รับเข้าคลังย่อย 📥"; }
-            else if (action === 'use') { n_sub -= qty; actText = "ใช้งานจริง 📤"; }
-            else if (action === 'transfer_to_sub') { n_main -= qty; n_sub += qty; actText = "โอนไปคลังย่อย 🔄"; }
-            else if (action === 'transfer_to_main') { n_sub -= qty; n_main += qty; actText = "คืนเข้าคลังหลัก 🔄"; }
-
-            let isOnline = db && document.getElementById('syncStatus').innerText.includes('ออนไลน์');
-
-            if (isOnline) {
-                db.ref(`inventory_data/${idx}`).update({ main_stock: n_main, sub_stock: n_sub }).then(() => {
-                    let log = { date: new Date().toLocaleDateString('en-GB')+" "+new Date().toLocaleTimeString('en-GB'), code: item.code, name: item.name, action: actText, qty: qty, unit: item.unit, main_bal: n_main, sub_bal: n_sub };
-                    db.ref('history_data').once('value').then(s => {
-                        let arr = s.val() || []; arr.unshift(log); db.ref('history_data').set(arr);
-                    });
-                    Swal.fire({title:'สำเร็จ!', text:'บันทึกออนไลน์เรียบร้อย', icon:'success', timer:1500});
-                    document.getElementById('codeInput').value = '';
+                        if (db && document.getElementById('syncStatus').innerText.includes('ออนไลน์')) {
+                            db.ref(`inventory_data/${allItems.length}`).set(newItem).then(() => Swal.fire('สำเร็จ', 'เพิ่มพัสดุออนไลน์แล้ว', 'success'));
+                        } else if (typeof pywebview !== 'undefined' && pywebview.api) {
+                            pywebview.api.add_item_from_web(newItem).then(r => forceReload());
+                            Swal.fire('สำเร็จ', 'เพิ่มพัสดุในเครื่องแล้ว', 'success');
+                        } else {
+                            Swal.fire('ข้อผิดพลาด', 'ไม่สามารถบันทึกได้ กรุณาต่อเน็ต', 'error');
+                        }
+                    }
                 });
-            } 
-            else if (typeof pywebview !== 'undefined' && pywebview.api) {
-                pywebview.api.update_stock_from_web(item.code, qty, action).then(r => {
-                    if(r.success) { Swal.fire({title:'สำเร็จ!', text:'บันทึกออฟไลน์เรียบร้อย', icon:'success', timer:1500}); forceReload(); }
-                    else Swal.fire('Error', r.message, 'error');
-                });
-            } else {
-                Swal.fire('ข้อผิดพลาด', 'ไม่ได้เชื่อมต่ออินเทอร์เน็ต ไม่สามารถบันทึกได้', 'error');
+                return;
             }
+
+            // ถ้ารับเข้า / โอนย้าย / เบิกจ่าย ต้องมีของในตารางก่อน
+            let options = {};
+            allItems.forEach((it, idx) => { if(it && it.name) options[idx] = `[${it.code || '-'}] ${it.name}`; });
+            
+            Swal.fire({
+                title: 'เลือกพัสดุที่ต้องการ',
+                input: 'select', inputOptions: options, inputPlaceholder: 'คลิกเพื่อเลือกรายการ...', showCancelButton: true
+            }).then(res => {
+                if (res.isConfirmed && res.value !== "") showStockDialog(res.value, mode);
+            });
         }
 
         // ==========================================
