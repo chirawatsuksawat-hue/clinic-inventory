@@ -316,33 +316,82 @@
         function manualAction(mode, scannedCode = "") {
             if (mode === 'add_item') {
                 Swal.fire({
-                    title: '➕ เพิ่มพัสดุใหม่',
+                    title: '➕ เพิ่มทะเบียนพัสดุใหม่',
+                    width: '600px', // ขยายหน้าต่างให้กว้างขึ้น
                     html: `
-                        <div class="text-start mb-1"><small class="fw-bold text-muted">รหัสพัสดุ (บาร์โค้ด)</small></div>
-                        <input id="swal-code" class="swal2-input mt-0 mb-3" placeholder="รหัส..." value="${scannedCode}">
-                        <div class="text-start mb-1"><small class="fw-bold text-muted">ชื่อรายการ</small></div>
-                        <input id="swal-name" class="swal2-input mt-0 mb-3" placeholder="ชื่อพัสดุ...">
-                        <div class="text-start mb-1"><small class="fw-bold text-muted">หมวดหมู่</small></div>
-                        <select id="swal-cat" class="swal2-input mt-0 mb-3" style="height:50px;">
-                            <option value="เวชภัณฑ์ทางการแพทย์">เวชภัณฑ์ทางการแพทย์</option>
-                            <option value="อุปกรณ์สำนักงาน">อุปกรณ์สำนักงาน</option>
-                            <option value="น้ำยา/อุปกรณ์ทำความสะอาด">น้ำยา/อุปกรณ์ทำความสะอาด</option>
-                            <option value="น้ำยาไต (ทั่วไป)">น้ำยาไต (ทั่วไป)</option>
-                            <option value="อื่นๆ">อื่นๆ</option>
-                        </select>
-                        <div class="text-start mb-1"><small class="fw-bold text-muted">หน่วยนับ</small></div>
-                        <input id="swal-unit" class="swal2-input mt-0" placeholder="เช่น ชิ้น, กล่อง">
+                        <div class="text-start mt-3" style="font-family: 'Sarabun', sans-serif;">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold text-primary">หมวดหมู่</label>
+                                <select id="swal-cat" class="form-select border-primary" style="height: 45px;">
+                                    <option value="เวชภัณฑ์ทางการแพทย์">เวชภัณฑ์ทางการแพทย์</option>
+                                    <option value="อุปกรณ์สำนักงาน">อุปกรณ์สำนักงาน</option>
+                                    <option value="น้ำยา/อุปกรณ์ทำความสะอาด">น้ำยา/อุปกรณ์ทำความสะอาด</option>
+                                    <option value="น้ำยาไต (ทั่วไป)">น้ำยาไต (ทั่วไป)</option>
+                                    <option value="อื่นๆ">อื่นๆ</option>
+                                </select>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-bold">รหัสพัสดุ (Code)</label>
+                                    <input id="swal-code" class="form-control" placeholder="เช่น A01" value="${scannedCode}">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-bold">ชื่อพัสดุ / อุปกรณ์</label>
+                                    <input id="swal-name" class="form-control" placeholder="ระบุชื่อพัสดุ">
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-bold">หน่วยนับ</label>
+                                    <input id="swal-unit" class="form-control" placeholder="เช่น ชิ้น, กล่อง">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-bold">จำนวนบรรจุต่อ 1 กล่อง</label>
+                                    <input type="number" id="swal-per-box" class="form-control" value="1">
+                                </div>
+                            </div>
+                            <hr>
+                            <div class="row bg-light p-2 rounded">
+                                <div class="col-md-4 mb-2">
+                                    <label class="form-label fw-bold text-secondary" style="font-size: 0.9rem;">ใช้เฉลี่ย/เดือน</label>
+                                    <input type="number" id="swal-usage" class="form-control text-center" value="0">
+                                </div>
+                                <div class="col-md-4 mb-2">
+                                    <label class="form-label fw-bold text-secondary" style="font-size: 0.9rem;">ยอดตั้งต้น</label>
+                                    <input type="number" id="swal-target" class="form-control text-center" value="0">
+                                </div>
+                                <div class="col-md-4 mb-2">
+                                    <label class="form-label fw-bold text-secondary" style="font-size: 0.9rem;">แจ้งเตือนใกล้หมด</label>
+                                    <input type="number" id="swal-min" class="form-control text-center" value="10">
+                                </div>
+                            </div>
+                        </div>
                     `,
-                    showCancelButton: true, confirmButtonText: 'บันทึก', confirmButtonColor: '#2ecc71',
+                    showCancelButton: true, confirmButtonText: '<i class="fas fa-save"></i> บันทึกข้อมูล', confirmButtonColor: '#2ecc71', cancelButtonText: 'ยกเลิก',
                     preConfirm: () => {
-                        return { code: document.getElementById('swal-code').value.trim(), name: document.getElementById('swal-name').value.trim(), category: document.getElementById('swal-cat').value, unit: document.getElementById('swal-unit').value.trim() || 'ชิ้น' }
+                        return { 
+                            code: document.getElementById('swal-code').value.trim(), 
+                            name: document.getElementById('swal-name').value.trim(), 
+                            category: document.getElementById('swal-cat').value, 
+                            unit: document.getElementById('swal-unit').value.trim() || 'ชิ้น',
+                            qty_per_box: document.getElementById('swal-per-box').value || "1",
+                            monthly_usage: parseFloat(document.getElementById('swal-usage').value) || 0,
+                            target_stock: parseInt(document.getElementById('swal-target').value) || 0,
+                            min_alert: parseInt(document.getElementById('swal-min').value) || 10
+                        }
                     }
                 }).then(res => {
                     if (res.isConfirmed) {
-                        if(!res.value.name || !res.value.code) return Swal.fire('ผิดพลาด', 'กรุณากรอกข้อมูลให้ครบ', 'warning');
+                        if(!res.value.name || !res.value.code) return Swal.fire('ผิดพลาด', 'กรุณากรอกชื่อและรหัสให้ครบ', 'warning');
                         if (allItems.some(i => i && i.code === res.value.code)) return Swal.fire('ผิดพลาด', 'รหัสนี้มีในระบบแล้ว!', 'error');
                         
-                        let newItem = { id: "ITM" + String(allItems.length + 1).padStart(4, '0'), code: res.value.code, name: res.value.name, category: res.value.category, unit: res.value.unit, main_stock: 0, sub_stock: 0, min_alert: 10, monthly_usage: 0, target_stock: 0 };
+                        let newItem = { 
+                            id: "ITM" + String(allItems.length + 1).padStart(4, '0'), 
+                            code: res.value.code, name: res.value.name, category: res.value.category, unit: res.value.unit, 
+                            qty_per_box: res.value.qty_per_box, monthly_usage: res.value.monthly_usage, 
+                            target_stock: res.value.target_stock, min_alert: res.value.min_alert,
+                            main_stock: 0, sub_stock: 0, req_qty: "", req_note: "" 
+                        };
 
                         if (db && document.getElementById('syncStatus').innerText.includes('ออนไลน์')) {
                             db.ref(`inventory_data/${allItems.length}`).set(newItem).then(() => Swal.fire('สำเร็จ', 'บันทึกออนไลน์แล้ว', 'success'));
