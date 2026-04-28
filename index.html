@@ -128,6 +128,7 @@
                             <table class="table table-hover table-striped mb-0">
                                 <thead>
                                     <tr>
+                                        <th class="text-center">ลำดับ</th>
                                         <th>รหัส</th>
                                         <th>ชื่อรายการ</th>
                                         <th class="text-center">คลังหลัก</th>
@@ -136,7 +137,7 @@
                                     </tr>
                                 </thead>
                                 <tbody id="inventory-table-body">
-                                    <tr><td colspan="5" class="text-center py-5 text-muted">กำลังดึงข้อมูล...</td></tr>
+                                    <tr><td colspan="6" class="text-center py-5 text-muted">กำลังดึงข้อมูล...</td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -162,7 +163,7 @@
 
         <div class="input-group shadow-sm mb-4" style="border-radius: 10px; overflow: hidden;">
             <span class="input-group-text bg-white border-0"><i class="fas fa-search text-muted"></i></span>
-            <input type="text" id="auditSearch" class="form-control border-0 py-3 bg-white" placeholder="พิมพ์ชื่อ หรือรหัส เพื่อกรองรายการที่ต้องการนับ..." onkeyup="renderAuditList()">
+            <input type="text" id="auditSearch" class="form-control border-0 py-3 bg-white" placeholder="พิมพ์ชื่อ ลำดับ หรือรหัส เพื่อกรองรายการ..." onkeyup="renderAuditList()">
         </div>
 
         <div id="auditListContainer" class="row">
@@ -179,9 +180,9 @@
         }
 
         let allItems = []; 
-        let auditData = []; // เก็บข้อมูลชั่วคราวตอนพิมพ์แก้ในหน้า Audit
+        let auditData = []; 
         let currentMode = 'out';
-        let scanner = null;
+        let html5QrCode = null; // Changed to Html5Qrcode instance
         let db = null;
 
         function initApp() {
@@ -221,7 +222,6 @@
                 let data = snap.val() || [];
                 allItems = Array.isArray(data) ? data : Object.keys(data).map(k => data[k]);
                 updateTableUI();
-                // ถ้ารันหน้า Audit อยู่ ให้โหลดข้อมูลใหม่ด้วยแต่ระวังช่องที่พิมพ์ค้างไว้
             });
         }
 
@@ -243,18 +243,24 @@
         function updateTableUI() {
             const tbody = document.getElementById('inventory-table-body');
             tbody.innerHTML = ''; 
-            if (!allItems || allItems.length === 0) return tbody.innerHTML = '<tr><td colspan="5" class="text-center py-5">ไม่มีข้อมูลพัสดุ</td></tr>';
+            if (!allItems || allItems.length === 0) return tbody.innerHTML = '<tr><td colspan="6" class="text-center py-5">ไม่มีข้อมูลพัสดุ</td></tr>';
 
             let validItems = allItems.filter(item => item && item.name);
-            validItems.sort((a, b) => ((a.category||"") > (b.category||"")) ? 1 : -1);
+            validItems.sort((a, b) => {
+                let seqA = parseFloat(a.seq_num) || 99999;
+                let seqB = parseFloat(b.seq_num) || 99999;
+                return seqA - seqB;
+            });
 
             validItems.forEach(item => {
                 let main_s = parseInt(item.main_stock || 0);
                 let sub_s = parseInt(item.sub_stock || 0);
                 let unit = item.unit || 'ชิ้น';
+                let seq_num = item.seq_num || '-';
                 let originalIndex = allItems.indexOf(item);
                     
                 let row = `<tr>
+                    <td class="text-center fw-bold text-secondary">${seq_num}</td>
                     <td class="text-secondary">${item.code || '-'}</td>
                     <td class="fw-bold text-dark" style="white-space: normal; min-width: 150px;">
                         ${item.name || '-'}<br><small class="text-muted fw-normal">${item.category || '-'}</small>
@@ -272,15 +278,13 @@
         }
 
         // ==========================================
-        // 🌟 1. ระบบหน้าจอ Audit เต็มรูปแบบ (Batch Audit)
+        // 🌟 ระบบหน้าจอ Audit เต็มรูปแบบ (Batch Audit)
         // ==========================================
         function openAuditView() {
-            // ซ่อนหน้าแรก โชว์หน้าสอง
             document.getElementById('dashboardView').style.display = 'none';
             document.getElementById('auditView').style.display = 'block';
-            if(window.innerWidth <= 768) toggleSidebar(); // ปิดเมนูมือถือ
+            if(window.innerWidth <= 768) toggleSidebar();
             
-            // ก๊อปปี้ข้อมูลทั้งหมดมาเตรียมไว้ให้แก้
             auditData = JSON.parse(JSON.stringify(allItems)); 
             document.getElementById('auditSearch').value = '';
             renderAuditList();
@@ -289,7 +293,7 @@
         function closeAuditView() {
             document.getElementById('auditView').style.display = 'none';
             document.getElementById('dashboardView').style.display = 'block';
-            auditData = []; // เคลียร์ขยะ
+            auditData = []; 
         }
 
         function renderAuditList() {
@@ -298,19 +302,26 @@
             container.innerHTML = '';
 
             let validItems = auditData.map((item, index) => ({ item, index })).filter(x => x.item && x.item.name);
-            validItems.sort((a, b) => ((a.item.category||"") > (b.item.category||"")) ? 1 : -1);
+            validItems.sort((a, b) => {
+                let seqA = parseFloat(a.item.seq_num) || 99999;
+                let seqB = parseFloat(b.item.seq_num) || 99999;
+                return seqA - seqB;
+            });
 
             validItems.forEach(({ item, index }) => {
-                if (term && !item.name.toLowerCase().includes(term) && !(item.code||"").toLowerCase().includes(term)) return;
+                if (term && !item.name.toLowerCase().includes(term) && !(item.code||"").toLowerCase().includes(term) && !(item.seq_num||"").toLowerCase().includes(term)) return;
 
                 let m_stock = parseInt(item.main_stock || 0);
                 let s_stock = parseInt(item.sub_stock || 0);
+                let seq = item.seq_num || '';
 
                 let card = `
                 <div class="col-md-6 col-xl-4 mb-3">
                     <div class="card audit-card shadow-sm h-100">
                         <div class="card-body p-3">
-                            <h6 class="fw-bold text-dark mb-1" style="font-size:1.1rem;">[${item.code || '-'}] ${item.name}</h6>
+                            <h6 class="fw-bold text-dark mb-1" style="font-size:1.1rem;">
+                                ${seq ? `<span class="badge bg-secondary me-1">${seq}</span>` : ''}[${item.code || '-'}] ${item.name}
+                            </h6>
                             <p class="text-muted small mb-2"><span class="badge bg-light text-dark border">${item.category || '-'}</span></p>
                             
                             <div class="d-flex justify-content-between mb-3 pb-2 border-bottom">
@@ -327,7 +338,7 @@
                                            onclick="this.select()">
                                 </div>
                                 <div class="col-6">
-                                    <label class="small fw-bold text-danger mb-1"><i class="fas fa-box-open me-1"></i> นับจริง (ย่อย/พร้อมใช้)</label>
+                                    <label class="small fw-bold text-danger mb-1"><i class="fas fa-box-open me-1"></i> นับจริง (ย่อย)</label>
                                     <input type="number" class="form-control text-center audit-input border-danger text-danger" 
                                            value="${s_stock}" 
                                            onchange="updateAuditVal(${index}, 'sub_stock', this.value)"
@@ -359,7 +370,6 @@
                     let now = new Date().toLocaleDateString('en-GB')+" "+new Date().toLocaleTimeString('en-GB');
                     let changesCount = 0;
                     
-                    // หาว่าชิ้นไหนตัวเลขเปลี่ยนบ้าง
                     auditData.forEach((item, idx) => {
                         let orig = allItems[idx];
                         if(!orig) return;
@@ -394,12 +404,12 @@
                             if(logs.length > 0) {
                                 db.ref('history_data').once('value').then(s => { 
                                     let arr = s.val() || []; 
-                                    arr = logs.concat(arr); // เอาประวัติใหม่ไปต่อหัว
+                                    arr = logs.concat(arr); 
                                     db.ref('history_data').set(arr); 
                                 });
                             }
                             Swal.fire('สำเร็จ!', `อัปเดตยอดสต๊อกใหม่จำนวน ${changesCount} รายการเรียบร้อยแล้ว`, 'success');
-                            closeAuditView(); // กลับหน้าหลัก
+                            closeAuditView(); 
                         });
                     } else {
                         Swal.fire('ข้อผิดพลาด', 'ต้องต่ออินเทอร์เน็ตเพื่อบันทึกใบตรวจนับหลายรายการ', 'error');
@@ -408,9 +418,65 @@
             });
         }
 
+        // ==========================================
+        // 🌟 แก้ไขระบบกล้องด้วย Html5Qrcode (ทำงานในมือถือได้ดีขึ้น)
+        // ==========================================
+        function toggleScan() {
+            const readerDiv = document.getElementById('reader');
+            
+            // ถ้ากล้องเปิดอยู่ ให้ปิด
+            if (html5QrCode) {
+                html5QrCode.stop().then(() => {
+                    html5QrCode.clear();
+                    html5QrCode = null;
+                    readerDiv.style.display = 'none';
+                }).catch(err => console.error("Stop failed: ", err));
+                return;
+            }
+            
+            // เริ่มเปิดกล้อง
+            readerDiv.style.display = 'block';
+            html5QrCode = new Html5Qrcode("reader");
+            
+            // ตั้งค่าให้อ่านกล้องหลังมือถือ (environment) เป็นหลัก
+            const config = { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 };
+            
+            html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess, onScanFailure)
+                .catch((err) => {
+                    // ถ้าหากมือถือหรืออุปกรณ์ไม่มี environment camera ก็จะลองโหมดปกติ
+                    console.warn("Error starting with environment mode, falling back.", err);
+                    html5QrCode.start({ facingMode: "user" }, config, onScanSuccess, onScanFailure)
+                        .catch(err2 => {
+                            Swal.fire("ข้อผิดพลาด", "ไม่สามารถใช้งานกล้องได้ โปรดอนุญาตการเข้าถึงกล้องบนเบราว์เซอร์หรือแอปพลิเคชันของคุณ", "error");
+                            readerDiv.style.display = 'none';
+                            html5QrCode = null;
+                        });
+                });
+        }
+
+        function onScanSuccess(decodedText, decodedResult) {
+            try{document.getElementById('soundScan').play()}catch(e){}
+            
+            // หยุดสแกนหลังจากเจอโค้ด
+            if (html5QrCode) {
+                html5QrCode.stop().then(() => {
+                    html5QrCode.clear();
+                    html5QrCode = null;
+                    document.getElementById('reader').style.display = 'none';
+                });
+            }
+            
+            document.getElementById('codeInput').value = decodedText;
+            handleScanResult(decodedText);
+        }
+
+        function onScanFailure(error) {
+            // ไม่ต้องแจ้งเตือนทุกเฟรมเวลาหาไม่เจอ
+        }
+
 
         // ==========================================
-        // ส่วนอื่นๆ ที่เหลือ (แก้ไข, สแกนเดี่ยว, เพิ่มของ) คงเดิม
+        // แก้ไขและจัดการระบบ
         // ==========================================
         function editItem(idx) {
             const item = allItems[idx];
@@ -421,15 +487,21 @@
                 width: '600px',
                 html: `
                     <div class="text-start mt-3" style="font-family: 'Sarabun', sans-serif;">
-                        <div class="mb-3">
-                            <label class="form-label fw-bold text-primary">หมวดหมู่</label>
-                            <select id="edit-cat" class="form-select border-primary" style="height: 45px;">
-                                <option value="เวชภัณฑ์ทางการแพทย์" ${isCat('เวชภัณฑ์ทางการแพทย์')}>เวชภัณฑ์ทางการแพทย์</option>
-                                <option value="อุปกรณ์สำนักงาน" ${isCat('อุปกรณ์สำนักงาน')}>อุปกรณ์สำนักงาน</option>
-                                <option value="น้ำยา/อุปกรณ์ทำความสะอาด" ${isCat('น้ำยา/อุปกรณ์ทำความสะอาด')}>น้ำยา/อุปกรณ์ทำความสะอาด</option>
-                                <option value="น้ำยาไต (ทั่วไป)" ${isCat('น้ำยาไต (ทั่วไป)')}>น้ำยาไต (ทั่วไป)</option>
-                                <option value="อื่นๆ" ${isCat('อื่นๆ')}>อื่นๆ</option>
-                            </select>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label fw-bold">ลำดับ</label>
+                                <input id="edit-seq" class="form-control" value="${item.seq_num || ''}">
+                            </div>
+                            <div class="col-md-8 mb-3">
+                                <label class="form-label fw-bold text-primary">หมวดหมู่</label>
+                                <select id="edit-cat" class="form-select border-primary" style="height: 45px;">
+                                    <option value="เวชภัณฑ์ทางการแพทย์" ${isCat('เวชภัณฑ์ทางการแพทย์')}>เวชภัณฑ์ทางการแพทย์</option>
+                                    <option value="อุปกรณ์สำนักงาน" ${isCat('อุปกรณ์สำนักงาน')}>อุปกรณ์สำนักงาน</option>
+                                    <option value="น้ำยา/อุปกรณ์ทำความสะอาด" ${isCat('น้ำยา/อุปกรณ์ทำความสะอาด')}>น้ำยา/อุปกรณ์ทำความสะอาด</option>
+                                    <option value="น้ำยาไต (ทั่วไป)" ${isCat('น้ำยาไต (ทั่วไป)')}>น้ำยาไต (ทั่วไป)</option>
+                                    <option value="อื่นๆ" ${isCat('อื่นๆ')}>อื่นๆ</option>
+                                </select>
+                            </div>
                         </div>
                         <div class="row">
                             <div class="col-md-6 mb-3">
@@ -471,6 +543,7 @@
                 showCancelButton: true, confirmButtonText: '<i class="fas fa-save"></i> บันทึกการแก้ไข', confirmButtonColor: '#3498db', cancelButtonText: 'ยกเลิก',
                 preConfirm: () => {
                     return { 
+                        seq_num: document.getElementById('edit-seq').value.trim(),
                         code: document.getElementById('edit-code').value.trim(), 
                         name: document.getElementById('edit-name').value.trim(), 
                         category: document.getElementById('edit-cat').value,
@@ -502,21 +575,6 @@
             document.getElementById('btnModeAudit').className = m === 'audit' ? 'btn btn-secondary text-white flex-fill fw-bold py-2 shadow-sm active' : 'btn btn-outline-secondary flex-fill fw-bold py-2 shadow-sm';
         }
 
-        function toggleScan() {
-            const r = document.getElementById('reader');
-            if (scanner) { scanner.clear(); scanner = null; r.style.display = 'none'; } 
-            else {
-                r.style.display = 'block';
-                scanner = new Html5QrcodeScanner("reader", { fps: 15, qrbox: 250 });
-                scanner.render(c => {
-                    try{document.getElementById('soundScan').play()}catch(e){}
-                    scanner.clear(); scanner = null; r.style.display = 'none';
-                    document.getElementById('codeInput').value = c;
-                    handleScanResult(c);
-                });
-            }
-        }
-
         function handleScanResult(code) {
             code = code.trim();
             if(!code) return;
@@ -542,15 +600,21 @@
                     width: '600px',
                     html: `
                         <div class="text-start mt-3" style="font-family: 'Sarabun', sans-serif;">
-                            <div class="mb-3">
-                                <label class="form-label fw-bold text-primary">หมวดหมู่</label>
-                                <select id="swal-cat" class="form-select border-primary" style="height: 45px;">
-                                    <option value="เวชภัณฑ์ทางการแพทย์">เวชภัณฑ์ทางการแพทย์</option>
-                                    <option value="อุปกรณ์สำนักงาน">อุปกรณ์สำนักงาน</option>
-                                    <option value="น้ำยา/อุปกรณ์ทำความสะอาด">น้ำยา/อุปกรณ์ทำความสะอาด</option>
-                                    <option value="น้ำยาไต (ทั่วไป)">น้ำยาไต (ทั่วไป)</option>
-                                    <option value="อื่นๆ">อื่นๆ</option>
-                                </select>
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label fw-bold">ลำดับ</label>
+                                    <input id="swal-seq" class="form-control" placeholder="1, 2, ...">
+                                </div>
+                                <div class="col-md-8 mb-3">
+                                    <label class="form-label fw-bold text-primary">หมวดหมู่</label>
+                                    <select id="swal-cat" class="form-select border-primary" style="height: 45px;">
+                                        <option value="เวชภัณฑ์ทางการแพทย์">เวชภัณฑ์ทางการแพทย์</option>
+                                        <option value="อุปกรณ์สำนักงาน">อุปกรณ์สำนักงาน</option>
+                                        <option value="น้ำยา/อุปกรณ์ทำความสะอาด">น้ำยา/อุปกรณ์ทำความสะอาด</option>
+                                        <option value="น้ำยาไต (ทั่วไป)">น้ำยาไต (ทั่วไป)</option>
+                                        <option value="อื่นๆ">อื่นๆ</option>
+                                    </select>
+                                </div>
                             </div>
                             <div class="row">
                                 <div class="col-md-6 mb-3">
@@ -592,6 +656,7 @@
                     showCancelButton: true, confirmButtonText: '<i class="fas fa-save"></i> บันทึกข้อมูล', confirmButtonColor: '#2ecc71', cancelButtonText: 'ยกเลิก',
                     preConfirm: () => {
                         return { 
+                            seq_num: document.getElementById('swal-seq').value.trim(),
                             code: document.getElementById('swal-code').value.trim(), 
                             name: document.getElementById('swal-name').value.trim(), 
                             category: document.getElementById('swal-cat').value, 
@@ -609,6 +674,7 @@
                         
                         let newItem = { 
                             id: "ITM" + String(allItems.length + 1).padStart(4, '0'), 
+                            seq_num: res.value.seq_num,
                             code: res.value.code, name: res.value.name, category: res.value.category, unit: res.value.unit, 
                             qty_per_box: res.value.qty_per_box, monthly_usage: res.value.monthly_usage, 
                             target_stock: res.value.target_stock, min_alert: res.value.min_alert,
@@ -627,7 +693,7 @@
             }
 
             let options = {};
-            allItems.forEach((it, idx) => { if(it && it.name) options[idx] = `[${it.code || '-'}] ${it.name}`; });
+            allItems.forEach((it, idx) => { if(it && it.name) options[idx] = `[${it.seq_num?it.seq_num+' ':''}${it.code || '-'}] ${it.name}`; });
             Swal.fire({ title: 'เลือกพัสดุ', input: 'select', inputOptions: options, inputPlaceholder: 'คลิกเลือกรายการ...', showCancelButton: true }).then(res => {
                 if (res.isConfirmed && res.value !== "") showStockDialog(res.value, mode);
             });
@@ -695,7 +761,6 @@
             }).then(res => { 
                 if (res.isConfirmed) {
                     if (res.value.action === 'audit') {
-                        // ฟังก์ชันเซฟสำหรับ 1 ชิ้น
                         if (db && document.getElementById('syncStatus').innerText.includes('ออนไลน์')) {
                             db.ref(`inventory_data/${idx}`).update({ main_stock: res.value.new_main, sub_stock: res.value.new_sub }).then(() => {
                                 let log = { date: new Date().toLocaleDateString('en-GB')+" "+new Date().toLocaleTimeString('en-GB'), code: item.code, name: item.name, action: "ปรับยอด (Spot Audit)", qty: 0, unit: item.unit, main_bal: res.value.new_main, sub_bal: res.value.new_sub };
