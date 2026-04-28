@@ -16,13 +16,23 @@
     
     <style>
         body { font-family: 'Sarabun', sans-serif; background-color: #f4f6f9; overflow-x: hidden; }
-        .sidebar { height: 100vh; width: 250px; position: fixed; top: 0; left: 0; background-color: #2c3e50; color: white; padding-top: 20px; z-index: 100; }
+        
+        /* 🌟 ระบบ Navbar สำหรับมือถือ 🌟 */
+        .mobile-header { display: none; background-color: #2c3e50; color: white; padding: 15px 20px; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 1020; box-shadow: 0 2px 5px rgba(0,0,0,0.1);}
+        .mobile-header h5 { margin: 0; font-weight: bold; }
+        .hamburger-btn { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; }
+
+        /* Sidebar */
+        .sidebar { height: 100vh; width: 250px; position: fixed; top: 0; left: 0; background-color: #2c3e50; color: white; padding-top: 20px; z-index: 1050; transition: transform 0.3s ease-in-out; box-shadow: 2px 0 10px rgba(0,0,0,0.2); }
         .sidebar .nav-link { color: #ecf0f1; margin: 10px 15px; border-radius: 8px; transition: all 0.3s; font-size: 1.1rem; cursor: pointer; }
         .sidebar .nav-link:hover, .sidebar .nav-link.active { background-color: #34495e; color: #3498db; transform: translateX(5px); }
-        .main-content { margin-left: 250px; padding: 30px; }
+        
+        .sidebar-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1040; transition: opacity 0.3s; }
+
+        .main-content { margin-left: 250px; padding: 30px; transition: margin 0.3s; }
         .header-title { color: #2c3e50; font-weight: bold; border-bottom: 3px solid #3498db; padding-bottom: 10px; margin-bottom: 25px; }
 
-        .menu-box { text-align: center; padding: 20px; border-radius: 12px; cursor: pointer; transition: all 0.3s; color: white; border: none; }
+        .menu-box { text-align: center; padding: 20px; border-radius: 12px; cursor: pointer; transition: all 0.3s; color: white; border: none; margin-bottom: 15px;}
         .menu-box:hover { transform: translateY(-5px); box-shadow: 0 8px 15px rgba(0,0,0,0.2); }
         .menu-icon { font-size: 2.5rem; margin-bottom: 10px; }
         .bg-inventory { background: linear-gradient(135deg, #17A2B8, #117A8B); }
@@ -31,26 +41,44 @@
 
         .card { border-radius: 12px; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
         .table-responsive { max-height: 500px; overflow-y: auto; }
-        .table thead th { background-color: #34495E; color: white; position: sticky; top: 0; z-index: 1;}
-        .table td { vertical-align: middle; font-size: 1.05rem; }
+        .table thead th { background-color: #34495E; color: white; position: sticky; top: 0; z-index: 1; white-space: nowrap;}
+        .table td { vertical-align: middle; font-size: 1.05rem; white-space: nowrap; }
         
-        .action-btn { font-weight: bold; border-radius: 8px; padding: 10px 20px; margin-right: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.2s;}
+        .action-btn { font-weight: bold; border-radius: 8px; padding: 10px 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.2s; flex: 1; min-width: 140px; text-align: center;}
         .action-btn:hover { transform: scale(1.05); }
         .btn-scan { border-radius: 12px; padding: 15px; font-weight: bold; background: #263238; color: white; font-size: 1.2rem; }
         .btn-scan:hover { background: #1a2529; color: white; }
         #reader { width: 100%; border-radius: 15px; overflow: hidden; display: none; border: 4px dashed #00bfa5; margin-bottom: 15px; background: #fff; }
         
-        /* 🌟 ระบบซ่อนเมนูสำหรับมือถือ 🌟 */
-        @media (max-width: 768px) { .sidebar { display: none; } .main-content { margin-left: 0; padding: 15px; } }
-        /* 🌟 คลาสพิเศษสำหรับซ่อนปุ่มของโปรแกรม Python 🌟 */
+        /* 🌟 ปรับแต่งสำหรับมือถือโดยเฉพาะ 🌟 */
+        @media (max-width: 768px) { 
+            .mobile-header { display: flex; }
+            .sidebar { transform: translateX(-100%); }
+            .sidebar.open { transform: translateX(0); }
+            .sidebar-overlay.open { display: block; }
+            .main-content { margin-left: 0; padding: 15px; }
+            .header-title { font-size: 1.5rem; }
+            .action-btn { width: 100%; margin-bottom: 5px; }
+            .d-flex.flex-wrap.gap-2 { flex-direction: column; }
+        }
         .desktop-only { display: block; }
     </style>
 </head>
 <body>
 
-    <div class="sidebar">
-        <h4 class="text-center mb-4"><i class="fas fa-hospital-user"></i> Smart Clinic</h4>
-        <ul class="nav flex-column">
+    <div class="mobile-header">
+        <h5><i class="fas fa-hospital-user me-2"></i>Smart Clinic</h5>
+        <button class="hamburger-btn" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+    </div>
+
+    <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+    <div class="sidebar" id="sidebar">
+        <h4 class="text-center mb-4 d-none d-md-block"><i class="fas fa-hospital-user"></i> Smart Clinic</h4>
+        <div class="text-end pe-3 d-md-none">
+            <button class="btn btn-close btn-close-white" onclick="toggleSidebar()"></button>
+        </div>
+        <ul class="nav flex-column mt-3">
             <li class="nav-item"><a class="nav-link active"><i class="fas fa-home me-2"></i> หน้าหลัก (คลังพัสดุ)</a></li>
             <li class="nav-item desktop-only"><a class="nav-link" onclick="openPythonApp('patient')"><i class="fas fa-procedures me-2"></i> ทะเบียนผู้ป่วย</a></li>
             <li class="nav-item desktop-only"><a class="nav-link" onclick="openPythonApp('history')"><i class="fas fa-history me-2"></i> ประวัติการรักษา</a></li>
@@ -60,37 +88,25 @@
     </div>
 
     <div class="main-content">
-        <h2 class="header-title w-100 mb-3">แดชบอร์ด - ภาพรวมสต๊อกพัสดุ (Hybrid System)</h2>
+        <h2 class="header-title w-100 mb-3 d-none d-md-block">แดชบอร์ด - ภาพรวมสต๊อกพัสดุ (Hybrid System)</h2>
         
-        <div id="web-notice" class="alert alert-info fw-bold shadow-sm" style="display: none; border-radius: 10px;">
-            <i class="fas fa-globe me-2"></i> โหมด Web/Mobile (ใช้งานสแกนบาร์โค้ด และจัดการสต๊อกแบบพกพา)
+        <div id="web-notice" class="alert alert-info fw-bold shadow-sm" style="display: none; border-radius: 10px; font-size: 0.95rem;">
+            <i class="fas fa-mobile-alt me-2"></i> โหมด Web/Mobile สำหรับสแกนพัสดุแบบพกพา
         </div>
 
         <div class="row mb-4 desktop-only">
-            <div class="col-md-4">
-                <div class="menu-box bg-inventory" onclick="openPythonApp('inventory')">
-                    <i class="fas fa-boxes menu-icon"></i><h5 class="fw-bold mb-1">จัดการคลังพัสดุเต็มรูปแบบ</h5>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="menu-box bg-audit" onclick="openPythonApp('audit')">
-                    <i class="fas fa-clipboard-check menu-icon"></i><h5 class="fw-bold mb-1">ตรวจนับสต๊อก (Audit)</h5>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="menu-box bg-settings" onclick="openPythonApp('settings')">
-                    <i class="fas fa-cog menu-icon"></i><h5 class="fw-bold mb-1">ตั้งค่าระบบคลินิก</h5>
-                </div>
-            </div>
+            <div class="col-md-4"><div class="menu-box bg-inventory" onclick="openPythonApp('inventory')"><i class="fas fa-boxes menu-icon"></i><h5 class="fw-bold mb-1">จัดการคลังพัสดุเต็มรูปแบบ</h5></div></div>
+            <div class="col-md-4"><div class="menu-box bg-audit" onclick="openPythonApp('audit')"><i class="fas fa-clipboard-check menu-icon"></i><h5 class="fw-bold mb-1">ตรวจนับสต๊อก (Audit)</h5></div></div>
+            <div class="col-md-4"><div class="menu-box bg-settings" onclick="openPythonApp('settings')"><i class="fas fa-cog menu-icon"></i><h5 class="fw-bold mb-1">ตั้งค่าระบบคลินิก</h5></div></div>
         </div>
 
         <div class="card mb-4 bg-white p-3 border-2 border-primary shadow-sm">
             <h5 class="fw-bold text-primary mb-3"><i class="fas fa-keyboard me-2"></i>ทำรายการแบบแมนนวล</h5>
             <div class="d-flex flex-wrap gap-2">
-                <button class="btn btn-success action-btn" onclick="manualAction('receive_main')"><i class="fas fa-download me-1"></i> รับของเข้าคลังหลัก</button>
+                <button class="btn btn-success action-btn" onclick="manualAction('receive_main')"><i class="fas fa-download me-1"></i> รับของเข้าคลัง</button>
                 <button class="btn btn-info action-btn text-white" onclick="manualAction('transfer')"><i class="fas fa-exchange-alt me-1"></i> โอนย้ายคลัง</button>
-                <button class="btn btn-warning action-btn text-dark" onclick="manualAction('use')"><i class="fas fa-upload me-1"></i> เบิกจ่าย (ใช้งานจริง)</button>
-                <button class="btn btn-primary action-btn ms-auto" onclick="manualAction('add_item')"><i class="fas fa-plus me-1"></i> ➕ เพิ่มทะเบียนพัสดุ</button>
+                <button class="btn btn-warning action-btn text-dark" onclick="manualAction('use')"><i class="fas fa-upload me-1"></i> เบิกจ่าย (หักออก)</button>
+                <button class="btn btn-primary action-btn mt-md-0 mt-2" onclick="manualAction('add_item')"><i class="fas fa-plus me-1"></i> ➕ เพิ่มพัสดุใหม่</button>
             </div>
         </div>
 
@@ -104,7 +120,7 @@
             <div id="reader"></div>
             <div class="input-group shadow-sm mt-3" style="border-radius: 10px; overflow: hidden;">
                 <span class="input-group-text bg-white border-0"><i class="fa-solid fa-barcode text-muted"></i></span>
-                <input type="text" id="codeInput" class="form-control border-0 bg-light" placeholder="หรือพิมพ์รหัสพัสดุที่นี่..." onkeypress="if(event.key === 'Enter') handleScanResult(this.value)">
+                <input type="text" id="codeInput" class="form-control border-0 bg-light" placeholder="พิมพ์หรือสแกนรหัสที่นี่..." onkeypress="if(event.key === 'Enter') handleScanResult(this.value)">
                 <button class="btn btn-primary px-3 fw-bold" onclick="handleScanResult(document.getElementById('codeInput').value)">ค้นหา</button>
             </div>
         </div>
@@ -112,13 +128,11 @@
         <div class="row">
             <div class="col-12">
                 <div class="card">
-                    <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
-                        <h5 class="mb-0 text-primary fw-bold"><i class="fas fa-cubes me-2"></i> สต๊อกพัสดุและน้ำยาคงเหลือ</h5>
-                        <div>
-                            <span class="badge bg-secondary fs-6 px-3 py-2 me-2" id="syncStatus"><i class="fas fa-spinner fa-spin me-1"></i> กำลังตรวจสอบระบบ...</span>
-                            <button class="btn btn-outline-primary btn-sm rounded-pill px-3" onclick="forceReload()">
-                                <i class="fas fa-sync-alt"></i> รีเฟรช
-                            </button>
+                    <div class="card-header bg-white d-flex flex-column flex-md-row justify-content-between align-items-md-center py-3 gap-2">
+                        <h5 class="mb-0 text-primary fw-bold"><i class="fas fa-cubes me-2"></i> สต๊อกพัสดุคงเหลือ</h5>
+                        <div class="d-flex align-items-center justify-content-between">
+                            <span class="badge bg-secondary fs-6 px-3 py-2 me-2" id="syncStatus"><i class="fas fa-spinner fa-spin me-1"></i> ตรวจสอบระบบ...</span>
+                            <button class="btn btn-outline-primary btn-sm rounded-pill px-3" onclick="forceReload()"><i class="fas fa-sync-alt"></i></button>
                         </div>
                     </div>
                     <div class="card-body p-0">
@@ -126,16 +140,16 @@
                             <table class="table table-hover table-striped mb-0">
                                 <thead>
                                     <tr>
-                                        <th width="12%">รหัสพัสดุ</th>
-                                        <th width="15%">หมวดหมู่</th>
-                                        <th width="28%">ชื่อรายการพัสดุ / น้ำยา</th>
-                                        <th width="15%" class="text-center">คลังหลัก (ตู้ใหญ่)</th>
-                                        <th width="15%" class="text-center">คลังย่อย (พร้อมใช้)</th>
-                                        <th width="15%" class="text-center">สถานะสต๊อก</th>
-                                    </tr>
+                                        <th>รหัสพัสดุ</th>
+                                        <th>หมวดหมู่</th>
+                                        <th>ชื่อรายการ</th>
+                                        <th class="text-center">คลังหลัก (ตู้ใหญ่)</th>
+                                        <th class="text-center">คลังย่อย (พร้อมใช้)</th>
+                                        <th class="text-center">สถานะ</th>
+                                        <th class="text-center">จัดการ</th> </tr>
                                 </thead>
                                 <tbody id="inventory-table-body">
-                                    <tr><td colspan="6" class="text-center py-5 text-muted">กำลังดึงข้อมูล...</td></tr>
+                                    <tr><td colspan="7" class="text-center py-5 text-muted">กำลังดึงข้อมูล...</td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -148,12 +162,14 @@
     <audio id="soundScan" src="https://www.soundjay.com/buttons/sounds/beep-07.mp3"></audio>
 
     <script>
-        // ==========================================
-        // 1. ตรวจสอบโหมดการทำงาน (Web vs Python App)
-        // ==========================================
+        // 🌟 สลับเมนูด้านข้างสำหรับมือถือ 🌟
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
+            document.querySelector('.sidebar-overlay').classList.toggle('open');
+        }
+
         setTimeout(() => {
             if (typeof pywebview === 'undefined') {
-                // ถ้าเปิดใน Chrome/มือถือ ให้ซ่อนปุ่มของโปรแกรม Python ทิ้ง
                 document.querySelectorAll('.desktop-only').forEach(el => el.style.display = 'none');
                 document.getElementById('web-notice').style.display = 'block';
             }
@@ -164,6 +180,9 @@
         let scanner = null;
         let db = null;
 
+        // ==========================================
+        // 1. ระบบดึงข้อมูล Firebase (Real-time)
+        // ==========================================
         function initApp() {
             try {
                 const firebaseConfig = {
@@ -177,21 +196,21 @@
                 
                 db.ref('.info/connected').on('value', function(connectedSnap) {
                     if (connectedSnap.val() === true) {
-                        setSyncStatus("ออนไลน์ (Firebase)", "success", "wifi");
+                        setSyncStatus("ออนไลน์", "success", "wifi");
                         loadOnlineData();
                     } else {
-                        setSyncStatus("ออฟไลน์ (Local File)", "info", "database");
+                        setSyncStatus("ออฟไลน์", "info", "database");
                         loadLocalData();
                     }
                 });
             } catch (e) {
-                setSyncStatus("ออฟไลน์ (Local File)", "info", "database");
+                setSyncStatus("ออฟไลน์", "info", "database");
                 loadLocalData();
             }
         }
 
         function setSyncStatus(text, color, icon) {
-            document.getElementById('syncStatus').className = `badge bg-${color} fs-6 px-3 py-2 me-2`;
+            document.getElementById('syncStatus').className = `badge bg-${color} px-3 py-2 me-2`;
             document.getElementById('syncStatus').innerHTML = `<i class="fas fa-${icon} me-1"></i> ${text}`;
         }
 
@@ -222,7 +241,7 @@
         function updateTableUI() {
             const tbody = document.getElementById('inventory-table-body');
             tbody.innerHTML = ''; 
-            if (!allItems || allItems.length === 0) return tbody.innerHTML = '<tr><td colspan="6" class="text-center py-5">ไม่มีข้อมูลพัสดุ</td></tr>';
+            if (!allItems || allItems.length === 0) return tbody.innerHTML = '<tr><td colspan="7" class="text-center py-5">ไม่มีข้อมูลพัสดุ</td></tr>';
 
             let validItems = allItems.filter(item => item && item.name);
             validItems.sort((a, b) => ((a.category||"") > (b.category||"")) ? 1 : -1);
@@ -234,144 +253,82 @@
                 let min_alert = parseInt(item.min_alert || 10);
                 let unit = item.unit || 'ชิ้น';
                 
-                let statusHtml = total <= 0 ? `<span class="badge bg-danger rounded-pill px-3">ของหมด!</span>` : 
+                // หา index เดิมใน allItems เพื่อส่งไปให้ปุ่ม Edit
+                let originalIndex = allItems.indexOf(item);
+                
+                let statusHtml = total <= 0 ? `<span class="badge bg-danger rounded-pill px-3">หมด!</span>` : 
                                  total <= min_alert ? `<span class="badge bg-warning text-dark rounded-pill px-3">ใกล้หมด</span>` : 
                                  `<span class="badge bg-success rounded-pill px-3">ปกติ</span>`;
                     
                 let row = `<tr>
                     <td class="text-center text-secondary">${item.code || '-'}</td>
                     <td><span class="badge bg-secondary opacity-75">${item.category || '-'}</span></td>
-                    <td class="fw-bold text-dark">${item.name || '-'}</td>
+                    <td class="fw-bold text-dark" style="white-space: normal; min-width: 150px;">${item.name || '-'}</td>
                     <td class="text-center fs-6">${main_s} <small class="text-muted">${unit}</small></td>
                     <td class="text-center fs-6 text-info fw-bold">${sub_s} <small class="text-muted">${unit}</small></td>
                     <td class="text-center">${statusHtml}</td>
+                    <td class="text-center">
+                        <button class="btn btn-outline-primary btn-sm" onclick="editItem(${originalIndex})" title="แก้ไขรายการ">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                    </td>
                 </tr>`;
                 tbody.insertAdjacentHTML('beforeend', row);
             });
         }
 
         // ==========================================
-        // 2. ระบบทำรายการ แมนนวลบนเว็บ (Manual Action)
+        // 2. ฟังก์ชันแก้ไขรายการ (Edit Item)
         // ==========================================
-        function manualAction(mode) {
-            if (mode === 'add_item') {
-                Swal.fire({
-                    title: '➕ เพิ่มทะเบียนพัสดุใหม่',
-                    width: '600px', // ขยายหน้าต่างให้กว้างขึ้น
-                    html: `
-                        <div class="text-start mt-3" style="font-family: 'Sarabun', sans-serif;">
-                            <div class="mb-3">
-                                <label class="form-label fw-bold text-primary">หมวดหมู่</label>
-                                <select id="swal-cat" class="form-select border-primary">
-                                    <option value="เวชภัณฑ์ทางการแพทย์">เวชภัณฑ์ทางการแพทย์</option>
-                                    <option value="อุปกรณ์สำนักงาน">อุปกรณ์สำนักงาน</option>
-                                    <option value="น้ำยา/อุปกรณ์ทำความสะอาด">น้ำยา/อุปกรณ์ทำความสะอาด</option>
-                                    <option value="น้ำยาไต (ทั่วไป)">น้ำยาไต (ทั่วไป)</option>
-                                    <option value="อื่นๆ">อื่นๆ</option>
-                                </select>
-                            </div>
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label fw-bold">รหัสพัสดุ (Code)</label>
-                                    <input id="swal-code" class="form-control" placeholder="เช่น A01">
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label fw-bold">ชื่อพัสดุ / อุปกรณ์</label>
-                                    <input id="swal-name" class="form-control" placeholder="ระบุชื่อพัสดุ">
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label fw-bold">หน่วยนับ</label>
-                                    <input id="swal-unit" class="form-control" placeholder="เช่น ชิ้น, กล่อง">
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label fw-bold">จำนวนบรรจุต่อ 1 กล่อง</label>
-                                    <input type="number" id="swal-per-box" class="form-control" value="1">
-                                </div>
-                            </div>
-                            <hr>
-                            <div class="row bg-light p-2 rounded">
-                                <div class="col-md-4 mb-2">
-                                    <label class="form-label fw-bold text-secondary" style="font-size: 0.9rem;">ใช้เฉลี่ย/เดือน</label>
-                                    <input type="number" id="swal-usage" class="form-control text-center" value="0">
-                                </div>
-                                <div class="col-md-4 mb-2">
-                                    <label class="form-label fw-bold text-secondary" style="font-size: 0.9rem;">ยอดตั้งต้น</label>
-                                    <input type="number" id="swal-target" class="form-control text-center" value="0">
-                                </div>
-                                <div class="col-md-4 mb-2">
-                                    <label class="form-label fw-bold text-secondary" style="font-size: 0.9rem;">แจ้งเตือนใกล้หมด</label>
-                                    <input type="number" id="swal-min" class="form-control text-center" value="10">
-                                </div>
-                            </div>
-                        </div>
-                    `,
-                    showCancelButton: true, 
-                    confirmButtonText: '<i class="fas fa-save"></i> บันทึกข้อมูล', 
-                    confirmButtonColor: '#2ecc71',
-                    cancelButtonText: 'ยกเลิก',
-                    preConfirm: () => {
-                        return {
-                            code: document.getElementById('swal-code').value,
-                            name: document.getElementById('swal-name').value,
-                            category: document.getElementById('swal-cat').value,
-                            unit: document.getElementById('swal-unit').value || 'ชิ้น',
-                            qty_per_box: document.getElementById('swal-per-box').value || "1",
-                            monthly_usage: document.getElementById('swal-usage').value || 0,
-                            target_stock: document.getElementById('swal-target').value || 0,
-                            min_alert: document.getElementById('swal-min').value || 10
-                        }
-                    }
-                }).then(res => {
-                    if (res.isConfirmed) {
-                        if(!res.value.name || !res.value.code) return Swal.fire('ผิดพลาด', 'กรุณากรอก "ชื่อ" และ "รหัสพัสดุ" ให้ครบถ้วน', 'warning');
-                        
-                        // สร้างโครงสร้างข้อมูลให้เหมือนโปรแกรม Python เป๊ะๆ
-                        let newItem = {
-                            id: "ITM" + String(allItems.length + 1).padStart(4, '0'),
-                            code: res.value.code, 
-                            name: res.value.name, 
-                            category: res.value.category, 
-                            unit: res.value.unit,
-                            qty_per_box: res.value.qty_per_box,
-                            monthly_usage: parseFloat(res.value.monthly_usage),
-                            target_stock: parseInt(res.value.target_stock),
-                            min_alert: parseInt(res.value.min_alert),
-                            main_stock: 0, 
-                            sub_stock: 0, 
-                            req_qty: "", 
-                            req_note: ""
-                        };
-
-                        // บันทึกขึ้น Cloud หรือ ส่งไปให้ Python บันทึก
-                        if (db && document.getElementById('syncStatus').innerText.includes('ออนไลน์')) {
-                            db.ref(`inventory_data/${allItems.length}`).set(newItem).then(() => Swal.fire('สำเร็จ', 'เพิ่มพัสดุออนไลน์แล้ว', 'success'));
-                        } else if (typeof pywebview !== 'undefined' && pywebview.api) {
-                            pywebview.api.add_item_from_web(newItem).then(r => forceReload());
-                            Swal.fire('สำเร็จ', 'เพิ่มพัสดุลงในเครื่องคอมพิวเตอร์แล้ว', 'success');
-                        } else {
-                            Swal.fire('ข้อผิดพลาด', 'ไม่สามารถบันทึกได้ กรุณาต่อเน็ต หรือ รันผ่านโปรแกรม Python', 'error');
-                        }
-                    }
-                });
-                return;
-            }
-
-            // ถ้ารับเข้า / โอนย้าย / เบิกจ่าย ต้องมีของในตารางก่อน
-            let options = {};
-            allItems.forEach((it, idx) => { if(it && it.name) options[idx] = `[${it.code || '-'}] ${it.name}`; });
-            
+        function editItem(idx) {
+            const item = allItems[idx];
             Swal.fire({
-                title: 'เลือกพัสดุที่ต้องการ',
-                input: 'select', inputOptions: options, inputPlaceholder: 'คลิกเพื่อเลือกรายการ...', showCancelButton: true
-            }).then(res => {
-                if (res.isConfirmed && res.value !== "") showStockDialog(res.value, mode);
+                title: '📝 แก้ไขข้อมูลรายการ',
+                html: `
+                    <div class="text-start mb-1"><small class="fw-bold text-muted">รหัสพัสดุ</small></div>
+                    <input id="edit-code" class="swal2-input mt-0 mb-3" value="${item.code || ''}">
+                    
+                    <div class="text-start mb-1"><small class="fw-bold text-muted">ชื่อรายการ</small></div>
+                    <input id="edit-name" class="swal2-input mt-0 mb-3" value="${item.name || ''}">
+                    
+                    <div class="text-start mb-1"><small class="fw-bold text-muted">หน่วยนับ</small></div>
+                    <input id="edit-unit" class="swal2-input mt-0 mb-3" value="${item.unit || 'ชิ้น'}">
+                    
+                    <div class="text-start mb-1"><small class="fw-bold text-muted">แจ้งเตือนใกล้หมด</small></div>
+                    <input id="edit-min" type="number" class="swal2-input mt-0" value="${item.min_alert || 10}">
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'บันทึกการแก้ไข',
+                confirmButtonColor: '#3498db',
+                preConfirm: () => {
+                    return {
+                        code: document.getElementById('edit-code').value.trim(),
+                        name: document.getElementById('edit-name').value.trim(),
+                        unit: document.getElementById('edit-unit').value.trim(),
+                        min_alert: parseInt(document.getElementById('edit-min').value)
+                    }
+                }
+            }).then((res) => {
+                if (res.isConfirmed) {
+                    if(!res.value.name || !res.value.code) return Swal.fire('ผิดพลาด', 'กรุณากรอกชื่อและรหัสให้ครบ', 'warning');
+
+                    // บันทึกขึ้น Cloud
+                    if (db && document.getElementById('syncStatus').innerText.includes('ออนไลน์')) {
+                        db.ref(`inventory_data/${idx}`).update(res.value).then(() => Swal.fire('สำเร็จ!', 'แก้ไขข้อมูลเรียบร้อยแล้ว', 'success'));
+                    } 
+                    // บันทึกแบบออฟไลน์
+                    else if (typeof pywebview !== 'undefined' && pywebview.api && pywebview.api.edit_item_from_web) {
+                        pywebview.api.edit_item_from_web(idx, res.value).then(r => forceReload());
+                        Swal.fire('สำเร็จ!', 'แก้ไขข้อมูลในเครื่องแล้ว', 'success');
+                    } else {
+                        Swal.fire('ข้อผิดพลาด', 'ไม่สามารถบันทึกการแก้ไขได้', 'error');
+                    }
+                }
             });
         }
 
         // ==========================================
-        // 3. ระบบสแกน QR และยืนยันการตัดสต๊อก
+        // 3. ระบบสแกนและจัดการสต๊อก
         // ==========================================
         function setMode(m) {
             currentMode = m;
@@ -394,112 +351,131 @@
             }
         }
 
-        // ==========================================
-        // 1. ฟังก์ชันสแกน (เพิ่มระบบถามเมื่อไม่พบรหัส)
-        // ==========================================
         function handleScanResult(code) {
             code = code.trim();
             if(!code) return;
             
             const idx = allItems.findIndex(i => i && i.code === code);
             if (idx > -1) {
-                // ถ้ารู้จัก ให้เปิดหน้าต่างตัดสต๊อกปกติ
                 showStockDialog(idx, currentMode === 'out' ? 'use' : 'receive_sub');
             } else {
-                // 🌟 ถ้าไม่รู้จัก ให้เด้งถามว่าอยากเอาไปลงทะเบียนใหม่ไหม 🌟
                 Swal.fire({
                     title: 'ไม่พบรหัสนี้ในระบบ!',
                     html: `รหัสบาร์โค้ด: <b class="text-danger fs-5">${code}</b><br><br>คุณต้องการนำรหัสนี้ไปลงทะเบียนเป็นพัสดุใหม่หรือไม่?`,
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonText: '➕ นำไปลงทะเบียนใหม่',
-                    cancelButtonText: 'ยกเลิก',
-                    confirmButtonColor: '#2ecc71'
+                    icon: 'warning', showCancelButton: true, confirmButtonText: '➕ ลงทะเบียนใหม่', cancelButtonText: 'ยกเลิก', confirmButtonColor: '#2ecc71'
                 }).then((res) => {
-                    if (res.isConfirmed) {
-                        // ส่งรหัสที่สแกนได้ ไปยังหน้าฟอร์มเพิ่มพัสดุ
-                        manualAction('add_item', code); 
-                    }
+                    if (res.isConfirmed) manualAction('add_item', code); 
                 });
             }
         }
 
-        // ==========================================
-        // 2. ฟังก์ชันทำรายการแมนนวล (รับค่าที่สแกนมาใส่ฟอร์ม)
-        // ==========================================
         function manualAction(mode, scannedCode = "") {
             if (mode === 'add_item') {
                 Swal.fire({
-                    title: '➕ เพิ่มทะเบียนพัสดุใหม่',
+                    title: '➕ เพิ่มพัสดุใหม่',
                     html: `
-                        <div class="text-start mb-1"><small class="text-muted fw-bold">รหัสพัสดุ (บาร์โค้ด / QR Code)</small></div>
-                        <input id="swal-code" class="swal2-input mt-0 mb-3" placeholder="รหัสพัสดุ..." value="${scannedCode}">
-                        
-                        <div class="text-start mb-1"><small class="text-muted fw-bold">ชื่อรายการพัสดุ / น้ำยา</small></div>
-                        <input id="swal-name" class="swal2-input mt-0 mb-3" placeholder="เช่น น้ำยา A">
-                        
-                        <div class="text-start mb-1"><small class="text-muted fw-bold">หมวดหมู่</small></div>
+                        <div class="text-start mb-1"><small class="fw-bold text-muted">รหัสพัสดุ (บาร์โค้ด)</small></div>
+                        <input id="swal-code" class="swal2-input mt-0 mb-3" placeholder="รหัส..." value="${scannedCode}">
+                        <div class="text-start mb-1"><small class="fw-bold text-muted">ชื่อรายการ</small></div>
+                        <input id="swal-name" class="swal2-input mt-0 mb-3" placeholder="ชื่อพัสดุ...">
+                        <div class="text-start mb-1"><small class="fw-bold text-muted">หมวดหมู่</small></div>
                         <select id="swal-cat" class="swal2-input mt-0 mb-3" style="height:50px;">
-                            <option value="เวชภัณฑ์ทางการแพทย์">เวชภัณฑ์ทางการแพทย์</option>
-                            <option value="อุปกรณ์สำนักงาน">อุปกรณ์สำนักงาน</option>
-                            <option value="น้ำยาไต (ทั่วไป)">น้ำยาไต (ทั่วไป)</option>
+                            <option value="เวชภัณฑ์ทางการแพทย์">เวชภัณฑ์</option>
+                            <option value="อุปกรณ์สำนักงาน">สำนักงาน</option>
+                            <option value="น้ำยาไต (ทั่วไป)">น้ำยาไต</option>
                             <option value="อื่นๆ">อื่นๆ</option>
                         </select>
-                        
-                        <div class="text-start mb-1"><small class="text-muted fw-bold">หน่วยนับ</small></div>
-                        <input id="swal-unit" class="swal2-input mt-0" placeholder="เช่น ชิ้น, แกลลอน, กล่อง">
+                        <div class="text-start mb-1"><small class="fw-bold text-muted">หน่วยนับ</small></div>
+                        <input id="swal-unit" class="swal2-input mt-0" placeholder="เช่น ชิ้น, กล่อง">
                     `,
-                    showCancelButton: true, confirmButtonText: 'บันทึกข้อมูล', confirmButtonColor: '#2ecc71',
+                    showCancelButton: true, confirmButtonText: 'บันทึก', confirmButtonColor: '#2ecc71',
                     preConfirm: () => {
-                        return {
-                            code: document.getElementById('swal-code').value.trim(), 
-                            name: document.getElementById('swal-name').value.trim(),
-                            category: document.getElementById('swal-cat').value, 
-                            unit: document.getElementById('swal-unit').value.trim() || 'ชิ้น'
-                        }
+                        return { code: document.getElementById('swal-code').value.trim(), name: document.getElementById('swal-name').value.trim(), category: document.getElementById('swal-cat').value, unit: document.getElementById('swal-unit').value.trim() || 'ชิ้น' }
                     }
                 }).then(res => {
                     if (res.isConfirmed) {
-                        if(!res.value.name || !res.value.code) return Swal.fire('ผิดพลาด', 'กรุณากรอกชื่อและรหัสให้ครบ', 'warning');
+                        if(!res.value.name || !res.value.code) return Swal.fire('ผิดพลาด', 'กรุณากรอกข้อมูลให้ครบ', 'warning');
+                        if (allItems.some(i => i && i.code === res.value.code)) return Swal.fire('ผิดพลาด', 'รหัสนี้มีในระบบแล้ว!', 'error');
                         
-                        // เช็คป้องกันไม่ให้บันทึกรหัสซ้ำ
-                        let isDuplicate = allItems.some(i => i && i.code === res.value.code);
-                        if (isDuplicate) return Swal.fire('ผิดพลาด', 'รหัสบาร์โค้ดนี้มีในระบบแล้ว!', 'error');
-                        
-                        let newItem = {
-                            id: "ITM" + String(allItems.length + 1).padStart(4, '0'),
-                            code: res.value.code, name: res.value.name, category: res.value.category, unit: res.value.unit,
-                            main_stock: 0, sub_stock: 0, min_alert: 10, monthly_usage: 0, target_stock: 0
-                        };
+                        let newItem = { id: "ITM" + String(allItems.length + 1).padStart(4, '0'), code: res.value.code, name: res.value.name, category: res.value.category, unit: res.value.unit, main_stock: 0, sub_stock: 0, min_alert: 10, monthly_usage: 0, target_stock: 0 };
 
                         if (db && document.getElementById('syncStatus').innerText.includes('ออนไลน์')) {
-                            db.ref(`inventory_data/${allItems.length}`).set(newItem).then(() => Swal.fire('สำเร็จ', 'เพิ่มพัสดุออนไลน์แล้ว', 'success'));
+                            db.ref(`inventory_data/${allItems.length}`).set(newItem).then(() => Swal.fire('สำเร็จ', 'บันทึกออนไลน์แล้ว', 'success'));
                         } else if (typeof pywebview !== 'undefined' && pywebview.api) {
                             pywebview.api.add_item_from_web(newItem).then(r => forceReload());
-                            Swal.fire('สำเร็จ', 'เพิ่มพัสดุในเครื่องแล้ว', 'success');
-                        } else {
-                            Swal.fire('ข้อผิดพลาด', 'ไม่สามารถบันทึกได้ กรุณาต่อเน็ต', 'error');
-                        }
+                            Swal.fire('สำเร็จ', 'บันทึกในเครื่องแล้ว', 'success');
+                        } else { Swal.fire('ข้อผิดพลาด', 'ไม่สามารถบันทึกได้', 'error'); }
                     }
                 });
                 return;
             }
 
-            // ถ้ารับเข้า / โอนย้าย / เบิกจ่าย ต้องมีของในตารางก่อน
             let options = {};
             allItems.forEach((it, idx) => { if(it && it.name) options[idx] = `[${it.code || '-'}] ${it.name}`; });
-            
-            Swal.fire({
-                title: 'เลือกพัสดุที่ต้องการ',
-                input: 'select', inputOptions: options, inputPlaceholder: 'คลิกเพื่อเลือกรายการ...', showCancelButton: true
-            }).then(res => {
+            Swal.fire({ title: 'เลือกพัสดุ', input: 'select', inputOptions: options, inputPlaceholder: 'คลิกเลือกรายการ...', showCancelButton: true }).then(res => {
                 if (res.isConfirmed && res.value !== "") showStockDialog(res.value, mode);
             });
         }
 
-        // ==========================================
-        // 4. คำสั่งเปิดหน้าต่างแอป Python
-        // ==========================================
+        function showStockDialog(idx, mode) {
+            const item = allItems[idx];
+            let title = '', btnColor = '', extraHtml = '';
+            
+            if (mode === 'receive_main') { title = '📥 รับเข้าคลังหลัก'; btnColor = '#2ecc71'; }
+            else if (mode === 'use') { title = '📤 เบิกจ่าย (หักคลังย่อย)'; btnColor = '#e67e22'; }
+            else if (mode === 'receive_sub') { title = '📥 รับเข้าคลังย่อย'; btnColor = '#3498db'; }
+            else if (mode === 'transfer') { 
+                title = '🔄 โอนย้ายคลัง'; btnColor = '#3498db'; 
+                extraHtml = `<select id="transfer-dir" class="swal2-input" style="height:50px;"><option value="transfer_to_sub">คลังหลัก ➡️ คลังย่อย</option><option value="transfer_to_main">คลังย่อย ➡️ คลังหลัก</option></select>`;
+            }
+
+            Swal.fire({
+                title: title,
+                html: `
+                    <h5 class="text-primary fw-bold">${item.name}</h5>
+                    <div class="p-2 bg-light mb-3 mt-2 rounded text-center">
+                        คลังหลัก: <b>${item.main_stock || 0}</b> | คลังย่อย: <b class="text-danger">${item.sub_stock || 0}</b>
+                    </div>
+                    ${extraHtml}
+                    <div class="mt-2 text-start">จำนวนที่ต้องการทำรายการ (${item.unit || 'ชิ้น'}):</div>
+                `,
+                input: 'number', inputValue: 1, showCancelButton: true, confirmButtonText: 'ยืนยัน', confirmButtonColor: btnColor,
+                preConfirm: (val) => {
+                    let q = parseInt(val);
+                    if (!q || q <= 0) return Swal.showValidationMessage('ใส่จำนวนมากกว่า 0');
+                    if (mode === 'use' && q > parseInt(item.sub_stock)) return Swal.showValidationMessage('คลังย่อยมีไม่พอ!');
+                    if (mode === 'transfer') {
+                        let dir = document.getElementById('transfer-dir').value;
+                        if(dir === 'transfer_to_sub' && q > parseInt(item.main_stock)) return Swal.showValidationMessage('คลังหลักไม่พอโอน');
+                        if(dir === 'transfer_to_main' && q > parseInt(item.sub_stock)) return Swal.showValidationMessage('คลังย่อยไม่พอโอน');
+                        return { qty: q, action: dir };
+                    }
+                    return { qty: q, action: mode };
+                }
+            }).then(res => { if (res.isConfirmed) processStockUpdate(item, idx, res.value.qty, res.value.action); });
+        }
+
+        function processStockUpdate(item, idx, qty, action) {
+            let n_main = parseInt(item.main_stock || 0), n_sub = parseInt(item.sub_stock || 0), actText = "";
+
+            if (action === 'receive_main') { n_main += qty; actText = "รับเข้าคลังหลัก 📥"; }
+            else if (action === 'receive_sub') { n_sub += qty; actText = "รับเข้าคลังย่อย 📥"; }
+            else if (action === 'use') { n_sub -= qty; actText = "ใช้งานจริง 📤"; }
+            else if (action === 'transfer_to_sub') { n_main -= qty; n_sub += qty; actText = "โอนไปคลังย่อย 🔄"; }
+            else if (action === 'transfer_to_main') { n_sub -= qty; n_main += qty; actText = "คืนเข้าคลังหลัก 🔄"; }
+
+            if (db && document.getElementById('syncStatus').innerText.includes('ออนไลน์')) {
+                db.ref(`inventory_data/${idx}`).update({ main_stock: n_main, sub_stock: n_sub }).then(() => {
+                    let log = { date: new Date().toLocaleDateString('en-GB')+" "+new Date().toLocaleTimeString('en-GB'), code: item.code, name: item.name, action: actText, qty: qty, unit: item.unit, main_bal: n_main, sub_bal: n_sub };
+                    db.ref('history_data').once('value').then(s => { let arr = s.val() || []; arr.unshift(log); db.ref('history_data').set(arr); });
+                    Swal.fire({title:'สำเร็จ!', icon:'success', timer:1500, showConfirmButton: false});
+                    document.getElementById('codeInput').value = '';
+                });
+            } else if (typeof pywebview !== 'undefined' && pywebview.api) {
+                pywebview.api.update_stock_from_web(item.code, qty, action).then(r => { if(r.success) { Swal.fire({title:'สำเร็จ!', icon:'success', timer:1500}); forceReload(); } else Swal.fire('Error', r.message, 'error'); });
+            } else { Swal.fire('ข้อผิดพลาด', 'ไม่ได้เชื่อมต่ออินเทอร์เน็ต', 'error'); }
+        }
+
         function openPythonApp(mode) {
             if (typeof pywebview !== 'undefined' && pywebview.api) {
                 if(mode === 'inventory') pywebview.api.open_inventory();
