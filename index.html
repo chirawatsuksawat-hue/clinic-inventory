@@ -38,7 +38,7 @@
         .action-btn:hover { transform: scale(1.05); }
         .btn-scan { border-radius: 12px; padding: 15px; font-weight: bold; background: #263238; color: white; font-size: 1.2rem; }
         .btn-scan:hover { background: #1a2529; color: white; }
-        #reader { width: 100%; border-radius: 15px; overflow: hidden; display: none; border: 4px dashed #00bfa5; margin-bottom: 15px; background: #fff; }
+        #reader, #auditReader { width: 100%; border-radius: 15px; overflow: hidden; display: none; border: 4px dashed #00bfa5; margin-bottom: 15px; background: #fff; }
         
         /* สไตล์พิเศษสำหรับหน้า Audit */
         .audit-card { border-left: 4px solid #6c757d; transition: all 0.2s;}
@@ -158,12 +158,17 @@
         </div>
 
         <div class="alert alert-warning border-warning shadow-sm" style="border-radius: 10px;">
-            <i class="fas fa-info-circle me-2"></i> <b>วิธีใช้:</b> เดินนับของที่หน้าตู้ แล้วพิมพ์ตัวเลข <u>"ยอดที่นับได้จริง"</u> ใส่ในช่องได้เลยครับ หากของชิ้นไหนยอดตรงอยู่แล้วก็ปล่อยผ่านได้เลย
+            <i class="fas fa-info-circle me-2"></i> <b>วิธีใช้:</b> เดินนับของที่หน้าตู้ แล้วพิมพ์ตัวเลข <u>"ยอดที่นับได้จริง"</u> ลงในช่อง ระบบจะรวมยอดอัตโนมัติ
         </div>
+
+        <button class="btn btn-scan w-100 mb-3 shadow" style="background-color: #34495e;" onclick="toggleAuditScan()">
+            <i class="fa-solid fa-expand me-2"></i> สแกน QR Code ค้นหาพัสดุ
+        </button>
+        <div id="auditReader"></div>
 
         <div class="input-group shadow-sm mb-4" style="border-radius: 10px; overflow: hidden;">
             <span class="input-group-text bg-white border-0"><i class="fas fa-search text-muted"></i></span>
-            <input type="text" id="auditSearch" class="form-control border-0 py-3 bg-white" placeholder="พิมพ์ชื่อ ลำดับ หรือรหัส เพื่อกรองรายการ..." onkeyup="renderAuditList()">
+            <input type="text" id="auditSearch" class="form-control border-0 py-3 bg-white" placeholder="พิมพ์ชื่อ ลำดับ หรือสแกนรหัส เพื่อกรองรายการ..." onkeyup="renderAuditList()">
         </div>
 
         <div id="auditListContainer" class="row">
@@ -182,7 +187,8 @@
         let allItems = []; 
         let auditData = []; 
         let currentMode = 'out';
-        let html5QrCode = null; // Changed to Html5Qrcode instance
+        let html5QrCode = null; 
+        let auditHtml5QrCode = null; // Scanner สำหรับหน้า Audit
         let db = null;
 
         function initApp() {
@@ -291,6 +297,15 @@
         }
 
         function closeAuditView() {
+            // ปิดกล้องถ้าเปิดทิ้งไว้
+            if (auditHtml5QrCode) {
+                auditHtml5QrCode.stop().then(() => {
+                    auditHtml5QrCode.clear();
+                    auditHtml5QrCode = null;
+                    document.getElementById('auditReader').style.display = 'none';
+                }).catch(err => {});
+            }
+            
             document.getElementById('auditView').style.display = 'none';
             document.getElementById('dashboardView').style.display = 'block';
             auditData = []; 
@@ -313,6 +328,7 @@
 
                 let m_stock = parseInt(item.main_stock || 0);
                 let s_stock = parseInt(item.sub_stock || 0);
+                let total_stock = m_stock + s_stock;
                 let seq = item.seq_num || '';
 
                 let card = `
@@ -326,23 +342,31 @@
                             
                             <div class="d-flex justify-content-between mb-3 pb-2 border-bottom">
                                 <span class="text-secondary small">ยอดในระบบคอม:</span>
-                                <span class="fw-bold text-secondary small">หลัก: ${m_stock} | ย่อย: ${s_stock}</span>
+                                <span class="fw-bold text-secondary small">หลัก: ${item.main_stock || 0} | ย่อย: ${item.sub_stock || 0}</span>
                             </div>
 
-                            <div class="row g-2">
-                                <div class="col-6">
-                                    <label class="small fw-bold text-dark mb-1"><i class="fas fa-box me-1"></i> นับจริง (คลังหลัก)</label>
-                                    <input type="number" class="form-control text-center audit-input border-secondary" 
+                            <div class="row g-2 align-items-end">
+                                <div class="col-4">
+                                    <label class="small fw-bold text-dark mb-1"><i class="fas fa-box me-1"></i> หลัก</label>
+                                    <input type="number" class="form-control text-center audit-input border-secondary p-1" 
                                            value="${m_stock}" 
                                            onchange="updateAuditVal(${index}, 'main_stock', this.value)"
+                                           onkeyup="updateAuditVal(${index}, 'main_stock', this.value)"
                                            onclick="this.select()">
                                 </div>
-                                <div class="col-6">
-                                    <label class="small fw-bold text-danger mb-1"><i class="fas fa-box-open me-1"></i> นับจริง (ย่อย)</label>
-                                    <input type="number" class="form-control text-center audit-input border-danger text-danger" 
+                                <div class="col-4">
+                                    <label class="small fw-bold text-danger mb-1"><i class="fas fa-box-open me-1"></i> ย่อย</label>
+                                    <input type="number" class="form-control text-center audit-input border-danger text-danger p-1" 
                                            value="${s_stock}" 
                                            onchange="updateAuditVal(${index}, 'sub_stock', this.value)"
+                                           onkeyup="updateAuditVal(${index}, 'sub_stock', this.value)"
                                            onclick="this.select()">
+                                </div>
+                                <div class="col-4 text-center">
+                                    <label class="small fw-bold text-primary mb-1">รวมยอด</label>
+                                    <div class="form-control text-center bg-light text-primary fw-bold border-primary p-1 fs-5" id="audit-total-${index}">
+                                        ${total_stock}
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -352,10 +376,19 @@
             });
         }
 
+        // 🌟 อัปเดตข้อมูลและรวมยอดแสดงผล Real-time 🌟
         function updateAuditVal(idx, field, value) {
             let val = parseInt(value);
             if(isNaN(val) || val < 0) val = 0;
             auditData[idx][field] = val;
+            
+            // ดึงค่าล่าสุดมาคำนวณยอดรวม
+            let currentMain = parseInt(auditData[idx].main_stock) || 0;
+            let currentSub = parseInt(auditData[idx].sub_stock) || 0;
+            let totalEl = document.getElementById(`audit-total-${idx}`);
+            if (totalEl) {
+                totalEl.innerText = currentMain + currentSub;
+            }
         }
 
         function saveBulkAudit() {
@@ -374,8 +407,8 @@
                         let orig = allItems[idx];
                         if(!orig) return;
                         
-                        let nMain = parseInt(item.main_stock);
-                        let nSub = parseInt(item.sub_stock);
+                        let nMain = parseInt(item.main_stock) || 0;
+                        let nSub = parseInt(item.sub_stock) || 0;
                         let oMain = parseInt(orig.main_stock || 0);
                         let oSub = parseInt(orig.sub_stock || 0);
 
@@ -419,12 +452,53 @@
         }
 
         // ==========================================
-        // 🌟 แก้ไขระบบกล้องด้วย Html5Qrcode (ทำงานในมือถือได้ดีขึ้น)
+        // 🌟 กล้องสแกน QR สำหรับหน้า Audit โดยเฉพาะ
+        // ==========================================
+        function toggleAuditScan() {
+            const readerDiv = document.getElementById('auditReader');
+            if (auditHtml5QrCode) {
+                auditHtml5QrCode.stop().then(() => {
+                    auditHtml5QrCode.clear();
+                    auditHtml5QrCode = null;
+                    readerDiv.style.display = 'none';
+                }).catch(err => console.error("Stop failed: ", err));
+                return;
+            }
+            
+            readerDiv.style.display = 'block';
+            auditHtml5QrCode = new Html5Qrcode("auditReader");
+            const config = { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 };
+            
+            auditHtml5QrCode.start({ facingMode: "environment" }, config, onAuditScanSuccess, () => {})
+                .catch((err) => {
+                    auditHtml5QrCode.start({ facingMode: "user" }, config, onAuditScanSuccess, () => {})
+                        .catch(err2 => {
+                            Swal.fire("ข้อผิดพลาด", "ไม่สามารถใช้งานกล้องได้ โปรดอนุญาตเบราว์เซอร์ให้เข้าถึงกล้อง", "error");
+                            readerDiv.style.display = 'none';
+                            auditHtml5QrCode = null;
+                        });
+                });
+        }
+
+        function onAuditScanSuccess(decodedText, decodedResult) {
+            try{document.getElementById('soundScan').play()}catch(e){}
+            if (auditHtml5QrCode) {
+                auditHtml5QrCode.stop().then(() => {
+                    auditHtml5QrCode.clear();
+                    auditHtml5QrCode = null;
+                    document.getElementById('auditReader').style.display = 'none';
+                });
+            }
+            // นำผลที่สแกนได้ไปใส่ในช่องค้นหา
+            document.getElementById('auditSearch').value = decodedText;
+            renderAuditList();
+        }
+
+        // ==========================================
+        // 🌟 ระบบกล้องสแกน QR สำหรับหน้าแรก (คงเดิม)
         // ==========================================
         function toggleScan() {
             const readerDiv = document.getElementById('reader');
-            
-            // ถ้ากล้องเปิดอยู่ ให้ปิด
             if (html5QrCode) {
                 html5QrCode.stop().then(() => {
                     html5QrCode.clear();
@@ -434,20 +508,15 @@
                 return;
             }
             
-            // เริ่มเปิดกล้อง
             readerDiv.style.display = 'block';
             html5QrCode = new Html5Qrcode("reader");
-            
-            // ตั้งค่าให้อ่านกล้องหลังมือถือ (environment) เป็นหลัก
             const config = { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 };
             
-            html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess, onScanFailure)
+            html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess, () => {})
                 .catch((err) => {
-                    // ถ้าหากมือถือหรืออุปกรณ์ไม่มี environment camera ก็จะลองโหมดปกติ
-                    console.warn("Error starting with environment mode, falling back.", err);
-                    html5QrCode.start({ facingMode: "user" }, config, onScanSuccess, onScanFailure)
+                    html5QrCode.start({ facingMode: "user" }, config, onScanSuccess, () => {})
                         .catch(err2 => {
-                            Swal.fire("ข้อผิดพลาด", "ไม่สามารถใช้งานกล้องได้ โปรดอนุญาตการเข้าถึงกล้องบนเบราว์เซอร์หรือแอปพลิเคชันของคุณ", "error");
+                            Swal.fire("ข้อผิดพลาด", "ไม่สามารถใช้งานกล้องได้ โปรดอนุญาตการเข้าถึงกล้องบนเบราว์เซอร์", "error");
                             readerDiv.style.display = 'none';
                             html5QrCode = null;
                         });
@@ -456,8 +525,6 @@
 
         function onScanSuccess(decodedText, decodedResult) {
             try{document.getElementById('soundScan').play()}catch(e){}
-            
-            // หยุดสแกนหลังจากเจอโค้ด
             if (html5QrCode) {
                 html5QrCode.stop().then(() => {
                     html5QrCode.clear();
@@ -465,15 +532,9 @@
                     document.getElementById('reader').style.display = 'none';
                 });
             }
-            
             document.getElementById('codeInput').value = decodedText;
             handleScanResult(decodedText);
         }
-
-        function onScanFailure(error) {
-            // ไม่ต้องแจ้งเตือนทุกเฟรมเวลาหาไม่เจอ
-        }
-
 
         // ==========================================
         // แก้ไขและจัดการระบบ
