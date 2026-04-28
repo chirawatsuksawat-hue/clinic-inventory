@@ -16,13 +16,10 @@
     
     <style>
         body { font-family: 'Sarabun', sans-serif; background-color: #f4f6f9; overflow-x: hidden; }
-        
-        /* 🌟 ระบบ Navbar สำหรับมือถือ 🌟 */
         .mobile-header { display: none; background-color: #2c3e50; color: white; padding: 15px 20px; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 1020; box-shadow: 0 2px 5px rgba(0,0,0,0.1);}
         .mobile-header h5 { margin: 0; font-weight: bold; }
         .hamburger-btn { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; }
 
-        /* Sidebar */
         .sidebar { height: 100vh; width: 250px; position: fixed; top: 0; left: 0; background-color: #2c3e50; color: white; padding-top: 20px; z-index: 1050; transition: transform 0.3s ease-in-out; box-shadow: 2px 0 10px rgba(0,0,0,0.2); }
         .sidebar .nav-link { color: #ecf0f1; margin: 10px 15px; border-radius: 8px; transition: all 0.3s; font-size: 1.1rem; cursor: pointer; }
         .sidebar .nav-link:hover, .sidebar .nav-link.active { background-color: #34495e; color: #3498db; transform: translateX(5px); }
@@ -246,27 +243,82 @@
             });
         }
 
+        // ==========================================
+        // 🌟 ฟังก์ชันแก้ไขข้อมูล (เต็มรูปแบบ)
+        // ==========================================
         function editItem(idx) {
             const item = allItems[idx];
+            const isCat = (cat) => item.category === cat ? 'selected' : '';
+
             Swal.fire({
-                title: '📝 แก้ไขข้อมูลรายการ',
+                title: '📝 แก้ไขข้อมูลพัสดุ',
+                width: '600px',
                 html: `
-                    <div class="text-start mb-1"><small class="fw-bold text-muted">รหัสพัสดุ</small></div>
-                    <input id="edit-code" class="swal2-input mt-0 mb-3" value="${item.code || ''}">
-                    <div class="text-start mb-1"><small class="fw-bold text-muted">ชื่อรายการ</small></div>
-                    <input id="edit-name" class="swal2-input mt-0 mb-3" value="${item.name || ''}">
-                    <div class="text-start mb-1"><small class="fw-bold text-muted">หน่วยนับ</small></div>
-                    <input id="edit-unit" class="swal2-input mt-0 mb-3" value="${item.unit || 'ชิ้น'}">
-                    <div class="text-start mb-1"><small class="fw-bold text-muted">แจ้งเตือนใกล้หมด</small></div>
-                    <input id="edit-min" type="number" class="swal2-input mt-0" value="${item.min_alert || 10}">
+                    <div class="text-start mt-3" style="font-family: 'Sarabun', sans-serif;">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-primary">หมวดหมู่</label>
+                            <select id="edit-cat" class="form-select border-primary" style="height: 45px;">
+                                <option value="เวชภัณฑ์ทางการแพทย์" ${isCat('เวชภัณฑ์ทางการแพทย์')}>เวชภัณฑ์ทางการแพทย์</option>
+                                <option value="อุปกรณ์สำนักงาน" ${isCat('อุปกรณ์สำนักงาน')}>อุปกรณ์สำนักงาน</option>
+                                <option value="น้ำยา/อุปกรณ์ทำความสะอาด" ${isCat('น้ำยา/อุปกรณ์ทำความสะอาด')}>น้ำยา/อุปกรณ์ทำความสะอาด</option>
+                                <option value="น้ำยาไต (ทั่วไป)" ${isCat('น้ำยาไต (ทั่วไป)')}>น้ำยาไต (ทั่วไป)</option>
+                                <option value="อื่นๆ" ${isCat('อื่นๆ')}>อื่นๆ</option>
+                            </select>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">รหัสพัสดุ (Code)</label>
+                                <input id="edit-code" class="form-control" value="${item.code || ''}">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">ชื่อพัสดุ / อุปกรณ์</label>
+                                <input id="edit-name" class="form-control" value="${item.name || ''}">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">หน่วยนับ</label>
+                                <input id="edit-unit" class="form-control" value="${item.unit || 'ชิ้น'}">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">จำนวนบรรจุต่อ 1 กล่อง</label>
+                                <input type="number" id="edit-per-box" class="form-control" value="${item.qty_per_box || 1}">
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="row bg-light p-2 rounded">
+                            <div class="col-md-4 mb-2">
+                                <label class="form-label fw-bold text-secondary" style="font-size: 0.9rem;">ใช้เฉลี่ย/เดือน</label>
+                                <input type="number" id="edit-usage" class="form-control text-center" value="${item.monthly_usage || 0}">
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <label class="form-label fw-bold text-secondary" style="font-size: 0.9rem;">ยอดตั้งต้น</label>
+                                <input type="number" id="edit-target" class="form-control text-center" value="${item.target_stock || 0}">
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <label class="form-label fw-bold text-secondary" style="font-size: 0.9rem;">แจ้งเตือนใกล้หมด</label>
+                                <input type="number" id="edit-min" class="form-control text-center" value="${item.min_alert || 10}">
+                            </div>
+                        </div>
+                    </div>
                 `,
-                showCancelButton: true, confirmButtonText: 'บันทึกการแก้ไข', confirmButtonColor: '#3498db',
+                showCancelButton: true, confirmButtonText: '<i class="fas fa-save"></i> บันทึกการแก้ไข', confirmButtonColor: '#3498db', cancelButtonText: 'ยกเลิก',
                 preConfirm: () => {
-                    return { code: document.getElementById('edit-code').value.trim(), name: document.getElementById('edit-name').value.trim(), unit: document.getElementById('edit-unit').value.trim(), min_alert: parseInt(document.getElementById('edit-min').value) }
+                    return { 
+                        code: document.getElementById('edit-code').value.trim(), 
+                        name: document.getElementById('edit-name').value.trim(), 
+                        category: document.getElementById('edit-cat').value,
+                        unit: document.getElementById('edit-unit').value.trim() || 'ชิ้น',
+                        qty_per_box: document.getElementById('edit-per-box').value || "1",
+                        monthly_usage: parseFloat(document.getElementById('edit-usage').value) || 0,
+                        target_stock: parseInt(document.getElementById('edit-target').value) || 0,
+                        min_alert: parseInt(document.getElementById('edit-min').value) || 10
+                    }
                 }
             }).then((res) => {
                 if (res.isConfirmed) {
                     if(!res.value.name || !res.value.code) return Swal.fire('ผิดพลาด', 'กรุณากรอกชื่อและรหัสให้ครบ', 'warning');
+                    
                     if (db && document.getElementById('syncStatus').innerText.includes('ออนไลน์')) {
                         db.ref(`inventory_data/${idx}`).update(res.value).then(() => Swal.fire('สำเร็จ!', 'แก้ไขข้อมูลเรียบร้อยแล้ว', 'success'));
                     } else if (typeof pywebview !== 'undefined' && pywebview.api && pywebview.api.edit_item_from_web) {
@@ -313,11 +365,14 @@
             }
         }
 
+        // ==========================================
+        // 🌟 ฟังก์ชันเพิ่มข้อมูล (เต็มรูปแบบ)
+        // ==========================================
         function manualAction(mode, scannedCode = "") {
             if (mode === 'add_item') {
                 Swal.fire({
                     title: '➕ เพิ่มทะเบียนพัสดุใหม่',
-                    width: '600px', // ขยายหน้าต่างให้กว้างขึ้น
+                    width: '600px',
                     html: `
                         <div class="text-start mt-3" style="font-family: 'Sarabun', sans-serif;">
                             <div class="mb-3">
@@ -420,20 +475,20 @@
             else if (mode === 'receive_sub') { title = '📥 รับเข้าคลังย่อย'; btnColor = '#3498db'; }
             else if (mode === 'transfer') { 
                 title = '🔄 โอนย้ายคลัง'; btnColor = '#3498db'; 
-                extraHtml = `<select id="transfer-dir" class="swal2-input" style="height:50px;"><option value="transfer_to_sub">คลังหลัก ➡️ คลังย่อย</option><option value="transfer_to_main">คลังย่อย ➡️ คลังหลัก</option></select>`;
+                extraHtml = `<select id="transfer-dir" class="form-select border-primary mt-2" style="height:45px;"><option value="transfer_to_sub">คลังหลัก ➡️ คลังย่อย</option><option value="transfer_to_main">คลังย่อย ➡️ คลังหลัก</option></select>`;
             }
 
             Swal.fire({
                 title: title,
                 html: `
-                    <h5 class="text-primary fw-bold">${item.name}</h5>
-                    <div class="p-2 bg-light mb-3 mt-2 rounded text-center">
-                        คลังหลัก: <b>${item.main_stock || 0}</b> | คลังย่อย: <b class="text-danger">${item.sub_stock || 0}</b>
+                    <h5 class="text-primary fw-bold mt-2">${item.name}</h5>
+                    <div class="p-2 bg-light mb-3 mt-2 rounded text-center" style="font-size: 1.1rem;">
+                        คลังหลัก: <b class="text-dark">${item.main_stock || 0}</b> | คลังย่อย: <b class="text-danger">${item.sub_stock || 0}</b>
                     </div>
                     ${extraHtml}
-                    <div class="mt-2 text-start">จำนวนที่ต้องการทำรายการ (${item.unit || 'ชิ้น'}):</div>
+                    <div class="mt-3 text-start fw-bold">จำนวนที่ต้องการทำรายการ (${item.unit || 'ชิ้น'}):</div>
                 `,
-                input: 'number', inputValue: 1, showCancelButton: true, confirmButtonText: 'ยืนยัน', confirmButtonColor: btnColor,
+                input: 'number', inputValue: 1, showCancelButton: true, confirmButtonText: '<i class="fas fa-check-circle"></i> ยืนยัน', confirmButtonColor: btnColor, cancelButtonText: 'ยกเลิก',
                 preConfirm: (val) => {
                     let q = parseInt(val);
                     if (!q || q <= 0) return Swal.showValidationMessage('ใส่จำนวนมากกว่า 0');
