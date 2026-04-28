@@ -34,7 +34,7 @@
         .table thead th { background-color: #34495E; color: white; position: sticky; top: 0; z-index: 1; white-space: nowrap;}
         .table td { vertical-align: middle; font-size: 1.05rem; white-space: nowrap; }
         
-        .action-btn { font-weight: bold; border-radius: 8px; padding: 10px 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.2s; flex: 1; min-width: 140px; text-align: center;}
+        .action-btn { font-weight: bold; border-radius: 8px; padding: 10px 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.2s; flex: 1; min-width: 130px; text-align: center;}
         .action-btn:hover { transform: scale(1.05); }
         .btn-scan { border-radius: 12px; padding: 15px; font-weight: bold; background: #263238; color: white; font-size: 1.2rem; }
         .btn-scan:hover { background: #1a2529; color: white; }
@@ -84,15 +84,17 @@
                 <button class="btn btn-success action-btn" onclick="manualAction('receive_main')"><i class="fas fa-download me-1"></i> รับของเข้าคลัง</button>
                 <button class="btn btn-info action-btn text-white" onclick="manualAction('transfer')"><i class="fas fa-exchange-alt me-1"></i> โอนย้ายคลัง</button>
                 <button class="btn btn-warning action-btn text-dark" onclick="manualAction('use')"><i class="fas fa-upload me-1"></i> เบิกจ่าย (หักออก)</button>
-                <button class="btn btn-primary action-btn mt-md-0 mt-2" onclick="manualAction('add_item')"><i class="fas fa-plus me-1"></i> ➕ เพิ่มพัสดุใหม่</button>
+                <button class="btn btn-secondary action-btn text-white" style="background-color: #6c757d;" onclick="manualAction('audit')"><i class="fas fa-clipboard-check me-1"></i> ตรวจนับ (Audit)</button>
+                <button class="btn btn-primary action-btn" onclick="manualAction('add_item')"><i class="fas fa-plus me-1"></i> ➕ เพิ่มพัสดุใหม่</button>
             </div>
         </div>
 
         <div class="card mb-4 bg-white p-4 shadow-sm border-2 border-success">
             <h5 class="fw-bold text-success mb-3"><i class="fa-solid fa-camera me-2"></i>ระบบสแกนบาร์โค้ด / QR Code</h5>
             <div class="d-flex gap-2 mb-3">
-                <button id="btnModeOut" class="btn btn-warning flex-fill fw-bold py-2 shadow-sm active" onclick="setMode('out')">📤 ตัดสต๊อก (เบิกออก)</button>
-                <button id="btnModeIn" class="btn btn-outline-success flex-fill fw-bold py-2 shadow-sm" onclick="setMode('in')">📥 รับของเข้าคลังย่อย</button>
+                <button id="btnModeOut" class="btn btn-warning flex-fill fw-bold py-2 shadow-sm active" onclick="setMode('out')">📤 ตัดสต๊อก (เบิก)</button>
+                <button id="btnModeIn" class="btn btn-outline-success flex-fill fw-bold py-2 shadow-sm" onclick="setMode('in')">📥 รับเข้าคลัง</button>
+                <button id="btnModeAudit" class="btn btn-outline-secondary flex-fill fw-bold py-2 shadow-sm" onclick="setMode('audit')">📋 ตรวจนับ</button>
             </div>
             <button class="btn btn-scan w-100 mb-3 shadow" onclick="toggleScan()"><i class="fa-solid fa-expand me-2"></i>เปิดกล้องเพื่อสแกน QR</button>
             <div id="reader"></div>
@@ -244,7 +246,7 @@
         }
 
         // ==========================================
-        // 🌟 ฟังก์ชันแก้ไขข้อมูล (เต็มรูปแบบ)
+        // 🌟 1. ฟังก์ชันแก้ไขข้อมูลพัสดุ
         // ==========================================
         function editItem(idx) {
             const item = allItems[idx];
@@ -286,16 +288,16 @@
                             </div>
                         </div>
                         <hr>
-                        <div class="row bg-light p-2 rounded">
-                            <div class="col-md-4 mb-2">
+                        <div class="row bg-light p-2 rounded mx-0">
+                            <div class="col-md-4 mb-2 px-1">
                                 <label class="form-label fw-bold text-secondary" style="font-size: 0.9rem;">ใช้เฉลี่ย/เดือน</label>
                                 <input type="number" id="edit-usage" class="form-control text-center" value="${item.monthly_usage || 0}">
                             </div>
-                            <div class="col-md-4 mb-2">
+                            <div class="col-md-4 mb-2 px-1">
                                 <label class="form-label fw-bold text-secondary" style="font-size: 0.9rem;">ยอดตั้งต้น</label>
                                 <input type="number" id="edit-target" class="form-control text-center" value="${item.target_stock || 0}">
                             </div>
-                            <div class="col-md-4 mb-2">
+                            <div class="col-md-4 mb-2 px-1">
                                 <label class="form-label fw-bold text-secondary" style="font-size: 0.9rem;">แจ้งเตือนใกล้หมด</label>
                                 <input type="number" id="edit-min" class="form-control text-center" value="${item.min_alert || 10}">
                             </div>
@@ -333,6 +335,7 @@
             currentMode = m;
             document.getElementById('btnModeOut').className = m === 'out' ? 'btn btn-warning flex-fill fw-bold py-2 shadow-sm active' : 'btn btn-outline-warning flex-fill fw-bold py-2 shadow-sm';
             document.getElementById('btnModeIn').className = m === 'in' ? 'btn btn-success flex-fill fw-bold py-2 shadow-sm active' : 'btn btn-outline-success flex-fill fw-bold py-2 shadow-sm';
+            document.getElementById('btnModeAudit').className = m === 'audit' ? 'btn btn-secondary text-white flex-fill fw-bold py-2 shadow-sm active' : 'btn btn-outline-secondary flex-fill fw-bold py-2 shadow-sm';
         }
 
         function toggleScan() {
@@ -355,7 +358,12 @@
             if(!code) return;
             const idx = allItems.findIndex(i => i && i.code === code);
             if (idx > -1) {
-                showStockDialog(idx, currentMode === 'out' ? 'use' : 'receive_sub');
+                // เปลี่ยนโหมดเปิดหน้าต่างตามที่เลือก
+                let actionType = 'receive_sub';
+                if(currentMode === 'out') actionType = 'use';
+                if(currentMode === 'audit') actionType = 'audit';
+                
+                showStockDialog(idx, actionType);
             } else {
                 Swal.fire({
                     title: 'ไม่พบรหัสนี้ในระบบ!',
@@ -366,7 +374,7 @@
         }
 
         // ==========================================
-        // 🌟 ฟังก์ชันเพิ่มข้อมูล (เต็มรูปแบบ)
+        // 🌟 2. ฟังก์ชันเพิ่มข้อมูลพัสดุใหม่ 
         // ==========================================
         function manualAction(mode, scannedCode = "") {
             if (mode === 'add_item') {
@@ -406,16 +414,16 @@
                                 </div>
                             </div>
                             <hr>
-                            <div class="row bg-light p-2 rounded">
-                                <div class="col-md-4 mb-2">
+                            <div class="row bg-light p-2 rounded mx-0">
+                                <div class="col-md-4 mb-2 px-1">
                                     <label class="form-label fw-bold text-secondary" style="font-size: 0.9rem;">ใช้เฉลี่ย/เดือน</label>
                                     <input type="number" id="swal-usage" class="form-control text-center" value="0">
                                 </div>
-                                <div class="col-md-4 mb-2">
+                                <div class="col-md-4 mb-2 px-1">
                                     <label class="form-label fw-bold text-secondary" style="font-size: 0.9rem;">ยอดตั้งต้น</label>
                                     <input type="number" id="swal-target" class="form-control text-center" value="0">
                                 </div>
-                                <div class="col-md-4 mb-2">
+                                <div class="col-md-4 mb-2 px-1">
                                     <label class="form-label fw-bold text-secondary" style="font-size: 0.9rem;">แจ้งเตือนใกล้หมด</label>
                                     <input type="number" id="swal-min" class="form-control text-center" value="10">
                                 </div>
@@ -437,7 +445,7 @@
                     }
                 }).then(res => {
                     if (res.isConfirmed) {
-                        if(!res.value.name || !res.value.code) return Swal.fire('ผิดพลาด', 'กรุณากรอกชื่อและรหัสให้ครบ', 'warning');
+                        if(!res.value.name || !res.value.code) return Swal.fire('ผิดพลาด', 'กรุณากรอกข้อมูลให้ครบ', 'warning');
                         if (allItems.some(i => i && i.code === res.value.code)) return Swal.fire('ผิดพลาด', 'รหัสนี้มีในระบบแล้ว!', 'error');
                         
                         let newItem = { 
@@ -466,6 +474,9 @@
             });
         }
 
+        // ==========================================
+        // 🌟 3. หน้าต่างกรอกจำนวน & ระบบ Audit
+        // ==========================================
         function showStockDialog(idx, mode) {
             const item = allItems[idx];
             let title = '', btnColor = '', extraHtml = '';
@@ -477,6 +488,23 @@
                 title = '🔄 โอนย้ายคลัง'; btnColor = '#3498db'; 
                 extraHtml = `<select id="transfer-dir" class="form-select border-primary mt-2" style="height:45px;"><option value="transfer_to_sub">คลังหลัก ➡️ คลังย่อย</option><option value="transfer_to_main">คลังย่อย ➡️ คลังหลัก</option></select>`;
             }
+            // 🌟 เพิ่มเงื่อนไขหน้าต่าง Audit 🌟
+            else if (mode === 'audit') {
+                title = '📋 ตรวจนับสต๊อก (Audit)'; 
+                btnColor = '#6c757d'; 
+                extraHtml = `
+                    <div class="row mt-3 text-start" style="font-family: 'Sarabun', sans-serif;">
+                        <div class="col-6">
+                            <label class="form-label fw-bold text-secondary">ยอดจริง (คลังหลัก)</label>
+                            <input type="number" id="audit-main" class="form-control text-center fs-5" value="${item.main_stock || 0}">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-bold text-secondary">ยอดจริง (คลังย่อย)</label>
+                            <input type="number" id="audit-sub" class="form-control text-center text-danger fs-5" value="${item.sub_stock || 0}">
+                        </div>
+                    </div>
+                `;
+            }
 
             Swal.fire({
                 title: title,
@@ -485,23 +513,56 @@
                     <div class="p-2 bg-light mb-3 mt-2 rounded text-center" style="font-size: 1.1rem;">
                         คลังหลัก: <b class="text-dark">${item.main_stock || 0}</b> | คลังย่อย: <b class="text-danger">${item.sub_stock || 0}</b>
                     </div>
+                    ${mode !== 'audit' ? `<div class="mt-3 text-start fw-bold">จำนวนที่ต้องการทำรายการ (${item.unit || 'ชิ้น'}):</div>` : ''}
                     ${extraHtml}
-                    <div class="mt-3 text-start fw-bold">จำนวนที่ต้องการทำรายการ (${item.unit || 'ชิ้น'}):</div>
                 `,
-                input: 'number', inputValue: 1, showCancelButton: true, confirmButtonText: '<i class="fas fa-check-circle"></i> ยืนยัน', confirmButtonColor: btnColor, cancelButtonText: 'ยกเลิก',
+                input: mode !== 'audit' ? 'number' : null, 
+                inputValue: mode !== 'audit' ? 1 : null, 
+                showCancelButton: true, confirmButtonText: '<i class="fas fa-check-circle"></i> ยืนยัน', confirmButtonColor: btnColor, cancelButtonText: 'ยกเลิก',
                 preConfirm: (val) => {
-                    let q = parseInt(val);
-                    if (!q || q <= 0) return Swal.showValidationMessage('ใส่จำนวนมากกว่า 0');
-                    if (mode === 'use' && q > parseInt(item.sub_stock)) return Swal.showValidationMessage('คลังย่อยมีไม่พอ!');
-                    if (mode === 'transfer') {
-                        let dir = document.getElementById('transfer-dir').value;
-                        if(dir === 'transfer_to_sub' && q > parseInt(item.main_stock)) return Swal.showValidationMessage('คลังหลักไม่พอโอน');
-                        if(dir === 'transfer_to_main' && q > parseInt(item.sub_stock)) return Swal.showValidationMessage('คลังย่อยไม่พอโอน');
-                        return { qty: q, action: dir };
+                    if (mode === 'audit') {
+                        let m = parseInt(document.getElementById('audit-main').value);
+                        let s = parseInt(document.getElementById('audit-sub').value);
+                        if (isNaN(m) || isNaN(s) || m < 0 || s < 0) return Swal.showValidationMessage('ระบุตัวเลขที่ถูกต้อง');
+                        return { action: 'audit', new_main: m, new_sub: s };
+                    } else {
+                        let q = parseInt(val);
+                        if (!q || q <= 0) return Swal.showValidationMessage('ใส่จำนวนมากกว่า 0');
+                        if (mode === 'use' && q > parseInt(item.sub_stock)) return Swal.showValidationMessage('คลังย่อยมีไม่พอ!');
+                        if (mode === 'transfer') {
+                            let dir = document.getElementById('transfer-dir').value;
+                            if(dir === 'transfer_to_sub' && q > parseInt(item.main_stock)) return Swal.showValidationMessage('คลังหลักไม่พอโอน');
+                            if(dir === 'transfer_to_main' && q > parseInt(item.sub_stock)) return Swal.showValidationMessage('คลังย่อยไม่พอโอน');
+                            return { qty: q, action: dir };
+                        }
+                        return { qty: q, action: mode };
                     }
-                    return { qty: q, action: mode };
                 }
-            }).then(res => { if (res.isConfirmed) processStockUpdate(item, idx, res.value.qty, res.value.action); });
+            }).then(res => { 
+                if (res.isConfirmed) {
+                    if (res.value.action === 'audit') {
+                        processAuditUpdate(item, idx, res.value.new_main, res.value.new_sub);
+                    } else {
+                        processStockUpdate(item, idx, res.value.qty, res.value.action); 
+                    }
+                }
+            });
+        }
+
+        // ==========================================
+        // 🌟 4. ฟังก์ชันบันทึกยอด Audit โดยเฉพาะ 
+        // ==========================================
+        function processAuditUpdate(item, idx, new_main, new_sub) {
+            if (db && document.getElementById('syncStatus').innerText.includes('ออนไลน์')) {
+                db.ref(`inventory_data/${idx}`).update({ main_stock: new_main, sub_stock: new_sub }).then(() => {
+                    let log = { date: new Date().toLocaleDateString('en-GB')+" "+new Date().toLocaleTimeString('en-GB'), code: item.code, name: item.name, action: "ตรวจนับ (Audit) 📋", qty: 0, unit: item.unit, main_bal: new_main, sub_bal: new_sub };
+                    db.ref('history_data').once('value').then(s => { let arr = s.val() || []; arr.unshift(log); db.ref('history_data').set(arr); });
+                    Swal.fire({title:'สำเร็จ!', text: 'บันทึกยอดตรวจนับใหม่เรียบร้อยแล้ว', icon:'success', timer:1500, showConfirmButton: false});
+                    document.getElementById('codeInput').value = '';
+                });
+            } else {
+                Swal.fire('ข้อผิดพลาด', 'ฟังก์ชันตรวจนับผ่านเว็บรองรับเฉพาะโหมดออนไลน์ (Firebase) เท่านั้น', 'error');
+            }
         }
 
         function processStockUpdate(item, idx, qty, action) {
