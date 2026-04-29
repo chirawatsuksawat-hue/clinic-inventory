@@ -41,10 +41,9 @@
         .btn-scan:hover { background: #1a2529; color: white; }
         #reader, #auditReader { width: 100%; border-radius: 15px; overflow: hidden; display: none; border: 4px dashed #00bfa5; margin-bottom: 15px; background: #fff; }
         
-        /* สไตล์พิเศษสำหรับหน้า Audit */
-        .audit-card { border-left: 4px solid #6c757d; transition: all 0.2s;}
-        .audit-card:focus-within { border-left: 4px solid #3498db; box-shadow: 0 4px 12px rgba(52,152,219,0.2) !important;}
+        /* สไตล์พิเศษสำหรับหน้า Audit แบบ Table */
         .audit-input { font-size: 1.1rem; font-weight: bold; }
+        .table-audit th { background-color: #f8f9fa; color: #333; position: sticky; top: 0; z-index: 1; border-bottom: 2px solid #dee2e6;}
         
         @media (max-width: 768px) { 
             .mobile-header { display: flex; }
@@ -172,8 +171,27 @@
             <input type="text" id="auditSearch" class="form-control border-0 py-3 bg-white" placeholder="พิมพ์ชื่อ ลำดับ หรือสแกนรหัส เพื่อกรองรายการ..." onkeyup="renderAuditList()">
         </div>
 
-        <div id="auditListContainer" class="row">
+        <div class="card shadow-sm border-0">
+            <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
+                <table class="table table-hover align-middle mb-0 table-audit border">
+                    <thead>
+                        <tr>
+                            <th class="text-center text-secondary">ลำดับ</th>
+                            <th class="text-center text-secondary">รหัสพัสดุ</th>
+                            <th>ชื่อรายการพัสดุ</th>
+                            <th class="text-center">หมวดหมู่</th>
+                            <th class="text-center text-warning">ยอดใช้(30วัน)</th>
+                            <th class="text-center text-info">ในระบบ</th>
+                            <th class="text-center text-success" style="width: 140px;">นับจริง(หลัก)</th>
+                            <th class="text-center text-danger" style="width: 140px;">นับจริง(ย่อย)</th>
+                            <th class="text-center text-primary">รวมที่นับได้</th>
+                        </tr>
+                    </thead>
+                    <tbody id="auditListContainerTable">
+                        </tbody>
+                </table>
             </div>
+        </div>
 
     </div>
 
@@ -226,6 +244,7 @@
         }
 
         let allItems = []; 
+        let historyData = []; // 🌟 เก็บประวัติเพื่อคำนวณยอด 30 วัน
         let auditData = []; 
         let currentMode = 'out';
         let html5QrCode = null; 
@@ -269,10 +288,18 @@
 
         function loadOnlineData() {
             if(!db) return;
+            // ดึงข้อมูลหลัก
             db.ref('inventory_data').on('value', (snap) => {
                 let data = snap.val() || [];
                 allItems = Array.isArray(data) ? data : Object.keys(data).map(k => data[k]);
                 updateTableUI();
+            });
+            // ดึงข้อมูลประวัติเพื่อคำนวณ ยอด 30 วัน
+            db.ref('history_data').on('value', (snap) => {
+                historyData = snap.val() || [];
+                if(document.getElementById('auditView').style.display === 'block') {
+                    renderAuditList();
+                }
             });
         }
 
@@ -281,11 +308,36 @@
                 .then(r => r.json())
                 .then(data => { allItems = data; updateTableUI(); })
                 .catch(e => console.error("Local Load Error:", e));
+                
+            fetch('inventory_history.json?t=' + new Date().getTime())
+                .then(r => r.json())
+                .then(data => { historyData = data; })
+                .catch(e => console.error("Local History Error:", e));
         }
 
         function forceReload() {
             if(db && document.getElementById('syncStatus').innerText.includes('ออนไลน์')) loadOnlineData();
             else loadLocalData();
+        }
+
+        // 🌟 ฟังก์ชันคำนวณยอดใช้ 30 วัน 🌟
+        function getUsed30d(itemName) {
+            if (!itemName || !historyData) return 0;
+            let total = 0;
+            let now = new Date();
+            historyData.forEach(h => {
+                if (h && h.action && h.action.includes("ใช้งานจริง") && h.name === itemName) {
+                    let parts = h.date.split(" ")[0].split("/");
+                    if (parts.length === 3) {
+                        let d = new Date(parts[2], parts[1]-1, parts[0]);
+                        let diffDays = (now - d) / (1000 * 60 * 60 * 24);
+                        if (diffDays <= 30) {
+                            total += parseInt(h.qty) || 0;
+                        }
+                    }
+                }
+            });
+            return total;
         }
 
         document.addEventListener("DOMContentLoaded", initApp);
@@ -355,10 +407,11 @@
             auditData = []; 
         }
 
+        // 🌟 สร้างตาราง Audit ใหม่ให้เหมือนแบบฟอร์มคอมพิวเตอร์
         function renderAuditList() {
             const term = document.getElementById('auditSearch').value.toLowerCase();
-            const container = document.getElementById('auditListContainer');
-            container.innerHTML = '';
+            const tbody = document.getElementById('auditListContainerTable');
+            tbody.innerHTML = '';
 
             let validItems = auditData.map((item, index) => ({ item, index })).filter(x => x.item && x.item.name);
             validItems.sort((a, b) => {
@@ -373,60 +426,51 @@
                 let m_stock = parseInt(item.main_stock || 0);
                 let s_stock = parseInt(item.sub_stock || 0);
                 let total_stock = m_stock + s_stock;
+                let sys_total = parseInt(allItems[index].main_stock || 0) + parseInt(allItems[index].sub_stock || 0);
+                
                 let seq = item.seq_num || '';
+                let used30d = getUsed30d(item.name);
 
-                let card = `
-                <div class="col-md-6 col-xl-4 mb-3">
-                    <div class="card audit-card shadow-sm h-100">
-                        <div class="card-body p-3">
-                            <h6 class="fw-bold text-dark mb-1" style="font-size:1.1rem;">
-                                ${seq ? `<span class="badge bg-secondary me-1">${seq}</span>` : ''}[${item.code || '-'}] ${item.name}
-                            </h6>
-                            <p class="text-muted small mb-2"><span class="badge bg-light text-dark border">${item.category || '-'}</span></p>
-                            
-                            <div class="d-flex justify-content-between mb-3 pb-2 border-bottom">
-                                <span class="text-secondary small">ยอดในระบบคอม:</span>
-                                <span class="fw-bold text-secondary small">หลัก: ${item.main_stock || 0} | ย่อย: ${item.sub_stock || 0}</span>
-                            </div>
-
-                            <div class="row g-2 align-items-end">
-                                <div class="col-4 px-1">
-                                    <label class="small fw-bold text-dark mb-1" style="font-size: 0.85rem;"><i class="fas fa-box"></i> หลัก</label>
-                                    <div class="input-group input-group-sm shadow-sm">
-                                        <input type="number" id="audit-main-${index}" class="form-control text-center audit-input border-secondary p-1 px-0" 
-                                               value="${m_stock}" 
-                                               onchange="updateAuditVal(${index}, 'main_stock', this.value)"
-                                               onkeyup="updateAuditVal(${index}, 'main_stock', this.value)"
-                                               onclick="this.select()">
-                                        <button class="btn btn-secondary px-2" type="button" onclick="openCalculator(${index}, 'main_stock', document.getElementById('audit-main-${index}').value)">
-                                            <i class="fas fa-calculator"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                                <div class="col-4 px-1">
-                                    <label class="small fw-bold text-danger mb-1" style="font-size: 0.85rem;"><i class="fas fa-box-open"></i> ย่อย</label>
-                                    <div class="input-group input-group-sm shadow-sm">
-                                        <input type="number" id="audit-sub-${index}" class="form-control text-center audit-input border-danger text-danger p-1 px-0" 
-                                               value="${s_stock}" 
-                                               onchange="updateAuditVal(${index}, 'sub_stock', this.value)"
-                                               onkeyup="updateAuditVal(${index}, 'sub_stock', this.value)"
-                                               onclick="this.select()">
-                                        <button class="btn btn-danger px-2" type="button" onclick="openCalculator(${index}, 'sub_stock', document.getElementById('audit-sub-${index}').value)">
-                                            <i class="fas fa-calculator"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                                <div class="col-4 px-1 text-center">
-                                    <label class="small fw-bold text-primary mb-1" style="font-size: 0.85rem;">รวมยอด</label>
-                                    <div class="form-control text-center bg-light text-primary fw-bold border-primary p-1 fs-5" id="audit-total-${index}">
-                                        ${total_stock}
-                                    </div>
-                                </div>
-                            </div>
+                let row = `
+                <tr>
+                    <td class="text-center fw-bold text-secondary">${seq}</td>
+                    <td class="text-center text-secondary">${item.code || '-'}</td>
+                    <td class="fw-bold" style="white-space: normal; min-width: 200px;">${item.name}</td>
+                    <td class="text-center"><span class="badge bg-light text-dark border">${item.category || '-'}</span></td>
+                    <td class="text-center text-warning fw-bold">${used30d}</td>
+                    <td class="text-center text-info fw-bold">${sys_total}</td>
+                    
+                    <td class="text-center px-1">
+                        <div class="input-group input-group-sm">
+                            <input type="number" id="audit-main-${index}" class="form-control text-center audit-input border-secondary p-1" 
+                                   value="${m_stock}" 
+                                   onchange="updateAuditVal(${index}, 'main_stock', this.value)"
+                                   onkeyup="updateAuditVal(${index}, 'main_stock', this.value)"
+                                   onclick="this.select()">
+                            <button class="btn btn-secondary px-2" type="button" onclick="openCalculator(${index}, 'main_stock', document.getElementById('audit-main-${index}').value)">
+                                <i class="fas fa-calculator"></i>
+                            </button>
                         </div>
-                    </div>
-                </div>`;
-                container.insertAdjacentHTML('beforeend', card);
+                    </td>
+                    
+                    <td class="text-center px-1">
+                        <div class="input-group input-group-sm">
+                            <input type="number" id="audit-sub-${index}" class="form-control text-center audit-input border-danger text-danger p-1" 
+                                   value="${s_stock}" 
+                                   onchange="updateAuditVal(${index}, 'sub_stock', this.value)"
+                                   onkeyup="updateAuditVal(${index}, 'sub_stock', this.value)"
+                                   onclick="this.select()">
+                            <button class="btn btn-danger px-2" type="button" onclick="openCalculator(${index}, 'sub_stock', document.getElementById('audit-sub-${index}').value)">
+                                <i class="fas fa-calculator"></i>
+                            </button>
+                        </div>
+                    </td>
+                    
+                    <td class="text-center text-primary fw-bold fs-5" id="audit-total-${index}">
+                        ${total_stock}
+                    </td>
+                </tr>`;
+                tbody.insertAdjacentHTML('beforeend', row);
             });
         }
 
@@ -531,7 +575,6 @@
                 try {
                     let result = eval(expr);
                     if(isFinite(result)) {
-                        // ปัดเศษลงเพื่อไม่ให้มีทศนิยมในสต๊อกพัสดุ
                         document.getElementById('calcDisplay').value = Math.floor(result);
                     }
                 } catch(e) { }
@@ -541,23 +584,20 @@
         }
 
         function calcConfirm() {
-            calcCalculate(); // ลองคำนวณก่อนเผื่อผู้ใช้ลืมกดเครื่องหมาย =
+            calcCalculate(); 
             let finalVal = document.getElementById('calcDisplay').value;
             if(finalVal === '') finalVal = '0';
             
             let valInt = parseInt(finalVal);
             if(isNaN(valInt) || valInt < 0) valInt = 0;
 
-            // นำค่ายัดกลับไปใส่ที่ input เดิมในหน้า Audit
             let inputId = currentCalcField === 'main_stock' ? `audit-main-${currentCalcIndex}` : `audit-sub-${currentCalcIndex}`;
             let el = document.getElementById(inputId);
             if(el) {
                 el.value = valInt;
-                // สั่งให้คำนวณยอดรวมใหม่ด้วย
                 updateAuditVal(currentCalcIndex, currentCalcField, valInt);
             }
             
-            // ปิด Modal
             bootstrap.Modal.getInstance(document.getElementById('calculatorModal')).hide();
         }
 
