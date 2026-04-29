@@ -113,6 +113,15 @@
             </div>
         </div>
 
+        <div class="card mb-4 bg-white p-3 border-2 border-info shadow-sm">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold text-info m-0"><i class="fas fa-tint me-2"></i>จัดการน้ำยาไตด่วน (Quick Access)</h5>
+            </div>
+            <div id="dialysisFluidContainer" class="row g-2">
+                <div class="col-12 text-center text-muted py-3">กำลังโหลดข้อมูลน้ำยาไต...</div>
+            </div>
+        </div>
+
         <div class="row">
             <div class="col-12">
                 <div class="card">
@@ -244,14 +253,13 @@
         }
 
         let allItems = []; 
-        let historyData = []; // 🌟 เก็บประวัติเพื่อคำนวณยอด 30 วัน
+        let historyData = []; 
         let auditData = []; 
         let currentMode = 'out';
         let html5QrCode = null; 
         let auditHtml5QrCode = null;
         let db = null;
 
-        // ตัวแปรสำหรับเครื่องคิดเลข
         let currentCalcIndex = -1;
         let currentCalcField = '';
 
@@ -288,13 +296,11 @@
 
         function loadOnlineData() {
             if(!db) return;
-            // ดึงข้อมูลหลัก
             db.ref('inventory_data').on('value', (snap) => {
                 let data = snap.val() || [];
                 allItems = Array.isArray(data) ? data : Object.keys(data).map(k => data[k]);
                 updateTableUI();
             });
-            // ดึงข้อมูลประวัติเพื่อคำนวณ ยอด 30 วัน
             db.ref('history_data').on('value', (snap) => {
                 historyData = snap.val() || [];
                 if(document.getElementById('auditView').style.display === 'block') {
@@ -320,7 +326,6 @@
             else loadLocalData();
         }
 
-        // 🌟 ฟังก์ชันคำนวณยอดใช้ 30 วัน 🌟
         function getUsed30d(itemName) {
             if (!itemName || !historyData) return 0;
             let total = 0;
@@ -378,6 +383,58 @@
                 </tr>`;
                 tbody.insertAdjacentHTML('beforeend', row);
             });
+
+            // 🌟 เพิ่มคำสั่งเรียกแสดงแผงน้ำยาไตด่วน
+            renderDialysisFluids();
+        }
+
+        // ==========================================
+        // 🌟 ระบบดึงและแสดงผลน้ำยาไตด่วน
+        // ==========================================
+        function renderDialysisFluids() {
+            const container = document.getElementById('dialysisFluidContainer');
+            if(!container) return;
+
+            // กรองเอาเฉพาะหมวดหมู่น้ำยาไต
+            let fluids = allItems.map((item, index) => ({item, index}))
+                                 .filter(x => x.item && x.item.category === 'น้ำยาไต (ทั่วไป)');
+
+            if (fluids.length === 0) {
+                container.innerHTML = '<div class="col-12 text-center text-muted py-2">ยังไม่มีการลงทะเบียนรายการในหมวดหมู่ "น้ำยาไต (ทั่วไป)"</div>';
+                return;
+            }
+
+            container.innerHTML = '';
+            fluids.forEach(f => {
+                let item = f.item;
+                let idx = f.index;
+                let main_s = parseInt(item.main_stock || 0);
+                let sub_s = parseInt(item.sub_stock || 0);
+
+                let card = `
+                <div class="col-6 col-md-3">
+                    <div class="border border-info rounded p-2 text-center shadow-sm bg-light h-100 d-flex flex-column justify-content-between">
+                        <h6 class="fw-bold text-primary mb-2" style="font-size: 0.95rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                            ${item.name}
+                        </h6>
+                        <div>
+                            <div class="d-flex justify-content-around mb-2 bg-white rounded border py-1" style="font-size: 0.85rem;">
+                                <span class="text-dark">คลัง: <b class="fs-6">${main_s}</b></span>
+                                <span class="text-danger">ย่อย: <b class="fs-6">${sub_s}</b></span>
+                            </div>
+                            <div class="d-flex gap-1 mt-auto">
+                                <button class="btn btn-warning btn-sm flex-fill fw-bold shadow-sm" onclick="showStockDialog(${idx}, 'use')">
+                                    <i class="fas fa-minus-circle"></i> เบิก
+                                </button>
+                                <button class="btn btn-secondary btn-sm flex-fill fw-bold text-white shadow-sm" onclick="showStockDialog(${idx}, 'audit')">
+                                    <i class="fas fa-clipboard-check"></i> นับยอด
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+                container.insertAdjacentHTML('beforeend', card);
+            });
         }
 
         // ==========================================
@@ -407,7 +464,6 @@
             auditData = []; 
         }
 
-        // 🌟 สร้างตาราง Audit ใหม่ให้เหมือนแบบฟอร์มคอมพิวเตอร์
         function renderAuditList() {
             const term = document.getElementById('auditSearch').value.toLowerCase();
             const tbody = document.getElementById('auditListContainerTable');
@@ -474,13 +530,11 @@
             });
         }
 
-        // 🌟 อัปเดตข้อมูลและรวมยอดแสดงผล Real-time 🌟
         function updateAuditVal(idx, field, value) {
             let val = parseInt(value);
             if(isNaN(val) || val < 0) val = 0;
             auditData[idx][field] = val;
             
-            // ดึงค่าล่าสุดมาคำนวณยอดรวม
             let currentMain = parseInt(auditData[idx].main_stock) || 0;
             let currentSub = parseInt(auditData[idx].sub_stock) || 0;
             let totalEl = document.getElementById(`audit-total-${idx}`);
@@ -570,7 +624,6 @@
 
         function calcCalculate() {
             let expr = document.getElementById('calcDisplay').value;
-            // ป้องกันการกรอกตัวอักษรแปลกๆ
             if(/^[0-9+\-*/.\s]+$/.test(expr)) {
                 try {
                     let result = eval(expr);
