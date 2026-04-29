@@ -6,6 +6,7 @@
     <title>ระบบคลังพัสดุคลินิกฟอกไต</title>
     
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
@@ -43,7 +44,7 @@
         /* สไตล์พิเศษสำหรับหน้า Audit */
         .audit-card { border-left: 4px solid #6c757d; transition: all 0.2s;}
         .audit-card:focus-within { border-left: 4px solid #3498db; box-shadow: 0 4px 12px rgba(52,152,219,0.2) !important;}
-        .audit-input { font-size: 1.2rem; font-weight: bold; }
+        .audit-input { font-size: 1.1rem; font-weight: bold; }
         
         @media (max-width: 768px) { 
             .mobile-header { display: flex; }
@@ -158,7 +159,7 @@
         </div>
 
         <div class="alert alert-warning border-warning shadow-sm" style="border-radius: 10px;">
-            <i class="fas fa-info-circle me-2"></i> <b>วิธีใช้:</b> เดินนับของที่หน้าตู้ แล้วพิมพ์ตัวเลข <u>"ยอดที่นับได้จริง"</u> ลงในช่อง ระบบจะรวมยอดอัตโนมัติ
+            <i class="fas fa-info-circle me-2"></i> <b>วิธีใช้:</b> เดินนับของที่หน้าตู้ แล้วพิมพ์ตัวเลข <u>"ยอดที่นับได้จริง"</u> ลงในช่อง (กดรูปเครื่องคิดเลขข้างๆ เพื่อบวกเลขได้เลย)
         </div>
 
         <button class="btn btn-scan w-100 mb-3 shadow" style="background-color: #34495e;" onclick="toggleAuditScan()">
@@ -176,6 +177,46 @@
 
     </div>
 
+    <div class="modal fade" id="calculatorModal" tabindex="-1" aria-hidden="true" style="z-index: 1060;">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-primary text-white border-0">
+                    <h5 class="modal-title fw-bold"><i class="fas fa-calculator me-2"></i> เครื่องคิดเลข</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body bg-light">
+                    <input type="text" id="calcDisplay" class="form-control mb-3 text-end fs-2 fw-bold text-primary shadow-sm" readonly style="background-color: #fff; height: 60px;">
+                    <div class="row g-2">
+                        <div class="col-3"><button class="btn btn-outline-dark w-100 fs-4 fw-bold py-2" onclick="calcAppend('7')">7</button></div>
+                        <div class="col-3"><button class="btn btn-outline-dark w-100 fs-4 fw-bold py-2" onclick="calcAppend('8')">8</button></div>
+                        <div class="col-3"><button class="btn btn-outline-dark w-100 fs-4 fw-bold py-2" onclick="calcAppend('9')">9</button></div>
+                        <div class="col-3"><button class="btn btn-warning w-100 fs-4 fw-bold py-2" onclick="calcAppend('/')">÷</button></div>
+                        
+                        <div class="col-3"><button class="btn btn-outline-dark w-100 fs-4 fw-bold py-2" onclick="calcAppend('4')">4</button></div>
+                        <div class="col-3"><button class="btn btn-outline-dark w-100 fs-4 fw-bold py-2" onclick="calcAppend('5')">5</button></div>
+                        <div class="col-3"><button class="btn btn-outline-dark w-100 fs-4 fw-bold py-2" onclick="calcAppend('6')">6</button></div>
+                        <div class="col-3"><button class="btn btn-warning w-100 fs-4 fw-bold py-2" onclick="calcAppend('*')">×</button></div>
+                        
+                        <div class="col-3"><button class="btn btn-outline-dark w-100 fs-4 fw-bold py-2" onclick="calcAppend('1')">1</button></div>
+                        <div class="col-3"><button class="btn btn-outline-dark w-100 fs-4 fw-bold py-2" onclick="calcAppend('2')">2</button></div>
+                        <div class="col-3"><button class="btn btn-outline-dark w-100 fs-4 fw-bold py-2" onclick="calcAppend('3')">3</button></div>
+                        <div class="col-3"><button class="btn btn-warning w-100 fs-4 fw-bold py-2" onclick="calcAppend('-')">-</button></div>
+                        
+                        <div class="col-3"><button class="btn btn-danger w-100 fs-4 fw-bold py-2" onclick="calcClear()">C</button></div>
+                        <div class="col-3"><button class="btn btn-outline-dark w-100 fs-4 fw-bold py-2" onclick="calcAppend('0')">0</button></div>
+                        <div class="col-3"><button class="btn btn-info w-100 fs-4 fw-bold py-2 text-white" onclick="calcCalculate()">=</button></div>
+                        <div class="col-3"><button class="btn btn-warning w-100 fs-4 fw-bold py-2" onclick="calcAppend('+')">+</button></div>
+                    </div>
+                </div>
+                <div class="modal-footer p-2 bg-white border-0">
+                    <button type="button" class="btn btn-success w-100 fw-bold fs-5 py-2 shadow-sm" onclick="calcConfirm()">
+                        <i class="fas fa-check-circle me-2"></i> นำยอดไปใส่ตาราง
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <audio id="soundScan" src="https://www.soundjay.com/buttons/sounds/beep-07.mp3"></audio>
 
     <script>
@@ -188,8 +229,12 @@
         let auditData = []; 
         let currentMode = 'out';
         let html5QrCode = null; 
-        let auditHtml5QrCode = null; // Scanner สำหรับหน้า Audit
+        let auditHtml5QrCode = null;
         let db = null;
+
+        // ตัวแปรสำหรับเครื่องคิดเลข
+        let currentCalcIndex = -1;
+        let currentCalcField = '';
 
         function initApp() {
             try {
@@ -297,7 +342,6 @@
         }
 
         function closeAuditView() {
-            // ปิดกล้องถ้าเปิดทิ้งไว้
             if (auditHtml5QrCode) {
                 auditHtml5QrCode.stop().then(() => {
                     auditHtml5QrCode.clear();
@@ -346,24 +390,34 @@
                             </div>
 
                             <div class="row g-2 align-items-end">
-                                <div class="col-4">
-                                    <label class="small fw-bold text-dark mb-1"><i class="fas fa-box me-1"></i> หลัก</label>
-                                    <input type="number" class="form-control text-center audit-input border-secondary p-1" 
-                                           value="${m_stock}" 
-                                           onchange="updateAuditVal(${index}, 'main_stock', this.value)"
-                                           onkeyup="updateAuditVal(${index}, 'main_stock', this.value)"
-                                           onclick="this.select()">
+                                <div class="col-4 px-1">
+                                    <label class="small fw-bold text-dark mb-1" style="font-size: 0.85rem;"><i class="fas fa-box"></i> หลัก</label>
+                                    <div class="input-group input-group-sm shadow-sm">
+                                        <input type="number" id="audit-main-${index}" class="form-control text-center audit-input border-secondary p-1 px-0" 
+                                               value="${m_stock}" 
+                                               onchange="updateAuditVal(${index}, 'main_stock', this.value)"
+                                               onkeyup="updateAuditVal(${index}, 'main_stock', this.value)"
+                                               onclick="this.select()">
+                                        <button class="btn btn-secondary px-2" type="button" onclick="openCalculator(${index}, 'main_stock', document.getElementById('audit-main-${index}').value)">
+                                            <i class="fas fa-calculator"></i>
+                                        </button>
+                                    </div>
                                 </div>
-                                <div class="col-4">
-                                    <label class="small fw-bold text-danger mb-1"><i class="fas fa-box-open me-1"></i> ย่อย</label>
-                                    <input type="number" class="form-control text-center audit-input border-danger text-danger p-1" 
-                                           value="${s_stock}" 
-                                           onchange="updateAuditVal(${index}, 'sub_stock', this.value)"
-                                           onkeyup="updateAuditVal(${index}, 'sub_stock', this.value)"
-                                           onclick="this.select()">
+                                <div class="col-4 px-1">
+                                    <label class="small fw-bold text-danger mb-1" style="font-size: 0.85rem;"><i class="fas fa-box-open"></i> ย่อย</label>
+                                    <div class="input-group input-group-sm shadow-sm">
+                                        <input type="number" id="audit-sub-${index}" class="form-control text-center audit-input border-danger text-danger p-1 px-0" 
+                                               value="${s_stock}" 
+                                               onchange="updateAuditVal(${index}, 'sub_stock', this.value)"
+                                               onkeyup="updateAuditVal(${index}, 'sub_stock', this.value)"
+                                               onclick="this.select()">
+                                        <button class="btn btn-danger px-2" type="button" onclick="openCalculator(${index}, 'sub_stock', document.getElementById('audit-sub-${index}').value)">
+                                            <i class="fas fa-calculator"></i>
+                                        </button>
+                                    </div>
                                 </div>
-                                <div class="col-4 text-center">
-                                    <label class="small fw-bold text-primary mb-1">รวมยอด</label>
+                                <div class="col-4 px-1 text-center">
+                                    <label class="small fw-bold text-primary mb-1" style="font-size: 0.85rem;">รวมยอด</label>
                                     <div class="form-control text-center bg-light text-primary fw-bold border-primary p-1 fs-5" id="audit-total-${index}">
                                         ${total_stock}
                                     </div>
@@ -452,7 +506,63 @@
         }
 
         // ==========================================
-        // 🌟 กล้องสแกน QR สำหรับหน้า Audit โดยเฉพาะ
+        // 🌟 ระบบเครื่องคิดเลข 🌟
+        // ==========================================
+        function openCalculator(idx, field, currentValue) {
+            currentCalcIndex = idx;
+            currentCalcField = field;
+            document.getElementById('calcDisplay').value = currentValue || '';
+            let calcModal = new bootstrap.Modal(document.getElementById('calculatorModal'));
+            calcModal.show();
+        }
+
+        function calcAppend(val) {
+            document.getElementById('calcDisplay').value += val;
+        }
+
+        function calcClear() {
+            document.getElementById('calcDisplay').value = '';
+        }
+
+        function calcCalculate() {
+            let expr = document.getElementById('calcDisplay').value;
+            // ป้องกันการกรอกตัวอักษรแปลกๆ
+            if(/^[0-9+\-*/.\s]+$/.test(expr)) {
+                try {
+                    let result = eval(expr);
+                    if(isFinite(result)) {
+                        // ปัดเศษลงเพื่อไม่ให้มีทศนิยมในสต๊อกพัสดุ
+                        document.getElementById('calcDisplay').value = Math.floor(result);
+                    }
+                } catch(e) { }
+            } else {
+                Swal.fire('ข้อผิดพลาด', 'รูปแบบการคำนวณไม่ถูกต้อง', 'error');
+            }
+        }
+
+        function calcConfirm() {
+            calcCalculate(); // ลองคำนวณก่อนเผื่อผู้ใช้ลืมกดเครื่องหมาย =
+            let finalVal = document.getElementById('calcDisplay').value;
+            if(finalVal === '') finalVal = '0';
+            
+            let valInt = parseInt(finalVal);
+            if(isNaN(valInt) || valInt < 0) valInt = 0;
+
+            // นำค่ายัดกลับไปใส่ที่ input เดิมในหน้า Audit
+            let inputId = currentCalcField === 'main_stock' ? `audit-main-${currentCalcIndex}` : `audit-sub-${currentCalcIndex}`;
+            let el = document.getElementById(inputId);
+            if(el) {
+                el.value = valInt;
+                // สั่งให้คำนวณยอดรวมใหม่ด้วย
+                updateAuditVal(currentCalcIndex, currentCalcField, valInt);
+            }
+            
+            // ปิด Modal
+            bootstrap.Modal.getInstance(document.getElementById('calculatorModal')).hide();
+        }
+
+        // ==========================================
+        // 🌟 กล้องสแกน QR สำหรับหน้า Audit
         // ==========================================
         function toggleAuditScan() {
             const readerDiv = document.getElementById('auditReader');
@@ -489,13 +599,12 @@
                     document.getElementById('auditReader').style.display = 'none';
                 });
             }
-            // นำผลที่สแกนได้ไปใส่ในช่องค้นหา
             document.getElementById('auditSearch').value = decodedText;
             renderAuditList();
         }
 
         // ==========================================
-        // 🌟 ระบบกล้องสแกน QR สำหรับหน้าแรก (คงเดิม)
+        // 🌟 ระบบกล้องสแกน QR สำหรับหน้าแรก
         // ==========================================
         function toggleScan() {
             const readerDiv = document.getElementById('reader');
