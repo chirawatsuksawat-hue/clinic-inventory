@@ -115,10 +115,10 @@
 
         <div class="card mb-4 bg-white p-3 border-2 border-info shadow-sm">
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <h5 class="fw-bold text-info m-0"><i class="fas fa-tint me-2"></i>จัดการน้ำยาไตด่วน (Quick Access)</h5>
+                <h5 class="fw-bold text-info m-0"><i class="fas fa-tint me-2"></i>จัดการน้ำยาไตและน้ำเกลือด่วน (Quick Access)</h5>
             </div>
             <div id="dialysisFluidContainer" class="row g-2">
-                <div class="col-12 text-center text-muted py-3">กำลังโหลดข้อมูลน้ำยาไต...</div>
+                <div class="col-12 text-center text-muted py-3">กำลังโหลดข้อมูล...</div>
             </div>
         </div>
 
@@ -263,6 +263,21 @@
         let currentCalcIndex = -1;
         let currentCalcField = '';
 
+        // 🌟 ดึงหมวดหมู่ทั้งหมดแบบอัตโนมัติ (Dynamic Categories)
+        function getCategoryOptionsHTML(selectedCat = '') {
+            let cats = new Set(["เวชภัณฑ์ทางการแพทย์", "อุปกรณ์สำนักงาน", "น้ำยา/อุปกรณ์ทำความสะอาด", "น้ำยาไต (ทั่วไป)", "อื่นๆ"]);
+            allItems.forEach(item => {
+                if(item && item.category) cats.add(item.category);
+            });
+            
+            let html = '';
+            cats.forEach(cat => {
+                let sel = cat === selectedCat ? 'selected' : '';
+                html += `<option value="${cat}" ${sel}>${cat}</option>`;
+            });
+            return html;
+        }
+
         function initApp() {
             try {
                 const firebaseConfig = {
@@ -384,7 +399,6 @@
                 tbody.insertAdjacentHTML('beforeend', row);
             });
 
-            // 🌟 เพิ่มคำสั่งเรียกแสดงแผงน้ำยาไตด่วน
             renderDialysisFluids();
         }
 
@@ -395,12 +409,14 @@
             const container = document.getElementById('dialysisFluidContainer');
             if(!container) return;
 
-            // กรองเอาเฉพาะหมวดหมู่น้ำยาไต
+            // กรองหมวดหมู่ที่ไม่เกี่ยวข้องกันออก เพื่อให้เหลือน้ำยาและน้ำเกลือ
+            let nonDialysateCats = ["เวชภัณฑ์ทางการแพทย์", "อุปกรณ์สำนักงาน", "น้ำยา/อุปกรณ์ทำความสะอาด", "อื่นๆ"];
+            
             let fluids = allItems.map((item, index) => ({item, index}))
-                                 .filter(x => x.item && x.item.category === 'น้ำยาไต (ทั่วไป)');
+                                 .filter(x => x.item && x.item.category && !nonDialysateCats.includes(x.item.category));
 
             if (fluids.length === 0) {
-                container.innerHTML = '<div class="col-12 text-center text-muted py-2">ยังไม่มีการลงทะเบียนรายการในหมวดหมู่ "น้ำยาไต (ทั่วไป)"</div>';
+                container.innerHTML = '<div class="col-12 text-center text-muted py-2">ยังไม่มีการลงทะเบียนรายการในหมวดหมู่ "น้ำยาไต / น้ำเกลือ"</div>';
                 return;
             }
 
@@ -758,11 +774,7 @@
                             <div class="col-md-8 mb-3">
                                 <label class="form-label fw-bold text-primary">หมวดหมู่</label>
                                 <select id="edit-cat" class="form-select border-primary" style="height: 45px;">
-                                    <option value="เวชภัณฑ์ทางการแพทย์" ${isCat('เวชภัณฑ์ทางการแพทย์')}>เวชภัณฑ์ทางการแพทย์</option>
-                                    <option value="อุปกรณ์สำนักงาน" ${isCat('อุปกรณ์สำนักงาน')}>อุปกรณ์สำนักงาน</option>
-                                    <option value="น้ำยา/อุปกรณ์ทำความสะอาด" ${isCat('น้ำยา/อุปกรณ์ทำความสะอาด')}>น้ำยา/อุปกรณ์ทำความสะอาด</option>
-                                    <option value="น้ำยาไต (ทั่วไป)" ${isCat('น้ำยาไต (ทั่วไป)')}>น้ำยาไต (ทั่วไป)</option>
-                                    <option value="อื่นๆ" ${isCat('อื่นๆ')}>อื่นๆ</option>
+                                    ${getCategoryOptionsHTML(item.category)}
                                 </select>
                             </div>
                         </div>
@@ -871,11 +883,7 @@
                                 <div class="col-md-8 mb-3">
                                     <label class="form-label fw-bold text-primary">หมวดหมู่</label>
                                     <select id="swal-cat" class="form-select border-primary" style="height: 45px;">
-                                        <option value="เวชภัณฑ์ทางการแพทย์">เวชภัณฑ์ทางการแพทย์</option>
-                                        <option value="อุปกรณ์สำนักงาน">อุปกรณ์สำนักงาน</option>
-                                        <option value="น้ำยา/อุปกรณ์ทำความสะอาด">น้ำยา/อุปกรณ์ทำความสะอาด</option>
-                                        <option value="น้ำยาไต (ทั่วไป)">น้ำยาไต (ทั่วไป)</option>
-                                        <option value="อื่นๆ">อื่นๆ</option>
+                                        ${getCategoryOptionsHTML('')}
                                     </select>
                                 </div>
                             </div>
