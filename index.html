@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ระบบคลังพัสดุคลินิกฟอกไต</title>
     
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -43,47 +43,47 @@
             <i class="fas fa-wifi me-2"></i> ระบบคลังออนไลน์ (เชื่อมต่อข้อมูลกับคลินิกอัตโนมัติ)
         </div>
 
-        <div class="card mb-4 bg-white p-3 border-2 border-primary shadow-sm">
+        <div class="card mb-4 bg-white p-3 p-md-4 border-2 border-primary shadow-sm">
             <h5 class="fw-bold text-primary mb-3"><i class="fas fa-keyboard me-2"></i>ทำรายการแบบแมนนวล</h5>
-            <div class="d-flex flex-wrap gap-2">
+            <div class="d-flex flex-column flex-sm-row flex-wrap gap-2">
                 <button class="btn btn-success action-btn" onclick="openItemSelector('receive_main')"><i class="fas fa-download me-1"></i> รับของเข้าคลัง</button>
                 <button class="btn btn-info action-btn text-white" onclick="openItemSelector('transfer')"><i class="fas fa-exchange-alt me-1"></i> โอนย้ายคลัง</button>
                 <button class="btn btn-warning action-btn text-dark" onclick="openItemSelector('use')"><i class="fas fa-upload me-1"></i> เบิกจ่าย (หักออก)</button>
-                <button class="btn btn-secondary action-btn text-white" style="background-color: #6c757d;" onclick="openAuditView()"><i class="fas fa-clipboard-list me-1"></i> ทำใบตรวจนับ (Audit)</button>
+                <button class="btn btn-secondary action-btn text-white" style="background-color: #6c757d;" onclick="openAuditView()"><i class="fas fa-clipboard-list me-1"></i> ทำใบตรวจนับ</button>
             </div>
-            <div class="mt-2 text-end">
-                <button class="btn btn-outline-primary btn-sm rounded-pill fw-bold px-3 shadow-sm" onclick="manualAction('add_item')"><i class="fas fa-plus me-1"></i> เพิ่มพัสดุใหม่</button>
+            <div class="mt-3 text-end">
+                <button class="btn btn-outline-primary btn-sm rounded-pill fw-bold px-3 shadow-sm w-100 w-sm-auto" onclick="manualAction('add_item')"><i class="fas fa-plus me-1"></i> เพิ่มพัสดุใหม่</button>
             </div>
         </div>
 
-        <div class="card mb-4 bg-white p-3 border-2 border-info shadow-sm">
+        <div class="card mb-4 bg-white p-3 p-md-4 border-2 border-info shadow-sm">
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <h5 class="fw-bold text-info m-0"><i class="fas fa-tint me-2"></i>จัดการน้ำยาไตและน้ำเกลือด่วน (Quick Access)</h5>
+                <h5 class="fw-bold text-info m-0"><i class="fas fa-tint me-2"></i>จัดการน้ำยาไตและน้ำเกลือด่วน</h5>
             </div>
             <div id="dialysisFluidContainer" class="row g-2">
                 <div class="col-12 text-center text-muted py-3">กำลังโหลดข้อมูล...</div>
             </div>
         </div>
 
-        <div class="card mb-4 bg-white p-4 shadow-sm border-2 border-success">
-            <h5 class="fw-bold text-success mb-3"><i class="fa-solid fa-camera me-2"></i>สแกนเพื่อทำรายการด่วน (Spot Check)</h5>
-            <div class="d-flex gap-2 mb-3">
+        <div class="card mb-4 bg-white p-3 p-md-4 shadow-sm border-2 border-success">
+            <h5 class="fw-bold text-success mb-3"><i class="fa-solid fa-camera me-2"></i>สแกนเพื่อทำรายการด่วน</h5>
+            <div class="d-flex flex-column flex-sm-row gap-2 mb-3">
                 <button id="btnModeOut" class="btn btn-warning flex-fill fw-bold py-2 shadow-sm active" onclick="setMode('out')">📤 ตัดสต๊อก (เบิก)</button>
                 <button id="btnModeIn" class="btn btn-outline-success flex-fill fw-bold py-2 shadow-sm" onclick="setMode('in')">📥 รับเข้าคลัง</button>
                 <button id="btnModeAudit" class="btn btn-outline-secondary flex-fill fw-bold py-2 shadow-sm" onclick="setMode('audit')">📋 ปรับยอด (1 ชิ้น)</button>
             </div>
-            <button class="btn btn-scan w-100 mb-3 shadow" onclick="toggleScan()"><i class="fa-solid fa-expand me-2"></i>เปิดกล้องเพื่อสแกน QR</button>
+            <button class="btn btn-scan w-100 mb-3 shadow" onclick="toggleScan()"><i class="fa-solid fa-expand me-2"></i>เปิดกล้องสแกน QR</button>
             <div id="reader"></div>
             <div class="input-group shadow-sm mt-3" style="border-radius: 10px; overflow: hidden;">
                 <span class="input-group-text bg-white border-0"><i class="fa-solid fa-barcode text-muted"></i></span>
-                <input type="text" id="codeInput" class="form-control border-0 bg-light" placeholder="พิมพ์หรือสแกนรหัสที่นี่..." onkeypress="if(event.key === 'Enter') handleScanResult(this.value)">
+                <input type="text" id="codeInput" class="form-control border-0 bg-light" placeholder="รหัสบาร์โค้ด..." onkeypress="if(event.key === 'Enter') handleScanResult(this.value)">
                 <button class="btn btn-primary px-3 fw-bold" onclick="handleScanResult(document.getElementById('codeInput').value)">ค้นหา</button>
             </div>
         </div>
 
         <div class="row">
             <div class="col-12">
-                <div class="card">
+                <div class="card shadow-sm">
                     <div class="card-header bg-white d-flex flex-column flex-md-row justify-content-between align-items-md-center py-3 gap-2">
                         <h5 class="mb-0 text-primary fw-bold"><i class="fas fa-cubes me-2"></i> สต๊อกพัสดุคงเหลือ</h5>
                         <div class="d-flex align-items-center justify-content-between">
@@ -101,11 +101,12 @@
                                         <th>ชื่อรายการ</th>
                                         <th class="text-center">คลังหลัก</th>
                                         <th class="text-center">คลังย่อย</th>
+                                        <th class="text-center text-primary">ยอดรวม</th>
                                         <th class="text-center">จัดการ</th>
                                     </tr>
                                 </thead>
                                 <tbody id="inventory-table-body">
-                                    <tr><td colspan="6" class="text-center py-5 text-muted">กำลังดึงข้อมูล...</td></tr>
+                                    <tr><td colspan="7" class="text-center py-5 text-muted">กำลังดึงข้อมูล...</td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -118,13 +119,13 @@
     <div id="auditView" class="main-content" style="display: none;">
         <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
             <div>
-                <button class="btn btn-outline-secondary btn-sm mb-2 rounded-pill px-3" onclick="closeAuditView()"><i class="fas fa-arrow-left me-1"></i> กลับหน้าหลัก</button>
-                <h2 class="m-0 fw-bold" style="color: #495057;"><i class="fas fa-clipboard-list me-2"></i>ใบตรวจนับสต๊อก (Batch Audit)</h2>
+                <button class="btn btn-outline-secondary btn-sm mb-2 rounded-pill px-3 w-100 w-sm-auto" onclick="closeAuditView()"><i class="fas fa-arrow-left me-1"></i> กลับหน้าหลัก</button>
+                <h3 class="m-0 fw-bold" style="color: #495057;"><i class="fas fa-clipboard-list me-2"></i>ใบตรวจนับสต๊อก</h3>
             </div>
-            <button class="btn btn-success fw-bold px-4 py-2 shadow-sm" onclick="saveBulkAudit()"><i class="fas fa-save me-2"></i>บันทึกผลการนับทั้งหมด</button>
+            <button class="btn btn-success fw-bold px-4 py-2 shadow-sm w-100 w-md-auto" onclick="saveBulkAudit()"><i class="fas fa-save me-2"></i>บันทึกผลการนับทั้งหมด</button>
         </div>
         <div class="alert alert-warning border-warning shadow-sm" style="border-radius: 10px;">
-            <i class="fas fa-info-circle me-2"></i> <b>วิธีใช้:</b> เดินนับของที่หน้าตู้ แล้วพิมพ์ตัวเลข <u>"ยอดที่นับได้จริง"</u> ลงในช่อง (กดรูปเครื่องคิดเลขข้างๆ เพื่อบวกเลขได้เลย)
+            <i class="fas fa-info-circle me-2"></i> <b>วิธีใช้:</b> พิมพ์ตัวเลข <u>"ยอดที่นับได้จริง"</u> ลงในช่อง (กดรูปเครื่องคิดเลขข้างๆ เพื่อบวกเลขได้เลย)
         </div>
         <button class="btn btn-scan w-100 mb-3 shadow" style="background-color: #34495e;" onclick="toggleAuditScan()"><i class="fa-solid fa-expand me-2"></i> สแกน QR Code ค้นหาพัสดุ</button>
         <div id="auditReader"></div>
@@ -155,7 +156,7 @@
     </div>
 
     <div class="modal fade" id="itemSelectorModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-scrollable">
+        <div class="modal-dialog modal-dialog-scrollable modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header bg-primary text-white">
                     <h5 class="modal-title fw-bold" id="itemSelectorTitle">เลือกพัสดุ</h5>
@@ -163,8 +164,7 @@
                 </div>
                 <div class="modal-body bg-light p-2">
                     <input type="text" id="searchItemSelector" class="form-control mb-3 py-2 fw-bold" placeholder="🔍 ค้นหาชื่อพัสดุ หรือ รหัส..." onkeyup="renderItemSelectorList()">
-                    <div id="itemSelectorList" class="list-group">
-                        </div>
+                    <div id="itemSelectorList" class="list-group"></div>
                 </div>
             </div>
         </div>
@@ -211,7 +211,6 @@
     </div>
 
     <audio id="soundScan" src="https://www.soundjay.com/buttons/sounds/beep-07.mp3"></audio>
-
     <script src="app.js"></script>
 </body>
 </html>

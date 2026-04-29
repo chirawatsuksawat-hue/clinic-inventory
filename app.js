@@ -13,7 +13,7 @@ let db = null;
 
 let currentCalcIndex = -1;
 let currentCalcField = '';
-let currentCalcTargetId = ''; // เอาไว้บอกว่าเครื่องคิดเลขจะไปวางค่าที่ช่องไหน
+let currentCalcTargetId = '';
 
 function getCategoryOptionsHTML(selectedCat = '') {
     let cats = new Set(["เวชภัณฑ์ทางการแพทย์", "อุปกรณ์สำนักงาน", "น้ำยา/อุปกรณ์ทำความสะอาด", "น้ำยาไต (ทั่วไป)", "อื่นๆ"]);
@@ -99,10 +99,13 @@ function getUsed30d(itemName) {
 document.addEventListener("DOMContentLoaded", initApp);
 setInterval(() => { if (!db || document.getElementById('syncStatus').innerText.includes('ออฟไลน์')) loadLocalData(); }, 3000);
 
+// ==========================================
+// 🌟 ตารางพัสดุคงเหลือ (เพิ่มคอลัมน์ "ยอดรวม")
+// ==========================================
 function updateTableUI() {
     const tbody = document.getElementById('inventory-table-body');
     tbody.innerHTML = ''; 
-    if (!allItems || allItems.length === 0) return tbody.innerHTML = '<tr><td colspan="6" class="text-center py-5">ไม่มีข้อมูลพัสดุ</td></tr>';
+    if (!allItems || allItems.length === 0) return tbody.innerHTML = '<tr><td colspan="7" class="text-center py-5">ไม่มีข้อมูลพัสดุ</td></tr>';
 
     let validItems = allItems.filter(item => item && item.name);
     validItems.sort((a, b) => (parseFloat(a.seq_num) || 99999) - (parseFloat(b.seq_num) || 99999));
@@ -110,14 +113,18 @@ function updateTableUI() {
     validItems.forEach(item => {
         let main_s = parseInt(item.main_stock || 0);
         let sub_s = parseInt(item.sub_stock || 0);
+        let total_s = main_s + sub_s; // 🌟 คำนวณยอดรวม
+        
+        let unit = item.unit || 'ชิ้น';
         let originalIndex = allItems.indexOf(item);
             
         let row = `<tr>
             <td class="text-center fw-bold text-secondary">${item.seq_num || '-'}</td>
             <td class="text-secondary">${item.code || '-'}</td>
             <td class="fw-bold text-dark" style="white-space: normal; min-width: 150px;">${item.name || '-'}<br><small class="text-muted fw-normal">${item.category || '-'}</small></td>
-            <td class="text-center fs-6">${main_s} <small class="text-muted">${item.unit || 'ชิ้น'}</small></td>
-            <td class="text-center fs-6 text-info fw-bold">${sub_s} <small class="text-muted">${item.unit || 'ชิ้น'}</small></td>
+            <td class="text-center fs-6">${main_s} <small class="text-muted">${unit}</small></td>
+            <td class="text-center fs-6 text-info fw-bold">${sub_s} <small class="text-muted">${unit}</small></td>
+            <td class="text-center fs-5 text-primary fw-bold">${total_s}</td>
             <td class="text-center"><button class="btn btn-outline-primary btn-sm" onclick="editItem(${originalIndex})"><i class="fas fa-edit"></i></button></td>
         </tr>`;
         tbody.insertAdjacentHTML('beforeend', row);
@@ -126,7 +133,7 @@ function updateTableUI() {
 }
 
 // ==========================================
-// 🌟 แผงน้ำยาไตด่วน (เพิ่มสี, ยอดรวม และเครื่องคิดเลข)
+// 🌟 แผงน้ำยาไตด่วน (จัด Responsive สำหรับมือถือ)
 // ==========================================
 function renderDialysisFluids() {
     const container = document.getElementById('dialysisFluidContainer');
@@ -147,11 +154,11 @@ function renderDialysisFluids() {
         let sub_s = parseInt(item.sub_stock || 0);
         let total_s = main_s + sub_s;
         
-        // กำหนดสีให้คลังหลัก
         let mainColor = main_s > 10 ? 'text-success' : (main_s > 0 ? 'text-warning' : 'text-danger');
 
+        // 🌟 เปลี่ยน col-6 ให้เป็น col-12 ในมือถือเพื่อไม่ให้แคบไป
         let card = `
-        <div class="col-6 col-md-3">
+        <div class="col-12 col-sm-6 col-md-4 col-lg-3 mb-2">
             <div class="border border-info rounded p-2 text-center shadow-sm bg-light h-100 d-flex flex-column justify-content-between">
                 <h6 class="fw-bold text-primary mb-2" style="font-size: 0.95rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${item.name}</h6>
                 <div>
@@ -173,10 +180,6 @@ function renderDialysisFluids() {
     });
 }
 
-// ==========================================
-// 🌟 ระบบหน้าต่างเลือกพัสดุแบบง่าย (มาแทน Dropdown แมนนวล)
-// ==========================================
-let pendingManualMode = '';
 function openItemSelector(mode) {
     pendingManualMode = mode;
     let title = "เลือกพัสดุที่ต้องการ";
@@ -216,9 +219,6 @@ function renderItemSelectorList() {
     });
 }
 
-// ==========================================
-// 🌟 หน้าต่างจัดการเบิก/นับยอด (ปรับให้มีเครื่องคิดเลข)
-// ==========================================
 function showStockDialog(idx, mode) {
     const item = allItems[idx];
     let title = '', btnColor = '', extraHtml = '';
@@ -385,12 +385,8 @@ function editItem(idx) {
     });
 }
 
-// ==========================================
-// 🌟 เครื่องคิดเลข
-// ==========================================
 function openCalculator(idx, targetId, currentValue) {
-    currentCalcIndex = idx;
-    currentCalcTargetId = targetId;
+    currentCalcIndex = idx; currentCalcTargetId = targetId;
     document.getElementById('calcDisplay').value = currentValue || '';
     new bootstrap.Modal(document.getElementById('calculatorModal')).show();
 }
@@ -412,7 +408,6 @@ function calcConfirm() {
     let el = document.getElementById(currentCalcTargetId);
     if(el) {
         el.value = valInt;
-        // ถ้าเป็นการใช้ในตาราง Audit ให้เรียก updateAuditVal ด้วย
         if(currentCalcIndex >= 0 && currentCalcTargetId.includes('audit-')) {
             let field = currentCalcTargetId.includes('main') ? 'main_stock' : 'sub_stock';
             updateAuditVal(currentCalcIndex, field, valInt);
@@ -421,9 +416,6 @@ function calcConfirm() {
     bootstrap.Modal.getInstance(document.getElementById('calculatorModal')).hide();
 }
 
-// ==========================================
-// 🌟 โหมด Batch Audit เต็มหน้าจอ
-// ==========================================
 function openAuditView() {
     document.getElementById('dashboardView').style.display = 'none';
     document.getElementById('auditView').style.display = 'block';
@@ -512,7 +504,6 @@ function saveBulkAudit() {
     });
 }
 
-// ระบบกล้องสแกน
 function setMode(m) {
     currentMode = m;
     document.getElementById('btnModeOut').className = m === 'out' ? 'btn btn-warning flex-fill fw-bold py-2 shadow-sm active' : 'btn btn-outline-warning flex-fill fw-bold py-2 shadow-sm';
