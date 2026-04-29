@@ -26,7 +26,6 @@ body { font-family: 'Sarabun', sans-serif; background-color: #f4f6f9; overflow-x
 .audit-input { font-size: 1.1rem; font-weight: bold; }
 .table-audit th { background-color: #f8f9fa; color: #333; position: sticky; top: 0; z-index: 1; border-bottom: 2px solid #dee2e6;}
 
-/* 🌟 จัดการการแสดงผลบนมือถือให้สวยงาม ไม่หลุดขอบ 🌟 */
 @media (max-width: 768px) { 
     .mobile-header { display: flex; }
     .sidebar { transform: translateX(-100%); }
@@ -34,12 +33,8 @@ body { font-family: 'Sarabun', sans-serif; background-color: #f4f6f9; overflow-x
     .sidebar-overlay.open { display: block; }
     .main-content { margin-left: 0; padding: 15px; }
     .header-title { font-size: 1.5rem; }
-    
-    /* บังคับปุ่มให้กางเต็มจอในมือถือ */
     .action-btn { width: 100%; margin-bottom: 5px; flex: unset; }
     .d-flex.flex-wrap.gap-2 { flex-direction: column; }
-    
-    /* ปรับขนาด Card และ Font ให้พอดีจอมือถือ */
     .card { padding: 15px !important; }
     h5, h2 { font-size: 1.25rem; }
 }

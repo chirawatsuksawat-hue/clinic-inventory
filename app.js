@@ -10,7 +10,6 @@ let currentMode = 'out';
 let html5QrCode = null; 
 let auditHtml5QrCode = null;
 let db = null;
-
 let currentCalcIndex = -1;
 let currentCalcField = '';
 let currentCalcTargetId = '';
@@ -99,9 +98,6 @@ function getUsed30d(itemName) {
 document.addEventListener("DOMContentLoaded", initApp);
 setInterval(() => { if (!db || document.getElementById('syncStatus').innerText.includes('ออฟไลน์')) loadLocalData(); }, 3000);
 
-// ==========================================
-// 🌟 ตารางพัสดุคงเหลือ (ใส่สีเฉพาะตัวเลขคลังหลัก/ย่อย)
-// ==========================================
 function updateTableUI() {
     const tbody = document.getElementById('inventory-table-body');
     tbody.innerHTML = ''; 
@@ -114,21 +110,16 @@ function updateTableUI() {
         let main_s = parseInt(item.main_stock || 0);
         let sub_s = parseInt(item.sub_stock || 0);
         let total_s = main_s + sub_s; 
-        
         let unit = item.unit || 'ชิ้น';
         let originalIndex = allItems.indexOf(item);
-
-        // 🌟 กำหนดสีให้คลังหลัก (มากกว่า 10 = เขียว, มากกว่า 0 = เหลือง, 0 = แดง)
         let mainColor = main_s > 10 ? 'text-success' : (main_s > 0 ? 'text-warning' : 'text-danger');
             
         let row = `<tr>
             <td class="text-center fw-bold text-secondary">${item.seq_num || '-'}</td>
             <td class="text-secondary">${item.code || '-'}</td>
             <td class="fw-bold text-dark" style="white-space: normal; min-width: 150px;">${item.name || '-'}<br><small class="text-muted fw-normal">${item.category || '-'}</small></td>
-            
             <td class="text-center fs-6"><b class="${mainColor} fs-5">${main_s}</b> <small class="text-muted">${unit}</small></td>
             <td class="text-center fs-6"><b class="text-danger fs-5">${sub_s}</b> <small class="text-muted">${unit}</small></td>
-            
             <td class="text-center fs-5 text-primary fw-bold">${total_s}</td>
             <td class="text-center"><button class="btn btn-outline-primary btn-sm" onclick="editItem(${originalIndex})"><i class="fas fa-edit"></i></button></td>
         </tr>`;
@@ -137,9 +128,6 @@ function updateTableUI() {
     renderDialysisFluids();
 }
 
-// ==========================================
-// 🌟 แผงน้ำยาไตด่วน (จัด Responsive สำหรับมือถือ)
-// ==========================================
 function renderDialysisFluids() {
     const container = document.getElementById('dialysisFluidContainer');
     if(!container) return;
@@ -158,7 +146,6 @@ function renderDialysisFluids() {
         let main_s = parseInt(item.main_stock || 0);
         let sub_s = parseInt(item.sub_stock || 0);
         let total_s = main_s + sub_s;
-        
         let mainColor = main_s > 10 ? 'text-success' : (main_s > 0 ? 'text-warning' : 'text-danger');
 
         let card = `
@@ -184,6 +171,7 @@ function renderDialysisFluids() {
     });
 }
 
+let pendingManualMode = '';
 function openItemSelector(mode) {
     pendingManualMode = mode;
     let title = "เลือกพัสดุที่ต้องการ";
