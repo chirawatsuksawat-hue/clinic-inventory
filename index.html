@@ -9,53 +9,12 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
-    <style>
-        body { font-family: 'Sarabun', sans-serif; background-color: #f4f6f9; overflow-x: hidden; }
-        .mobile-header { display: none; background-color: #2c3e50; color: white; padding: 15px 20px; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 1020; box-shadow: 0 2px 5px rgba(0,0,0,0.1);}
-        .mobile-header h5 { margin: 0; font-weight: bold; }
-        .hamburger-btn { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; }
-
-        .sidebar { height: 100vh; width: 250px; position: fixed; top: 0; left: 0; background-color: #2c3e50; color: white; padding-top: 20px; z-index: 1050; transition: transform 0.3s ease-in-out; box-shadow: 2px 0 10px rgba(0,0,0,0.2); }
-        .sidebar .nav-link { color: #ecf0f1; margin: 10px 15px; border-radius: 8px; transition: all 0.3s; font-size: 1.1rem; cursor: pointer; }
-        .sidebar .nav-link:hover, .sidebar .nav-link.active { background-color: #34495e; color: #3498db; transform: translateX(5px); }
-        
-        .sidebar-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1040; transition: opacity 0.3s; }
-
-        .main-content { margin-left: 250px; padding: 30px; transition: margin 0.3s; }
-        .header-title { color: #2c3e50; font-weight: bold; border-bottom: 3px solid #3498db; padding-bottom: 10px; margin-bottom: 25px; }
-
-        .card { border-radius: 12px; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
-        .table-responsive { max-height: 500px; overflow-y: auto; }
-        .table thead th { background-color: #34495E; color: white; position: sticky; top: 0; z-index: 1; white-space: nowrap;}
-        .table td { vertical-align: middle; font-size: 1.05rem; white-space: nowrap; }
-        
-        .action-btn { font-weight: bold; border-radius: 8px; padding: 10px 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.2s; flex: 1; min-width: 140px; text-align: center;}
-        .action-btn:hover { transform: scale(1.05); }
-        .btn-scan { border-radius: 12px; padding: 15px; font-weight: bold; background: #263238; color: white; font-size: 1.2rem; }
-        .btn-scan:hover { background: #1a2529; color: white; }
-        #reader, #auditReader { width: 100%; border-radius: 15px; overflow: hidden; display: none; border: 4px dashed #00bfa5; margin-bottom: 15px; background: #fff; }
-        
-        /* สไตล์พิเศษสำหรับหน้า Audit แบบ Table */
-        .audit-input { font-size: 1.1rem; font-weight: bold; }
-        .table-audit th { background-color: #f8f9fa; color: #333; position: sticky; top: 0; z-index: 1; border-bottom: 2px solid #dee2e6;}
-        
-        @media (max-width: 768px) { 
-            .mobile-header { display: flex; }
-            .sidebar { transform: translateX(-100%); }
-            .sidebar.open { transform: translateX(0); }
-            .sidebar-overlay.open { display: block; }
-            .main-content { margin-left: 0; padding: 15px; }
-            .header-title { font-size: 1.5rem; }
-            .action-btn { width: 100%; margin-bottom: 5px; }
-            .d-flex.flex-wrap.gap-2 { flex-direction: column; }
-        }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
@@ -87,13 +46,22 @@
         <div class="card mb-4 bg-white p-3 border-2 border-primary shadow-sm">
             <h5 class="fw-bold text-primary mb-3"><i class="fas fa-keyboard me-2"></i>ทำรายการแบบแมนนวล</h5>
             <div class="d-flex flex-wrap gap-2">
-                <button class="btn btn-success action-btn" onclick="manualAction('receive_main')"><i class="fas fa-download me-1"></i> รับของเข้าคลัง</button>
-                <button class="btn btn-info action-btn text-white" onclick="manualAction('transfer')"><i class="fas fa-exchange-alt me-1"></i> โอนย้ายคลัง</button>
-                <button class="btn btn-warning action-btn text-dark" onclick="manualAction('use')"><i class="fas fa-upload me-1"></i> เบิกจ่าย (หักออก)</button>
+                <button class="btn btn-success action-btn" onclick="openItemSelector('receive_main')"><i class="fas fa-download me-1"></i> รับของเข้าคลัง</button>
+                <button class="btn btn-info action-btn text-white" onclick="openItemSelector('transfer')"><i class="fas fa-exchange-alt me-1"></i> โอนย้ายคลัง</button>
+                <button class="btn btn-warning action-btn text-dark" onclick="openItemSelector('use')"><i class="fas fa-upload me-1"></i> เบิกจ่าย (หักออก)</button>
                 <button class="btn btn-secondary action-btn text-white" style="background-color: #6c757d;" onclick="openAuditView()"><i class="fas fa-clipboard-list me-1"></i> ทำใบตรวจนับ (Audit)</button>
             </div>
             <div class="mt-2 text-end">
                 <button class="btn btn-outline-primary btn-sm rounded-pill fw-bold px-3 shadow-sm" onclick="manualAction('add_item')"><i class="fas fa-plus me-1"></i> เพิ่มพัสดุใหม่</button>
+            </div>
+        </div>
+
+        <div class="card mb-4 bg-white p-3 border-2 border-info shadow-sm">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold text-info m-0"><i class="fas fa-tint me-2"></i>จัดการน้ำยาไตและน้ำเกลือด่วน (Quick Access)</h5>
+            </div>
+            <div id="dialysisFluidContainer" class="row g-2">
+                <div class="col-12 text-center text-muted py-3">กำลังโหลดข้อมูล...</div>
             </div>
         </div>
 
@@ -110,15 +78,6 @@
                 <span class="input-group-text bg-white border-0"><i class="fa-solid fa-barcode text-muted"></i></span>
                 <input type="text" id="codeInput" class="form-control border-0 bg-light" placeholder="พิมพ์หรือสแกนรหัสที่นี่..." onkeypress="if(event.key === 'Enter') handleScanResult(this.value)">
                 <button class="btn btn-primary px-3 fw-bold" onclick="handleScanResult(document.getElementById('codeInput').value)">ค้นหา</button>
-            </div>
-        </div>
-
-        <div class="card mb-4 bg-white p-3 border-2 border-info shadow-sm">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h5 class="fw-bold text-info m-0"><i class="fas fa-tint me-2"></i>จัดการน้ำยาไตและน้ำเกลือด่วน (Quick Access)</h5>
-            </div>
-            <div id="dialysisFluidContainer" class="row g-2">
-                <div class="col-12 text-center text-muted py-3">กำลังโหลดข้อมูล...</div>
             </div>
         </div>
 
@@ -157,7 +116,6 @@
     </div>
 
     <div id="auditView" class="main-content" style="display: none;">
-        
         <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
             <div>
                 <button class="btn btn-outline-secondary btn-sm mb-2 rounded-pill px-3" onclick="closeAuditView()"><i class="fas fa-arrow-left me-1"></i> กลับหน้าหลัก</button>
@@ -165,21 +123,15 @@
             </div>
             <button class="btn btn-success fw-bold px-4 py-2 shadow-sm" onclick="saveBulkAudit()"><i class="fas fa-save me-2"></i>บันทึกผลการนับทั้งหมด</button>
         </div>
-
         <div class="alert alert-warning border-warning shadow-sm" style="border-radius: 10px;">
             <i class="fas fa-info-circle me-2"></i> <b>วิธีใช้:</b> เดินนับของที่หน้าตู้ แล้วพิมพ์ตัวเลข <u>"ยอดที่นับได้จริง"</u> ลงในช่อง (กดรูปเครื่องคิดเลขข้างๆ เพื่อบวกเลขได้เลย)
         </div>
-
-        <button class="btn btn-scan w-100 mb-3 shadow" style="background-color: #34495e;" onclick="toggleAuditScan()">
-            <i class="fa-solid fa-expand me-2"></i> สแกน QR Code ค้นหาพัสดุ
-        </button>
+        <button class="btn btn-scan w-100 mb-3 shadow" style="background-color: #34495e;" onclick="toggleAuditScan()"><i class="fa-solid fa-expand me-2"></i> สแกน QR Code ค้นหาพัสดุ</button>
         <div id="auditReader"></div>
-
         <div class="input-group shadow-sm mb-4" style="border-radius: 10px; overflow: hidden;">
             <span class="input-group-text bg-white border-0"><i class="fas fa-search text-muted"></i></span>
             <input type="text" id="auditSearch" class="form-control border-0 py-3 bg-white" placeholder="พิมพ์ชื่อ ลำดับ หรือสแกนรหัส เพื่อกรองรายการ..." onkeyup="renderAuditList()">
         </div>
-
         <div class="card shadow-sm border-0">
             <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
                 <table class="table table-hover align-middle mb-0 table-audit border">
@@ -189,22 +141,36 @@
                             <th class="text-center text-secondary">รหัสพัสดุ</th>
                             <th>ชื่อรายการพัสดุ</th>
                             <th class="text-center">หมวดหมู่</th>
-                            <th class="text-center text-warning">ยอดใช้(30วัน)</th>
+                            <th class="text-center text-warning">ยอดใช้ออก</th>
                             <th class="text-center text-info">ในระบบ</th>
                             <th class="text-center text-success" style="width: 140px;">นับจริง(หลัก)</th>
                             <th class="text-center text-danger" style="width: 140px;">นับจริง(ย่อย)</th>
                             <th class="text-center text-primary">รวมที่นับได้</th>
                         </tr>
                     </thead>
-                    <tbody id="auditListContainerTable">
-                        </tbody>
+                    <tbody id="auditListContainerTable"></tbody>
                 </table>
             </div>
         </div>
-
     </div>
 
-    <div class="modal fade" id="calculatorModal" tabindex="-1" aria-hidden="true" style="z-index: 1060;">
+    <div class="modal fade" id="itemSelectorModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title fw-bold" id="itemSelectorTitle">เลือกพัสดุ</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body bg-light p-2">
+                    <input type="text" id="searchItemSelector" class="form-control mb-3 py-2 fw-bold" placeholder="🔍 ค้นหาชื่อพัสดุ หรือ รหัส..." onkeyup="renderItemSelectorList()">
+                    <div id="itemSelectorList" class="list-group">
+                        </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="calculatorModal" tabindex="-1" aria-hidden="true" style="z-index: 10600;">
         <div class="modal-dialog modal-dialog-centered modal-sm">
             <div class="modal-content border-0 shadow-lg">
                 <div class="modal-header bg-primary text-white border-0">
@@ -237,7 +203,7 @@
                 </div>
                 <div class="modal-footer p-2 bg-white border-0">
                     <button type="button" class="btn btn-success w-100 fw-bold fs-5 py-2 shadow-sm" onclick="calcConfirm()">
-                        <i class="fas fa-check-circle me-2"></i> นำยอดไปใส่ตาราง
+                        <i class="fas fa-check-circle me-2"></i> นำยอดไปใส่ช่อง
                     </button>
                 </div>
             </div>
@@ -246,826 +212,6 @@
 
     <audio id="soundScan" src="https://www.soundjay.com/buttons/sounds/beep-07.mp3"></audio>
 
-    <script>
-        function toggleSidebar() {
-            document.getElementById('sidebar').classList.toggle('open');
-            document.querySelector('.sidebar-overlay').classList.toggle('open');
-        }
-
-        let allItems = []; 
-        let historyData = []; 
-        let auditData = []; 
-        let currentMode = 'out';
-        let html5QrCode = null; 
-        let auditHtml5QrCode = null;
-        let db = null;
-
-        let currentCalcIndex = -1;
-        let currentCalcField = '';
-
-        // 🌟 ดึงหมวดหมู่ทั้งหมดแบบอัตโนมัติ (Dynamic Categories)
-        function getCategoryOptionsHTML(selectedCat = '') {
-            let cats = new Set(["เวชภัณฑ์ทางการแพทย์", "อุปกรณ์สำนักงาน", "น้ำยา/อุปกรณ์ทำความสะอาด", "น้ำยาไต (ทั่วไป)", "อื่นๆ"]);
-            allItems.forEach(item => {
-                if(item && item.category) cats.add(item.category);
-            });
-            
-            let html = '';
-            cats.forEach(cat => {
-                let sel = cat === selectedCat ? 'selected' : '';
-                html += `<option value="${cat}" ${sel}>${cat}</option>`;
-            });
-            return html;
-        }
-
-        function initApp() {
-            try {
-                const firebaseConfig = {
-                    apiKey: "AIzaSyDrOh48Beqc_kIZPQyxM1pe4BPphZwKYEg", 
-                    databaseURL: "https://dialysis-inventory-fab4e-default-rtdb.asia-southeast1.firebasedatabase.app/",
-                    projectId: "dialysis-inventory-fab4e"
-                };
-
-                firebase.initializeApp(firebaseConfig);
-                db = firebase.database();
-                
-                db.ref('.info/connected').on('value', function(connectedSnap) {
-                    if (connectedSnap.val() === true) {
-                        setSyncStatus("ออนไลน์ (Firebase)", "success", "wifi");
-                        loadOnlineData();
-                    } else {
-                        setSyncStatus("ออฟไลน์ (Local File)", "info", "database");
-                        loadLocalData();
-                    }
-                });
-            } catch (e) {
-                setSyncStatus("ออฟไลน์ (Local File)", "info", "database");
-                loadLocalData();
-            }
-        }
-
-        function setSyncStatus(text, color, icon) {
-            document.getElementById('syncStatus').className = `badge bg-${color} px-3 py-2 me-2`;
-            document.getElementById('syncStatus').innerHTML = `<i class="fas fa-${icon} me-1"></i> ${text}`;
-        }
-
-        function loadOnlineData() {
-            if(!db) return;
-            db.ref('inventory_data').on('value', (snap) => {
-                let data = snap.val() || [];
-                allItems = Array.isArray(data) ? data : Object.keys(data).map(k => data[k]);
-                updateTableUI();
-            });
-            db.ref('history_data').on('value', (snap) => {
-                historyData = snap.val() || [];
-                if(document.getElementById('auditView').style.display === 'block') {
-                    renderAuditList();
-                }
-            });
-        }
-
-        function loadLocalData() {
-            fetch('inventory_db.json?t=' + new Date().getTime())
-                .then(r => r.json())
-                .then(data => { allItems = data; updateTableUI(); })
-                .catch(e => console.error("Local Load Error:", e));
-                
-            fetch('inventory_history.json?t=' + new Date().getTime())
-                .then(r => r.json())
-                .then(data => { historyData = data; })
-                .catch(e => console.error("Local History Error:", e));
-        }
-
-        function forceReload() {
-            if(db && document.getElementById('syncStatus').innerText.includes('ออนไลน์')) loadOnlineData();
-            else loadLocalData();
-        }
-
-        function getUsed30d(itemName) {
-            if (!itemName || !historyData) return 0;
-            let total = 0;
-            let now = new Date();
-            historyData.forEach(h => {
-                if (h && h.action && h.action.includes("ใช้งานจริง") && h.name === itemName) {
-                    let parts = h.date.split(" ")[0].split("/");
-                    if (parts.length === 3) {
-                        let d = new Date(parts[2], parts[1]-1, parts[0]);
-                        let diffDays = (now - d) / (1000 * 60 * 60 * 24);
-                        if (diffDays <= 30) {
-                            total += parseInt(h.qty) || 0;
-                        }
-                    }
-                }
-            });
-            return total;
-        }
-
-        document.addEventListener("DOMContentLoaded", initApp);
-        setInterval(() => { if (!db || document.getElementById('syncStatus').innerText.includes('ออฟไลน์')) loadLocalData(); }, 3000);
-
-        function updateTableUI() {
-            const tbody = document.getElementById('inventory-table-body');
-            tbody.innerHTML = ''; 
-            if (!allItems || allItems.length === 0) return tbody.innerHTML = '<tr><td colspan="6" class="text-center py-5">ไม่มีข้อมูลพัสดุ</td></tr>';
-
-            let validItems = allItems.filter(item => item && item.name);
-            validItems.sort((a, b) => {
-                let seqA = parseFloat(a.seq_num) || 99999;
-                let seqB = parseFloat(b.seq_num) || 99999;
-                return seqA - seqB;
-            });
-
-            validItems.forEach(item => {
-                let main_s = parseInt(item.main_stock || 0);
-                let sub_s = parseInt(item.sub_stock || 0);
-                let unit = item.unit || 'ชิ้น';
-                let seq_num = item.seq_num || '-';
-                let originalIndex = allItems.indexOf(item);
-                    
-                let row = `<tr>
-                    <td class="text-center fw-bold text-secondary">${seq_num}</td>
-                    <td class="text-secondary">${item.code || '-'}</td>
-                    <td class="fw-bold text-dark" style="white-space: normal; min-width: 150px;">
-                        ${item.name || '-'}<br><small class="text-muted fw-normal">${item.category || '-'}</small>
-                    </td>
-                    <td class="text-center fs-6">${main_s} <small class="text-muted">${unit}</small></td>
-                    <td class="text-center fs-6 text-info fw-bold">${sub_s} <small class="text-muted">${unit}</small></td>
-                    <td class="text-center">
-                        <button class="btn btn-outline-primary btn-sm" onclick="editItem(${originalIndex})" title="แก้ไขรายการ">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                    </td>
-                </tr>`;
-                tbody.insertAdjacentHTML('beforeend', row);
-            });
-
-            renderDialysisFluids();
-        }
-
-        // ==========================================
-        // 🌟 ระบบดึงและแสดงผลน้ำยาไตด่วน
-        // ==========================================
-        function renderDialysisFluids() {
-            const container = document.getElementById('dialysisFluidContainer');
-            if(!container) return;
-
-            // กรองหมวดหมู่ที่ไม่เกี่ยวข้องกันออก เพื่อให้เหลือน้ำยาและน้ำเกลือ
-            let nonDialysateCats = ["เวชภัณฑ์ทางการแพทย์", "อุปกรณ์สำนักงาน", "น้ำยา/อุปกรณ์ทำความสะอาด", "อื่นๆ"];
-            
-            let fluids = allItems.map((item, index) => ({item, index}))
-                                 .filter(x => x.item && x.item.category && !nonDialysateCats.includes(x.item.category));
-
-            if (fluids.length === 0) {
-                container.innerHTML = '<div class="col-12 text-center text-muted py-2">ยังไม่มีการลงทะเบียนรายการในหมวดหมู่ "น้ำยาไต / น้ำเกลือ"</div>';
-                return;
-            }
-
-            container.innerHTML = '';
-            fluids.forEach(f => {
-                let item = f.item;
-                let idx = f.index;
-                let main_s = parseInt(item.main_stock || 0);
-                let sub_s = parseInt(item.sub_stock || 0);
-
-                let card = `
-                <div class="col-6 col-md-3">
-                    <div class="border border-info rounded p-2 text-center shadow-sm bg-light h-100 d-flex flex-column justify-content-between">
-                        <h6 class="fw-bold text-primary mb-2" style="font-size: 0.95rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
-                            ${item.name}
-                        </h6>
-                        <div>
-                            <div class="d-flex justify-content-around mb-2 bg-white rounded border py-1" style="font-size: 0.85rem;">
-                                <span class="text-dark">คลัง: <b class="fs-6">${main_s}</b></span>
-                                <span class="text-danger">ย่อย: <b class="fs-6">${sub_s}</b></span>
-                            </div>
-                            <div class="d-flex gap-1 mt-auto">
-                                <button class="btn btn-warning btn-sm flex-fill fw-bold shadow-sm" onclick="showStockDialog(${idx}, 'use')">
-                                    <i class="fas fa-minus-circle"></i> เบิก
-                                </button>
-                                <button class="btn btn-secondary btn-sm flex-fill fw-bold text-white shadow-sm" onclick="showStockDialog(${idx}, 'audit')">
-                                    <i class="fas fa-clipboard-check"></i> นับยอด
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>`;
-                container.insertAdjacentHTML('beforeend', card);
-            });
-        }
-
-        // ==========================================
-        // 🌟 ระบบหน้าจอ Audit เต็มรูปแบบ (Batch Audit)
-        // ==========================================
-        function openAuditView() {
-            document.getElementById('dashboardView').style.display = 'none';
-            document.getElementById('auditView').style.display = 'block';
-            if(window.innerWidth <= 768) toggleSidebar();
-            
-            auditData = JSON.parse(JSON.stringify(allItems)); 
-            document.getElementById('auditSearch').value = '';
-            renderAuditList();
-        }
-
-        function closeAuditView() {
-            if (auditHtml5QrCode) {
-                auditHtml5QrCode.stop().then(() => {
-                    auditHtml5QrCode.clear();
-                    auditHtml5QrCode = null;
-                    document.getElementById('auditReader').style.display = 'none';
-                }).catch(err => {});
-            }
-            
-            document.getElementById('auditView').style.display = 'none';
-            document.getElementById('dashboardView').style.display = 'block';
-            auditData = []; 
-        }
-
-        function renderAuditList() {
-            const term = document.getElementById('auditSearch').value.toLowerCase();
-            const tbody = document.getElementById('auditListContainerTable');
-            tbody.innerHTML = '';
-
-            let validItems = auditData.map((item, index) => ({ item, index })).filter(x => x.item && x.item.name);
-            validItems.sort((a, b) => {
-                let seqA = parseFloat(a.item.seq_num) || 99999;
-                let seqB = parseFloat(b.item.seq_num) || 99999;
-                return seqA - seqB;
-            });
-
-            validItems.forEach(({ item, index }) => {
-                if (term && !item.name.toLowerCase().includes(term) && !(item.code||"").toLowerCase().includes(term) && !(item.seq_num||"").toLowerCase().includes(term)) return;
-
-                let m_stock = parseInt(item.main_stock || 0);
-                let s_stock = parseInt(item.sub_stock || 0);
-                let total_stock = m_stock + s_stock;
-                let sys_total = parseInt(allItems[index].main_stock || 0) + parseInt(allItems[index].sub_stock || 0);
-                
-                let seq = item.seq_num || '';
-                let used30d = getUsed30d(item.name);
-
-                let row = `
-                <tr>
-                    <td class="text-center fw-bold text-secondary">${seq}</td>
-                    <td class="text-center text-secondary">${item.code || '-'}</td>
-                    <td class="fw-bold" style="white-space: normal; min-width: 200px;">${item.name}</td>
-                    <td class="text-center"><span class="badge bg-light text-dark border">${item.category || '-'}</span></td>
-                    <td class="text-center text-warning fw-bold">${used30d}</td>
-                    <td class="text-center text-info fw-bold">${sys_total}</td>
-                    
-                    <td class="text-center px-1">
-                        <div class="input-group input-group-sm">
-                            <input type="number" id="audit-main-${index}" class="form-control text-center audit-input border-secondary p-1" 
-                                   value="${m_stock}" 
-                                   onchange="updateAuditVal(${index}, 'main_stock', this.value)"
-                                   onkeyup="updateAuditVal(${index}, 'main_stock', this.value)"
-                                   onclick="this.select()">
-                            <button class="btn btn-secondary px-2" type="button" onclick="openCalculator(${index}, 'main_stock', document.getElementById('audit-main-${index}').value)">
-                                <i class="fas fa-calculator"></i>
-                            </button>
-                        </div>
-                    </td>
-                    
-                    <td class="text-center px-1">
-                        <div class="input-group input-group-sm">
-                            <input type="number" id="audit-sub-${index}" class="form-control text-center audit-input border-danger text-danger p-1" 
-                                   value="${s_stock}" 
-                                   onchange="updateAuditVal(${index}, 'sub_stock', this.value)"
-                                   onkeyup="updateAuditVal(${index}, 'sub_stock', this.value)"
-                                   onclick="this.select()">
-                            <button class="btn btn-danger px-2" type="button" onclick="openCalculator(${index}, 'sub_stock', document.getElementById('audit-sub-${index}').value)">
-                                <i class="fas fa-calculator"></i>
-                            </button>
-                        </div>
-                    </td>
-                    
-                    <td class="text-center text-primary fw-bold fs-5" id="audit-total-${index}">
-                        ${total_stock}
-                    </td>
-                </tr>`;
-                tbody.insertAdjacentHTML('beforeend', row);
-            });
-        }
-
-        function updateAuditVal(idx, field, value) {
-            let val = parseInt(value);
-            if(isNaN(val) || val < 0) val = 0;
-            auditData[idx][field] = val;
-            
-            let currentMain = parseInt(auditData[idx].main_stock) || 0;
-            let currentSub = parseInt(auditData[idx].sub_stock) || 0;
-            let totalEl = document.getElementById(`audit-total-${idx}`);
-            if (totalEl) {
-                totalEl.innerText = currentMain + currentSub;
-            }
-        }
-
-        function saveBulkAudit() {
-            Swal.fire({
-                title: 'ยืนยันบันทึกยอดตรวจนับ?',
-                text: "ระบบจะอัปเดตสต๊อกของทุกรายการที่ถูกเปลี่ยนแปลง",
-                icon: 'warning', showCancelButton: true, confirmButtonText: 'บันทึกทั้งหมด', confirmButtonColor: '#28a745', cancelButtonText: 'ยกเลิก'
-            }).then((res) => {
-                if(res.isConfirmed) {
-                    let updates = {};
-                    let logs = [];
-                    let now = new Date().toLocaleDateString('en-GB')+" "+new Date().toLocaleTimeString('en-GB');
-                    let changesCount = 0;
-                    
-                    auditData.forEach((item, idx) => {
-                        let orig = allItems[idx];
-                        if(!orig) return;
-                        
-                        let nMain = parseInt(item.main_stock) || 0;
-                        let nSub = parseInt(item.sub_stock) || 0;
-                        let oMain = parseInt(orig.main_stock || 0);
-                        let oSub = parseInt(orig.sub_stock || 0);
-
-                        if(nMain !== oMain || nSub !== oSub) {
-                            updates[`inventory_data/${idx}/main_stock`] = nMain;
-                            updates[`inventory_data/${idx}/sub_stock`] = nSub;
-                            
-                            logs.push({
-                                date: now, code: item.code, name: item.name, 
-                                action: "ทำใบตรวจนับ (Audit) 📋", qty: 0, unit: item.unit, 
-                                main_bal: nMain, sub_bal: nSub
-                            });
-                            changesCount++;
-                        }
-                    });
-
-                    if(changesCount === 0) {
-                        Swal.fire('ไม่มีการเปลี่ยนแปลง', 'ยอดทั้งหมดตรงกับในระบบอยู่แล้วครับ', 'info');
-                        return;
-                    }
-
-                    if(db && document.getElementById('syncStatus').innerText.includes('ออนไลน์')) {
-                        Swal.fire({title: 'กำลังบันทึก...', allowOutsideClick: false, didOpen: () => Swal.showLoading()});
-                        
-                        db.ref().update(updates).then(() => {
-                            if(logs.length > 0) {
-                                db.ref('history_data').once('value').then(s => { 
-                                    let arr = s.val() || []; 
-                                    arr = logs.concat(arr); 
-                                    db.ref('history_data').set(arr); 
-                                });
-                            }
-                            Swal.fire('สำเร็จ!', `อัปเดตยอดสต๊อกใหม่จำนวน ${changesCount} รายการเรียบร้อยแล้ว`, 'success');
-                            closeAuditView(); 
-                        });
-                    } else {
-                        Swal.fire('ข้อผิดพลาด', 'ต้องต่ออินเทอร์เน็ตเพื่อบันทึกใบตรวจนับหลายรายการ', 'error');
-                    }
-                }
-            });
-        }
-
-        // ==========================================
-        // 🌟 ระบบเครื่องคิดเลข 🌟
-        // ==========================================
-        function openCalculator(idx, field, currentValue) {
-            currentCalcIndex = idx;
-            currentCalcField = field;
-            document.getElementById('calcDisplay').value = currentValue || '';
-            let calcModal = new bootstrap.Modal(document.getElementById('calculatorModal'));
-            calcModal.show();
-        }
-
-        function calcAppend(val) {
-            document.getElementById('calcDisplay').value += val;
-        }
-
-        function calcClear() {
-            document.getElementById('calcDisplay').value = '';
-        }
-
-        function calcCalculate() {
-            let expr = document.getElementById('calcDisplay').value;
-            if(/^[0-9+\-*/.\s]+$/.test(expr)) {
-                try {
-                    let result = eval(expr);
-                    if(isFinite(result)) {
-                        document.getElementById('calcDisplay').value = Math.floor(result);
-                    }
-                } catch(e) { }
-            } else {
-                Swal.fire('ข้อผิดพลาด', 'รูปแบบการคำนวณไม่ถูกต้อง', 'error');
-            }
-        }
-
-        function calcConfirm() {
-            calcCalculate(); 
-            let finalVal = document.getElementById('calcDisplay').value;
-            if(finalVal === '') finalVal = '0';
-            
-            let valInt = parseInt(finalVal);
-            if(isNaN(valInt) || valInt < 0) valInt = 0;
-
-            let inputId = currentCalcField === 'main_stock' ? `audit-main-${currentCalcIndex}` : `audit-sub-${currentCalcIndex}`;
-            let el = document.getElementById(inputId);
-            if(el) {
-                el.value = valInt;
-                updateAuditVal(currentCalcIndex, currentCalcField, valInt);
-            }
-            
-            bootstrap.Modal.getInstance(document.getElementById('calculatorModal')).hide();
-        }
-
-        // ==========================================
-        // 🌟 กล้องสแกน QR สำหรับหน้า Audit
-        // ==========================================
-        function toggleAuditScan() {
-            const readerDiv = document.getElementById('auditReader');
-            if (auditHtml5QrCode) {
-                auditHtml5QrCode.stop().then(() => {
-                    auditHtml5QrCode.clear();
-                    auditHtml5QrCode = null;
-                    readerDiv.style.display = 'none';
-                }).catch(err => console.error("Stop failed: ", err));
-                return;
-            }
-            
-            readerDiv.style.display = 'block';
-            auditHtml5QrCode = new Html5Qrcode("auditReader");
-            const config = { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 };
-            
-            auditHtml5QrCode.start({ facingMode: "environment" }, config, onAuditScanSuccess, () => {})
-                .catch((err) => {
-                    auditHtml5QrCode.start({ facingMode: "user" }, config, onAuditScanSuccess, () => {})
-                        .catch(err2 => {
-                            Swal.fire("ข้อผิดพลาด", "ไม่สามารถใช้งานกล้องได้ โปรดอนุญาตเบราว์เซอร์ให้เข้าถึงกล้อง", "error");
-                            readerDiv.style.display = 'none';
-                            auditHtml5QrCode = null;
-                        });
-                });
-        }
-
-        function onAuditScanSuccess(decodedText, decodedResult) {
-            try{document.getElementById('soundScan').play()}catch(e){}
-            if (auditHtml5QrCode) {
-                auditHtml5QrCode.stop().then(() => {
-                    auditHtml5QrCode.clear();
-                    auditHtml5QrCode = null;
-                    document.getElementById('auditReader').style.display = 'none';
-                });
-            }
-            document.getElementById('auditSearch').value = decodedText;
-            renderAuditList();
-        }
-
-        // ==========================================
-        // 🌟 ระบบกล้องสแกน QR สำหรับหน้าแรก
-        // ==========================================
-        function toggleScan() {
-            const readerDiv = document.getElementById('reader');
-            if (html5QrCode) {
-                html5QrCode.stop().then(() => {
-                    html5QrCode.clear();
-                    html5QrCode = null;
-                    readerDiv.style.display = 'none';
-                }).catch(err => console.error("Stop failed: ", err));
-                return;
-            }
-            
-            readerDiv.style.display = 'block';
-            html5QrCode = new Html5Qrcode("reader");
-            const config = { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 };
-            
-            html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess, () => {})
-                .catch((err) => {
-                    html5QrCode.start({ facingMode: "user" }, config, onScanSuccess, () => {})
-                        .catch(err2 => {
-                            Swal.fire("ข้อผิดพลาด", "ไม่สามารถใช้งานกล้องได้ โปรดอนุญาตการเข้าถึงกล้องบนเบราว์เซอร์", "error");
-                            readerDiv.style.display = 'none';
-                            html5QrCode = null;
-                        });
-                });
-        }
-
-        function onScanSuccess(decodedText, decodedResult) {
-            try{document.getElementById('soundScan').play()}catch(e){}
-            if (html5QrCode) {
-                html5QrCode.stop().then(() => {
-                    html5QrCode.clear();
-                    html5QrCode = null;
-                    document.getElementById('reader').style.display = 'none';
-                });
-            }
-            document.getElementById('codeInput').value = decodedText;
-            handleScanResult(decodedText);
-        }
-
-        // ==========================================
-        // แก้ไขและจัดการระบบ
-        // ==========================================
-        function editItem(idx) {
-            const item = allItems[idx];
-            const isCat = (cat) => item.category === cat ? 'selected' : '';
-
-            Swal.fire({
-                title: '📝 แก้ไขข้อมูลพัสดุ',
-                width: '600px',
-                html: `
-                    <div class="text-start mt-3" style="font-family: 'Sarabun', sans-serif;">
-                        <div class="row">
-                            <div class="col-md-4 mb-3">
-                                <label class="form-label fw-bold">ลำดับ</label>
-                                <input id="edit-seq" class="form-control" value="${item.seq_num || ''}">
-                            </div>
-                            <div class="col-md-8 mb-3">
-                                <label class="form-label fw-bold text-primary">หมวดหมู่</label>
-                                <select id="edit-cat" class="form-select border-primary" style="height: 45px;">
-                                    ${getCategoryOptionsHTML(item.category)}
-                                </select>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label fw-bold">รหัสพัสดุ (Code)</label>
-                                <input id="edit-code" class="form-control" value="${item.code || ''}">
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label fw-bold">ชื่อพัสดุ / อุปกรณ์</label>
-                                <input id="edit-name" class="form-control" value="${item.name || ''}">
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label fw-bold">หน่วยนับ</label>
-                                <input id="edit-unit" class="form-control" value="${item.unit || 'ชิ้น'}">
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label fw-bold">จำนวนบรรจุต่อ 1 กล่อง</label>
-                                <input type="number" id="edit-per-box" class="form-control" value="${item.qty_per_box || 1}">
-                            </div>
-                        </div>
-                        <hr>
-                        <div class="row bg-light p-2 rounded mx-0">
-                            <div class="col-md-4 mb-2 px-1">
-                                <label class="form-label fw-bold text-secondary" style="font-size: 0.9rem;">ใช้เฉลี่ย/เดือน</label>
-                                <input type="number" id="edit-usage" class="form-control text-center" value="${item.monthly_usage || 0}">
-                            </div>
-                            <div class="col-md-4 mb-2 px-1">
-                                <label class="form-label fw-bold text-secondary" style="font-size: 0.9rem;">ยอดตั้งต้น</label>
-                                <input type="number" id="edit-target" class="form-control text-center" value="${item.target_stock || 0}">
-                            </div>
-                            <div class="col-md-4 mb-2 px-1">
-                                <label class="form-label fw-bold text-secondary" style="font-size: 0.9rem;">แจ้งเตือนใกล้หมด</label>
-                                <input type="number" id="edit-min" class="form-control text-center" value="${item.min_alert || 10}">
-                            </div>
-                        </div>
-                    </div>
-                `,
-                showCancelButton: true, confirmButtonText: '<i class="fas fa-save"></i> บันทึกการแก้ไข', confirmButtonColor: '#3498db', cancelButtonText: 'ยกเลิก',
-                preConfirm: () => {
-                    return { 
-                        seq_num: document.getElementById('edit-seq').value.trim(),
-                        code: document.getElementById('edit-code').value.trim(), 
-                        name: document.getElementById('edit-name').value.trim(), 
-                        category: document.getElementById('edit-cat').value,
-                        unit: document.getElementById('edit-unit').value.trim() || 'ชิ้น',
-                        qty_per_box: document.getElementById('edit-per-box').value || "1",
-                        monthly_usage: parseFloat(document.getElementById('edit-usage').value) || 0,
-                        target_stock: parseInt(document.getElementById('edit-target').value) || 0,
-                        min_alert: parseInt(document.getElementById('edit-min').value) || 10
-                    }
-                }
-            }).then((res) => {
-                if (res.isConfirmed) {
-                    if(!res.value.name || !res.value.code) return Swal.fire('ผิดพลาด', 'กรุณากรอกชื่อและรหัสให้ครบ', 'warning');
-                    
-                    if (db && document.getElementById('syncStatus').innerText.includes('ออนไลน์')) {
-                        db.ref(`inventory_data/${idx}`).update(res.value).then(() => Swal.fire('สำเร็จ!', 'แก้ไขข้อมูลเรียบร้อยแล้ว', 'success'));
-                    } else if (typeof pywebview !== 'undefined' && pywebview.api && pywebview.api.edit_item_from_web) {
-                        pywebview.api.edit_item_from_web(idx, res.value).then(r => forceReload());
-                        Swal.fire('สำเร็จ!', 'แก้ไขข้อมูลในเครื่องแล้ว', 'success');
-                    }
-                }
-            });
-        }
-
-        function setMode(m) {
-            currentMode = m;
-            document.getElementById('btnModeOut').className = m === 'out' ? 'btn btn-warning flex-fill fw-bold py-2 shadow-sm active' : 'btn btn-outline-warning flex-fill fw-bold py-2 shadow-sm';
-            document.getElementById('btnModeIn').className = m === 'in' ? 'btn btn-success flex-fill fw-bold py-2 shadow-sm active' : 'btn btn-outline-success flex-fill fw-bold py-2 shadow-sm';
-            document.getElementById('btnModeAudit').className = m === 'audit' ? 'btn btn-secondary text-white flex-fill fw-bold py-2 shadow-sm active' : 'btn btn-outline-secondary flex-fill fw-bold py-2 shadow-sm';
-        }
-
-        function handleScanResult(code) {
-            code = code.trim();
-            if(!code) return;
-            const idx = allItems.findIndex(i => i && i.code === code);
-            if (idx > -1) {
-                let actionType = 'receive_sub';
-                if(currentMode === 'out') actionType = 'use';
-                if(currentMode === 'audit') actionType = 'audit';
-                showStockDialog(idx, actionType);
-            } else {
-                Swal.fire({
-                    title: 'ไม่พบรหัสนี้ในระบบ!',
-                    html: `รหัสบาร์โค้ด: <b class="text-danger fs-5">${code}</b><br><br>ต้องการนำรหัสนี้ไปลงทะเบียนเป็นพัสดุใหม่หรือไม่?`,
-                    icon: 'warning', showCancelButton: true, confirmButtonText: '➕ ลงทะเบียนใหม่', cancelButtonText: 'ยกเลิก', confirmButtonColor: '#2ecc71'
-                }).then((res) => { if (res.isConfirmed) manualAction('add_item', code); });
-            }
-        }
-
-        function manualAction(mode, scannedCode = "") {
-            if (mode === 'add_item') {
-                Swal.fire({
-                    title: '➕ เพิ่มทะเบียนพัสดุใหม่',
-                    width: '600px',
-                    html: `
-                        <div class="text-start mt-3" style="font-family: 'Sarabun', sans-serif;">
-                            <div class="row">
-                                <div class="col-md-4 mb-3">
-                                    <label class="form-label fw-bold">ลำดับ</label>
-                                    <input id="swal-seq" class="form-control" placeholder="1, 2, ...">
-                                </div>
-                                <div class="col-md-8 mb-3">
-                                    <label class="form-label fw-bold text-primary">หมวดหมู่</label>
-                                    <select id="swal-cat" class="form-select border-primary" style="height: 45px;">
-                                        ${getCategoryOptionsHTML('')}
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label fw-bold">รหัสพัสดุ (Code)</label>
-                                    <input id="swal-code" class="form-control" placeholder="เช่น A01" value="${scannedCode}">
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label fw-bold">ชื่อพัสดุ / อุปกรณ์</label>
-                                    <input id="swal-name" class="form-control" placeholder="ระบุชื่อพัสดุ">
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label fw-bold">หน่วยนับ</label>
-                                    <input id="swal-unit" class="form-control" placeholder="เช่น ชิ้น, กล่อง">
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label fw-bold">จำนวนบรรจุต่อ 1 กล่อง</label>
-                                    <input type="number" id="swal-per-box" class="form-control" value="1">
-                                </div>
-                            </div>
-                            <hr>
-                            <div class="row bg-light p-2 rounded mx-0">
-                                <div class="col-md-4 mb-2 px-1">
-                                    <label class="form-label fw-bold text-secondary" style="font-size: 0.9rem;">ใช้เฉลี่ย/เดือน</label>
-                                    <input type="number" id="swal-usage" class="form-control text-center" value="0">
-                                </div>
-                                <div class="col-md-4 mb-2 px-1">
-                                    <label class="form-label fw-bold text-secondary" style="font-size: 0.9rem;">ยอดตั้งต้น</label>
-                                    <input type="number" id="swal-target" class="form-control text-center" value="0">
-                                </div>
-                                <div class="col-md-4 mb-2 px-1">
-                                    <label class="form-label fw-bold text-secondary" style="font-size: 0.9rem;">แจ้งเตือนใกล้หมด</label>
-                                    <input type="number" id="swal-min" class="form-control text-center" value="10">
-                                </div>
-                            </div>
-                        </div>
-                    `,
-                    showCancelButton: true, confirmButtonText: '<i class="fas fa-save"></i> บันทึกข้อมูล', confirmButtonColor: '#2ecc71', cancelButtonText: 'ยกเลิก',
-                    preConfirm: () => {
-                        return { 
-                            seq_num: document.getElementById('swal-seq').value.trim(),
-                            code: document.getElementById('swal-code').value.trim(), 
-                            name: document.getElementById('swal-name').value.trim(), 
-                            category: document.getElementById('swal-cat').value, 
-                            unit: document.getElementById('swal-unit').value.trim() || 'ชิ้น',
-                            qty_per_box: document.getElementById('swal-per-box').value || "1",
-                            monthly_usage: parseFloat(document.getElementById('swal-usage').value) || 0,
-                            target_stock: parseInt(document.getElementById('swal-target').value) || 0,
-                            min_alert: parseInt(document.getElementById('swal-min').value) || 10
-                        }
-                    }
-                }).then(res => {
-                    if (res.isConfirmed) {
-                        if(!res.value.name || !res.value.code) return Swal.fire('ผิดพลาด', 'กรุณากรอกข้อมูลให้ครบ', 'warning');
-                        if (allItems.some(i => i && i.code === res.value.code)) return Swal.fire('ผิดพลาด', 'รหัสนี้มีในระบบแล้ว!', 'error');
-                        
-                        let newItem = { 
-                            id: "ITM" + String(allItems.length + 1).padStart(4, '0'), 
-                            seq_num: res.value.seq_num,
-                            code: res.value.code, name: res.value.name, category: res.value.category, unit: res.value.unit, 
-                            qty_per_box: res.value.qty_per_box, monthly_usage: res.value.monthly_usage, 
-                            target_stock: res.value.target_stock, min_alert: res.value.min_alert,
-                            main_stock: 0, sub_stock: 0, req_qty: "", req_note: "" 
-                        };
-
-                        if (db && document.getElementById('syncStatus').innerText.includes('ออนไลน์')) {
-                            db.ref(`inventory_data/${allItems.length}`).set(newItem).then(() => Swal.fire('สำเร็จ', 'บันทึกออนไลน์แล้ว', 'success'));
-                        } else if (typeof pywebview !== 'undefined' && pywebview.api) {
-                            pywebview.api.add_item_from_web(newItem).then(r => forceReload());
-                            Swal.fire('สำเร็จ', 'บันทึกในเครื่องแล้ว', 'success');
-                        }
-                    }
-                });
-                return;
-            }
-
-            let options = {};
-            allItems.forEach((it, idx) => { if(it && it.name) options[idx] = `[${it.seq_num?it.seq_num+' ':''}${it.code || '-'}] ${it.name}`; });
-            Swal.fire({ title: 'เลือกพัสดุ', input: 'select', inputOptions: options, inputPlaceholder: 'คลิกเลือกรายการ...', showCancelButton: true }).then(res => {
-                if (res.isConfirmed && res.value !== "") showStockDialog(res.value, mode);
-            });
-        }
-
-        function showStockDialog(idx, mode) {
-            const item = allItems[idx];
-            let title = '', btnColor = '', extraHtml = '';
-            
-            if (mode === 'receive_main') { title = '📥 รับเข้าคลังหลัก'; btnColor = '#2ecc71'; }
-            else if (mode === 'use') { title = '📤 เบิกจ่าย (หักคลังย่อย)'; btnColor = '#e67e22'; }
-            else if (mode === 'receive_sub') { title = '📥 รับเข้าคลังย่อย'; btnColor = '#3498db'; }
-            else if (mode === 'transfer') { 
-                title = '🔄 โอนย้ายคลัง'; btnColor = '#3498db'; 
-                extraHtml = `<select id="transfer-dir" class="form-select border-primary mt-2" style="height:45px;"><option value="transfer_to_sub">คลังหลัก ➡️ คลังย่อย</option><option value="transfer_to_main">คลังย่อย ➡️ คลังหลัก</option></select>`;
-            }
-            else if (mode === 'audit') {
-                title = '📋 ปรับยอด (Spot Audit)'; 
-                btnColor = '#6c757d'; 
-                extraHtml = `
-                    <div class="row mt-3 text-start" style="font-family: 'Sarabun', sans-serif;">
-                        <div class="col-6">
-                            <label class="form-label fw-bold text-secondary">ยอดจริง (คลังหลัก)</label>
-                            <input type="number" id="audit-main" class="form-control text-center border-secondary fs-5" value="${item.main_stock || 0}" onclick="this.select()">
-                        </div>
-                        <div class="col-6">
-                            <label class="form-label fw-bold text-danger">ยอดจริง (คลังย่อย)</label>
-                            <input type="number" id="audit-sub" class="form-control text-center border-danger text-danger fs-5" value="${item.sub_stock || 0}" onclick="this.select()">
-                        </div>
-                    </div>
-                `;
-            }
-
-            Swal.fire({
-                title: title,
-                html: `
-                    <h5 class="text-primary fw-bold mt-2">${item.name}</h5>
-                    <div class="p-2 bg-light mb-3 mt-2 rounded text-center" style="font-size: 1.1rem;">
-                        คลังหลัก: <b class="text-dark">${item.main_stock || 0}</b> | คลังย่อย: <b class="text-danger">${item.sub_stock || 0}</b>
-                    </div>
-                    ${mode !== 'audit' ? `<div class="mt-3 text-start fw-bold">จำนวนที่ต้องการทำรายการ (${item.unit || 'ชิ้น'}):</div>` : ''}
-                    ${extraHtml}
-                `,
-                input: mode !== 'audit' ? 'number' : null, inputValue: mode !== 'audit' ? 1 : null, 
-                showCancelButton: true, confirmButtonText: '<i class="fas fa-check-circle"></i> ยืนยัน', confirmButtonColor: btnColor, cancelButtonText: 'ยกเลิก',
-                preConfirm: (val) => {
-                    if (mode === 'audit') {
-                        let m = parseInt(document.getElementById('audit-main').value);
-                        let s = parseInt(document.getElementById('audit-sub').value);
-                        if (isNaN(m) || isNaN(s) || m < 0 || s < 0) return Swal.showValidationMessage('ระบุตัวเลขที่ถูกต้อง');
-                        return { action: 'audit', new_main: m, new_sub: s };
-                    } else {
-                        let q = parseInt(val);
-                        if (!q || q <= 0) return Swal.showValidationMessage('ใส่จำนวนมากกว่า 0');
-                        if (mode === 'use' && q > parseInt(item.sub_stock)) return Swal.showValidationMessage('คลังย่อยมีไม่พอ!');
-                        if (mode === 'transfer') {
-                            let dir = document.getElementById('transfer-dir').value;
-                            if(dir === 'transfer_to_sub' && q > parseInt(item.main_stock)) return Swal.showValidationMessage('คลังหลักไม่พอโอน');
-                            if(dir === 'transfer_to_main' && q > parseInt(item.sub_stock)) return Swal.showValidationMessage('คลังย่อยไม่พอโอน');
-                            return { qty: q, action: dir };
-                        }
-                        return { qty: q, action: mode };
-                    }
-                }
-            }).then(res => { 
-                if (res.isConfirmed) {
-                    if (res.value.action === 'audit') {
-                        if (db && document.getElementById('syncStatus').innerText.includes('ออนไลน์')) {
-                            db.ref(`inventory_data/${idx}`).update({ main_stock: res.value.new_main, sub_stock: res.value.new_sub }).then(() => {
-                                let log = { date: new Date().toLocaleDateString('en-GB')+" "+new Date().toLocaleTimeString('en-GB'), code: item.code, name: item.name, action: "ปรับยอด (Spot Audit)", qty: 0, unit: item.unit, main_bal: res.value.new_main, sub_bal: res.value.new_sub };
-                                db.ref('history_data').once('value').then(s => { let arr = s.val() || []; arr.unshift(log); db.ref('history_data').set(arr); });
-                                Swal.fire({title:'สำเร็จ!', icon:'success', timer:1500, showConfirmButton: false});
-                            });
-                        }
-                    } else {
-                        processStockUpdate(item, idx, res.value.qty, res.value.action); 
-                    }
-                }
-            });
-        }
-
-        function processStockUpdate(item, idx, qty, action) {
-            let n_main = parseInt(item.main_stock || 0), n_sub = parseInt(item.sub_stock || 0), actText = "";
-
-            if (action === 'receive_main') { n_main += qty; actText = "รับเข้าคลังหลัก 📥"; }
-            else if (action === 'receive_sub') { n_sub += qty; actText = "รับเข้าคลังย่อย 📥"; }
-            else if (action === 'use') { n_sub -= qty; actText = "ใช้งานจริง 📤"; }
-            else if (action === 'transfer_to_sub') { n_main -= qty; n_sub += qty; actText = "โอนไปคลังย่อย 🔄"; }
-            else if (action === 'transfer_to_main') { n_sub -= qty; n_main += qty; actText = "คืนเข้าคลังหลัก 🔄"; }
-
-            if (db && document.getElementById('syncStatus').innerText.includes('ออนไลน์')) {
-                db.ref(`inventory_data/${idx}`).update({ main_stock: n_main, sub_stock: n_sub }).then(() => {
-                    let log = { date: new Date().toLocaleDateString('en-GB')+" "+new Date().toLocaleTimeString('en-GB'), code: item.code, name: item.name, action: actText, qty: qty, unit: item.unit, main_bal: n_main, sub_bal: n_sub };
-                    db.ref('history_data').once('value').then(s => { let arr = s.val() || []; arr.unshift(log); db.ref('history_data').set(arr); });
-                    Swal.fire({title:'สำเร็จ!', icon:'success', timer:1500, showConfirmButton: false});
-                    document.getElementById('codeInput').value = '';
-                });
-            } else if (typeof pywebview !== 'undefined' && pywebview.api) {
-                pywebview.api.update_stock_from_web(item.code, qty, action).then(r => { if(r.success) { Swal.fire({title:'สำเร็จ!', icon:'success', timer:1500}); forceReload(); } else Swal.fire('Error', r.message, 'error'); });
-            } 
-        }
-    </script>
+    <script src="app.js"></script>
 </body>
 </html>
