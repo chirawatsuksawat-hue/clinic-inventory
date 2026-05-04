@@ -183,12 +183,12 @@
                         <div class="col-3"><button class="btn btn-outline-dark w-100 fs-4 fw-bold py-2" onclick="calcAppend('7')">7</button></div>
                         <div class="col-3"><button class="btn btn-outline-dark w-100 fs-4 fw-bold py-2" onclick="calcAppend('8')">8</button></div>
                         <div class="col-3"><button class="btn btn-outline-dark w-100 fs-4 fw-bold py-2" onclick="calcAppend('9')">9</button></div>
-                        <div class="col-3"><button class="btn btn-warning w-100 fs-4 fw-bold py-2" onclick="calcAppend('/')">÷</button></div>
+                        <div class="col-3"><button class="btn btn-danger w-100 fs-4 fw-bold py-2" onclick="calcBackspace()"><i class="fas fa-backspace"></i></button></div>
                         
                         <div class="col-3"><button class="btn btn-outline-dark w-100 fs-4 fw-bold py-2" onclick="calcAppend('4')">4</button></div>
                         <div class="col-3"><button class="btn btn-outline-dark w-100 fs-4 fw-bold py-2" onclick="calcAppend('5')">5</button></div>
                         <div class="col-3"><button class="btn btn-outline-dark w-100 fs-4 fw-bold py-2" onclick="calcAppend('6')">6</button></div>
-                        <div class="col-3"><button class="btn btn-warning w-100 fs-4 fw-bold py-2" onclick="calcAppend('*')">×</button></div>
+                        <div class="col-3"><button class="btn btn-warning w-100 fs-4 fw-bold py-2" onclick="calcAppend('+')">+</button></div>
                         
                         <div class="col-3"><button class="btn btn-outline-dark w-100 fs-4 fw-bold py-2" onclick="calcAppend('1')">1</button></div>
                         <div class="col-3"><button class="btn btn-outline-dark w-100 fs-4 fw-bold py-2" onclick="calcAppend('2')">2</button></div>
@@ -197,18 +197,12 @@
                         
                         <div class="col-3"><button class="btn btn-danger w-100 fs-4 fw-bold py-2" onclick="calcClear()">C</button></div>
                         <div class="col-3"><button class="btn btn-outline-dark w-100 fs-4 fw-bold py-2" onclick="calcAppend('0')">0</button></div>
-                        <div class="col-3"><button class="btn btn-info w-100 fs-4 fw-bold py-2 text-white" onclick="calcCalculate()">=</button></div>
-                        <div class="col-3"><button class="btn btn-warning w-100 fs-4 fw-bold py-2" onclick="calcAppend('+')">+</button></div>
+                        <div class="col-3"><button class="btn btn-warning w-100 fs-4 fw-bold py-2" onclick="calcAppend('*')">×</button></div>
+                        <div class="col-3"><button class="btn btn-warning w-100 fs-4 fw-bold py-2" onclick="calcAppend('/')">÷</button></div>
+                        
+                        <div class="col-12"><button class="btn btn-info w-100 fs-4 fw-bold py-2 text-white" onclick="calcCalculate()">=</button></div>
                     </div>
                 </div>
-                <div class="modal-footer p-2 bg-white border-0">
-                    <button type="button" class="btn btn-success w-100 fw-bold fs-5 py-2 shadow-sm" onclick="calcConfirm()">
-                        <i class="fas fa-check-circle me-2"></i> นำยอดไปใส่ช่อง
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <audio id="soundScan" src="https://www.soundjay.com/buttons/sounds/beep-07.mp3"></audio>
     <script src="app.js"></script>

@@ -328,20 +328,21 @@ function manualAction(mode, scannedCode = "") {
                     <div class="col-md-8 mb-3"><label class="form-label fw-bold text-primary">หมวดหมู่</label><select id="swal-cat" class="form-select border-primary" style="height: 45px;">${getCategoryOptionsHTML('')}</select></div></div>
                     <div class="row"><div class="col-md-6 mb-3"><label class="form-label fw-bold">รหัสพัสดุ (Code)</label><input id="swal-code" class="form-control" placeholder="เช่น A01" value="${scannedCode}"></div>
                     <div class="col-md-6 mb-3"><label class="form-label fw-bold">ชื่อพัสดุ / อุปกรณ์</label><input id="swal-name" class="form-control" placeholder="ระบุชื่อพัสดุ"></div></div>
-                    <div class="row"><div class="col-md-6 mb-3"><label class="form-label fw-bold">หน่วยนับ</label><input id="swal-unit" class="form-control" placeholder="เช่น ชิ้น, กล่อง"></div>
-                    <div class="col-md-6 mb-3"><label class="form-label fw-bold">จำนวนบรรจุต่อกล่อง</label><input type="number" id="swal-per-box" class="form-control" value="1"></div></div>
+                    <div class="row"><div class="col-md-4 mb-3"><label class="form-label fw-bold">หน่วยนับ</label><input id="swal-unit" class="form-control" placeholder="เช่น ชิ้น, กล่อง"></div>
+                    <div class="col-md-4 mb-3"><label class="form-label fw-bold">บรรจุ/กล่อง</label><input type="number" id="swal-per-box" class="form-control" value=""></div>
+                    <div class="col-md-4 mb-3"><label class="form-label fw-bold">ราคา/หน่วย (บาท)</label><input type="number" id="swal-price" class="form-control" value=""></div></div>
                     <hr><div class="row bg-light p-2 rounded mx-0">
-                    <div class="col-md-4 mb-2 px-1"><label class="form-label fw-bold text-secondary" style="font-size: 0.9rem;">ใช้เฉลี่ย/เดือน</label><input type="number" id="swal-usage" class="form-control text-center" value="0"></div>
-                    <div class="col-md-4 mb-2 px-1"><label class="form-label fw-bold text-secondary" style="font-size: 0.9rem;">ยอดตั้งต้น</label><input type="number" id="swal-target" class="form-control text-center" value="0"></div>
-                    <div class="col-md-4 mb-2 px-1"><label class="form-label fw-bold text-secondary" style="font-size: 0.9rem;">แจ้งเตือนใกล้หมด</label><input type="number" id="swal-min" class="form-control text-center" value="10"></div></div></div>
+                    <div class="col-md-4 mb-2 px-1"><label class="form-label fw-bold text-secondary" style="font-size: 0.9rem;">ใช้เฉลี่ย/เดือน</label><input type="number" id="swal-usage" class="form-control text-center" value=""></div>
+                    <div class="col-md-4 mb-2 px-1"><label class="form-label fw-bold text-secondary" style="font-size: 0.9rem;">ยอดตั้งต้น</label><input type="number" id="swal-target" class="form-control text-center" value=""></div>
+                    <div class="col-md-4 mb-2 px-1"><label class="form-label fw-bold text-secondary" style="font-size: 0.9rem;">แจ้งเตือนใกล้หมด</label><input type="number" id="swal-min" class="form-control text-center" value=""></div></div></div>
             `,
             showCancelButton: true, confirmButtonText: '<i class="fas fa-save"></i> บันทึกข้อมูล', confirmButtonColor: '#2ecc71', cancelButtonText: 'ยกเลิก',
-            preConfirm: () => { return { seq_num: document.getElementById('swal-seq').value.trim(), code: document.getElementById('swal-code').value.trim(), name: document.getElementById('swal-name').value.trim(), category: document.getElementById('swal-cat').value, unit: document.getElementById('swal-unit').value.trim() || 'ชิ้น', qty_per_box: document.getElementById('swal-per-box').value || "1", monthly_usage: parseFloat(document.getElementById('swal-usage').value) || 0, target_stock: parseInt(document.getElementById('swal-target').value) || 0, min_alert: parseInt(document.getElementById('swal-min').value) || 10 } }
+            preConfirm: () => { return { seq_num: document.getElementById('swal-seq').value.trim(), code: document.getElementById('swal-code').value.trim(), name: document.getElementById('swal-name').value.trim(), category: document.getElementById('swal-cat').value, unit: document.getElementById('swal-unit').value.trim() || 'ชิ้น', qty_per_box: document.getElementById('swal-per-box').value || "1", price: parseFloat(document.getElementById('swal-price').value) || 0, monthly_usage: parseFloat(document.getElementById('swal-usage').value) || 0, target_stock: parseInt(document.getElementById('swal-target').value) || 0, min_alert: parseInt(document.getElementById('swal-min').value) || 10 } }
         }).then(res => {
             if (res.isConfirmed) {
                 if(!res.value.name || !res.value.code) return Swal.fire('ผิดพลาด', 'กรุณากรอกข้อมูลให้ครบ', 'warning');
                 if (allItems.some(i => i && i.code === res.value.code)) return Swal.fire('ผิดพลาด', 'รหัสนี้มีในระบบแล้ว!', 'error');
-                let newItem = { id: "ITM" + String(allItems.length + 1).padStart(4, '0'), seq_num: res.value.seq_num, code: res.value.code, name: res.value.name, category: res.value.category, unit: res.value.unit, qty_per_box: res.value.qty_per_box, monthly_usage: res.value.monthly_usage, target_stock: res.value.target_stock, min_alert: res.value.min_alert, main_stock: 0, sub_stock: 0, req_qty: "", req_note: "" };
+                let newItem = { id: "ITM" + String(allItems.length + 1).padStart(4, '0'), seq_num: res.value.seq_num, code: res.value.code, name: res.value.name, category: res.value.category, unit: res.value.unit, qty_per_box: res.value.qty_per_box, price: res.value.price, monthly_usage: res.value.monthly_usage, target_stock: res.value.target_stock, min_alert: res.value.min_alert, main_stock: 0, sub_stock: 0, req_qty: "", req_note: "" };
                 if (db && document.getElementById('syncStatus').innerText.includes('ออนไลน์')) { db.ref(`inventory_data/${allItems.length}`).set(newItem).then(() => Swal.fire('สำเร็จ', 'บันทึกออนไลน์แล้ว', 'success')); } 
                 else if (typeof pywebview !== 'undefined' && pywebview.api) { pywebview.api.add_item_from_web(newItem).then(r => forceReload()); Swal.fire('สำเร็จ', 'บันทึกในเครื่องแล้ว', 'success'); }
             }
@@ -359,15 +360,16 @@ function editItem(idx) {
                 <div class="col-md-8 mb-3"><label class="form-label fw-bold text-primary">หมวดหมู่</label><select id="edit-cat" class="form-select border-primary" style="height: 45px;">${getCategoryOptionsHTML(item.category)}</select></div></div>
                 <div class="row"><div class="col-md-6 mb-3"><label class="form-label fw-bold">รหัสพัสดุ (Code)</label><input id="edit-code" class="form-control" value="${item.code || ''}"></div>
                 <div class="col-md-6 mb-3"><label class="form-label fw-bold">ชื่อพัสดุ / อุปกรณ์</label><input id="edit-name" class="form-control" value="${item.name || ''}"></div></div>
-                <div class="row"><div class="col-md-6 mb-3"><label class="form-label fw-bold">หน่วยนับ</label><input id="edit-unit" class="form-control" value="${item.unit || 'ชิ้น'}"></div>
-                <div class="col-md-6 mb-3"><label class="form-label fw-bold">จำนวนบรรจุ/กล่อง</label><input type="number" id="edit-per-box" class="form-control" value="${item.qty_per_box || 1}"></div></div>
+                <div class="row"><div class="col-md-4 mb-3"><label class="form-label fw-bold">หน่วยนับ</label><input id="edit-unit" class="form-control" value="${item.unit || 'ชิ้น'}"></div>
+                <div class="col-md-4 mb-3"><label class="form-label fw-bold">บรรจุ/กล่อง</label><input type="number" id="edit-per-box" class="form-control" value="${item.qty_per_box || ''}"></div>
+                <div class="col-md-4 mb-3"><label class="form-label fw-bold">ราคา/หน่วย (บาท)</label><input type="number" id="edit-price" class="form-control" value="${item.price || ''}"></div></div>
                 <hr><div class="row bg-light p-2 rounded mx-0">
-                <div class="col-md-4 mb-2 px-1"><label class="form-label fw-bold text-secondary" style="font-size: 0.9rem;">ใช้เฉลี่ย/เดือน</label><input type="number" id="edit-usage" class="form-control text-center" value="${item.monthly_usage || 0}"></div>
-                <div class="col-md-4 mb-2 px-1"><label class="form-label fw-bold text-secondary" style="font-size: 0.9rem;">ยอดตั้งต้น</label><input type="number" id="edit-target" class="form-control text-center" value="${item.target_stock || 0}"></div>
-                <div class="col-md-4 mb-2 px-1"><label class="form-label fw-bold text-secondary" style="font-size: 0.9rem;">แจ้งเตือนใกล้หมด</label><input type="number" id="edit-min" class="form-control text-center" value="${item.min_alert || 10}"></div></div></div>
+                <div class="col-md-4 mb-2 px-1"><label class="form-label fw-bold text-secondary" style="font-size: 0.9rem;">ใช้เฉลี่ย/เดือน</label><input type="number" id="edit-usage" class="form-control text-center" value="${item.monthly_usage || ''}"></div>
+                <div class="col-md-4 mb-2 px-1"><label class="form-label fw-bold text-secondary" style="font-size: 0.9rem;">ยอดตั้งต้น</label><input type="number" id="edit-target" class="form-control text-center" value="${item.target_stock || ''}"></div>
+                <div class="col-md-4 mb-2 px-1"><label class="form-label fw-bold text-secondary" style="font-size: 0.9rem;">แจ้งเตือนใกล้หมด</label><input type="number" id="edit-min" class="form-control text-center" value="${item.min_alert || ''}"></div></div></div>
         `,
         showCancelButton: true, confirmButtonText: '<i class="fas fa-save"></i> บันทึกการแก้ไข', confirmButtonColor: '#3498db', cancelButtonText: 'ยกเลิก',
-        preConfirm: () => { return { seq_num: document.getElementById('edit-seq').value.trim(), code: document.getElementById('edit-code').value.trim(), name: document.getElementById('edit-name').value.trim(), category: document.getElementById('edit-cat').value, unit: document.getElementById('edit-unit').value.trim() || 'ชิ้น', qty_per_box: document.getElementById('edit-per-box').value || "1", monthly_usage: parseFloat(document.getElementById('edit-usage').value) || 0, target_stock: parseInt(document.getElementById('edit-target').value) || 0, min_alert: parseInt(document.getElementById('edit-min').value) || 10 } }
+        preConfirm: () => { return { seq_num: document.getElementById('edit-seq').value.trim(), code: document.getElementById('edit-code').value.trim(), name: document.getElementById('edit-name').value.trim(), category: document.getElementById('edit-cat').value, unit: document.getElementById('edit-unit').value.trim() || 'ชิ้น', qty_per_box: document.getElementById('edit-per-box').value || "1", price: parseFloat(document.getElementById('edit-price').value) || 0, monthly_usage: parseFloat(document.getElementById('edit-usage').value) || 0, target_stock: parseInt(document.getElementById('edit-target').value) || 0, min_alert: parseInt(document.getElementById('edit-min').value) || 10 } }
     }).then((res) => {
         if (res.isConfirmed) {
             if(!res.value.name || !res.value.code) return Swal.fire('ผิดพลาด', 'กรุณากรอกชื่อและรหัสให้ครบ', 'warning');
@@ -385,6 +387,10 @@ function openCalculator(idx, targetId, currentValue) {
 
 function calcAppend(val) { document.getElementById('calcDisplay').value += val; }
 function calcClear() { document.getElementById('calcDisplay').value = ''; }
+function calcBackspace() {
+    let display = document.getElementById('calcDisplay');
+    display.value = display.value.slice(0, -1);
+}
 function calcCalculate() {
     let expr = document.getElementById('calcDisplay').value;
     if(/^[0-9+\-*/.\s]+$/.test(expr)) { try { let res = eval(expr); if(isFinite(res)) document.getElementById('calcDisplay').value = Math.floor(res); } catch(e) { } } 
