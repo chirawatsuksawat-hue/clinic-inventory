@@ -223,7 +223,12 @@
                 </div>
 
     <audio id="soundScan" src="https://www.soundjay.com/buttons/sounds/beep-07.mp3"></audio>
-    <script src="app.js"></script>
+    <audio id="soundScan" src="https://www.soundjay.com/buttons/sounds/beep-07.mp3"></audio>
+
+    <!-- 🚀 บังคับมือถือโหลดไฟล์ app.js ใหม่ล่าสุดเสมอ ห้ามจำแคชเด็ดขาด! -->
+    <script>
+        document.write("<script src='app.js?v=" + new Date().getTime() + "'><\\/script>");
+    </script>
     <script>
     // 🚀 ดึงชื่อจาก URL มาแสดงบนแถบ Header ของหน้าสแกน
     window.addEventListener('DOMContentLoaded', () => {
