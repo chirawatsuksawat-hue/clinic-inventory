@@ -1,6 +1,20 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
+    <!-- 🚀 ยามรักษาความปลอดภัย: ป้องกันคนแอบเข้าเว็บโดยไม่ผ่านหน้า Login -->
+    <script>
+        (function() {
+            // เช็คว่ามีคำว่า ?user=... ตามหลังลิงก์มาหรือไม่
+            const urlParams = new URLSearchParams(window.location.search);
+            const userName = urlParams.get('user');
+            
+            // ถ้าไม่มีชื่อ (แปลว่าแอบพิมพ์ลิงก์เข้ามาตรงๆ หรือสแกน QR เก่ามา)
+            if (!userName) {
+                // บังคับเตะเปลี่ยนหน้าไปยังหน้าล็อคอินทันที!
+                window.location.replace("scanner_login.html");
+            }
+        })();
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ระบบคลังพัสดุคลินิกฟอกไต</title>
