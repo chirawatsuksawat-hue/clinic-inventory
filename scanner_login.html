@@ -26,23 +26,12 @@
         }
         .logo { font-size: 50px; margin-bottom: 10px; }
         h2 { color: #2c3e50; margin-top: 0; margin-bottom: 5px; }
-        p { color: #7f8c8d; font-size: 14px; margin-bottom: 20px; }
-        
-        /* 🚀 สไตล์สำหรับกล่องแสดงชื่อผู้ใช้งาน */
-        .user-badge {
-            background-color: #e8f8f5;
-            color: #27ae60;
-            padding: 8px 15px;
-            border-radius: 20px;
-            font-size: 14px;
-            font-weight: bold;
-            display: inline-block;
-            margin-bottom: 20px;
-            border: 1px solid #a3e4d7;
-        }
+        p { color: #7f8c8d; font-size: 14px; margin-bottom: 25px; }
         
         .input-group { margin-bottom: 20px; text-align: left; }
         .input-group label { display: block; margin-bottom: 5px; color: #34495e; font-weight: 600; }
+        
+        /* สไตล์สำหรับช่องใส่รหัส */
         .input-group input {
             width: 100%;
             padding: 12px;
@@ -56,6 +45,21 @@
             letter-spacing: 5px;
         }
         .input-group input:focus { border-color: #3498db; }
+
+        /* 🚀 สไตล์ใหม่สำหรับ Dropdown เลือกชื่อ */
+        .user-select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #bdc3c7;
+            border-radius: 8px;
+            font-size: 15px;
+            font-family: 'Sarabun', sans-serif;
+            background-color: #f8f9fa;
+            color: #2c3e50;
+            outline: none;
+            cursor: pointer;
+        }
+        .user-select:focus { border-color: #3498db; }
         
         .btn-login {
             background-color: #3498db;
@@ -85,9 +89,15 @@
     <div class="login-container">
         <div class="logo">📷</div>
         <h2>ระบบสแกนเอกสาร</h2>
+        <p>กรุณาระบุตัวตนก่อนเข้าใช้งาน</p>
         
-        <!-- 🚀 กล่องแสดงชื่อผู้ใช้งาน -->
-        <div class="user-badge" id="userNameDisplay">ผู้ใช้งาน: กำลังโหลด...</div>
+        <!-- 🚀 เพิ่ม Dropdown ให้เลือกชื่อพนักงานก่อนเข้าเว็บ -->
+        <div class="input-group">
+            <label>ผู้ทำรายการ:</label>
+            <select id="userSelect" class="user-select">
+                <option value="เจ้าหน้าที่ (ไม่ระบุชื่อ)">-- กรุณาเลือกชื่อของคุณ --</option>
+            </select>
+        </div>
         
         <div class="input-group">
             <label>รหัสผ่าน (PIN):</label>
@@ -99,22 +109,47 @@
     </div>
 
     <script>
-        const SECRET_PIN = "1234";
+        const SECRET_PIN = "1234"; // รหัสผ่านเข้าหน้าสแกน
 
-        // 🚀 1. ดึงชื่อจาก URL ทันทีที่เปิดหน้าเว็บ
-        const urlParams = new URLSearchParams(window.location.search);
-        let userName = urlParams.get('user') || "เจ้าหน้าที่ (ไม่ทราบชื่อ)";
-        
-        // 🚀 2. เอาชื่อไปแสดงผลบนหน้าจอ
-        document.getElementById("userNameDisplay").innerText = "ผู้ใช้งาน: " + userName;
+        // 🚀 ดึงรายชื่อพนักงานจาก database.json ในคอมพิวเตอร์มาแสดงอัตโนมัติ
+        fetch('database.json')
+            .then(response => response.json())
+            .then(data => {
+                const users = data.users || [];
+                const select = document.getElementById('userSelect');
+                
+                // เอาชื่อทุกคนมาใส่ใน Dropdown
+                users.forEach(u => {
+                    if(u.name) {
+                        let opt = document.createElement('option');
+                        opt.value = u.name;
+                        opt.textContent = u.name;
+                        select.appendChild(opt);
+                    }
+                });
+
+                // ดักจับชื่อจาก URL (กรณีเปิดหน้าเว็บผ่านปุ่มในโปรแกรมคอมพิวเตอร์)
+                const urlParams = new URLSearchParams(window.location.search);
+                const urlUser = urlParams.get('user');
+                if (urlUser) {
+                    for (let i = 0; i < select.options.length; i++) {
+                        if (select.options[i].value === urlUser) {
+                            select.selectedIndex = i;
+                            break;
+                        }
+                    }
+                }
+            })
+            .catch(err => console.log("ไม่สามารถโหลดรายชื่อได้"));
 
         function verifyLogin() {
             const input = document.getElementById("pinInput").value;
             const errorText = document.getElementById("errorText");
+            const selectedUser = document.getElementById("userSelect").value; // ดึงชื่อที่เลือก
             
             if (input === SECRET_PIN) {
-                // 🚀 3. ถ้ารหัสถูก ให้ส่งชื่อนี้ แนบต่อไปยังหน้า index.html ด้วย!
-                window.location.href = `index.html?user=${encodeURIComponent(userName)}`;
+                // 🚀 ถ้ารหัสถูก ให้พาไปหน้าสแกน พร้อมแนบชื่อที่เลือกไปด้วย!
+                window.location.href = `index.html?user=${encodeURIComponent(selectedUser)}`;
             } else {
                 errorText.style.display = "block";
                 document.getElementById("pinInput").value = "";
