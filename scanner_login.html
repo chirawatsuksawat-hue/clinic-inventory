@@ -3,98 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>เข้าสู่ระบบ - สแกนเอกสารมือถือ</title>
+    <title>เข้าสู่ระบบ - สแกนเอกสาร</title>
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap" rel="stylesheet">
     
-    <!-- 🚀 เรียกใช้ไฟล์ข้อมูลผู้ใช้ที่ Python สร้างให้เมื่อกี้ -->
-    <script src="scanner_data.js"></script>
-    
+    <!-- 🚀 เรียกใช้ Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
     <style>
-        body {
-            font-family: 'Sarabun', sans-serif;
-            background-color: #f4f6f9;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-        }
-        .login-container {
-            background: white;
-            padding: 40px 30px;
-            border-radius: 15px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-            text-align: center;
-            width: 100%;
-            max-width: 350px;
-        }
+        body { font-family: 'Sarabun', sans-serif; background-color: #f4f6f9; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .login-container { background: white; padding: 40px 30px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); text-align: center; width: 100%; max-width: 350px; position: relative; }
         .logo { font-size: 50px; margin-bottom: 10px; }
         h2 { color: #2c3e50; margin-top: 0; margin-bottom: 5px; }
         p { color: #7f8c8d; font-size: 14px; margin-bottom: 25px; }
-        
         .input-group { margin-bottom: 20px; text-align: left; position: relative; z-index: 100; }
         .input-group label { display: block; margin-bottom: 5px; color: #34495e; font-weight: 600; }
-        
-        .input-group input {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #bdc3c7;
-            border-radius: 8px;
-            font-size: 16px;
-            box-sizing: border-box;
-            outline: none;
-            transition: border-color 0.3s;
-            text-align: center;
-            letter-spacing: 5px;
-        }
+        .input-group input { width: 100%; padding: 12px; border: 2px solid #bdc3c7; border-radius: 8px; font-size: 16px; box-sizing: border-box; outline: none; text-align: center; letter-spacing: 5px; }
         .input-group input:focus { border-color: #3498db; }
-
-        .user-select {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #bdc3c7;
-            border-radius: 8px;
-            font-size: 16px;
-            font-family: 'Sarabun', sans-serif;
-            background-color: #ffffff;
-            color: #2c3e50;
-            outline: none;
-            cursor: pointer;
-            appearance: none; 
-            -webkit-appearance: none;
-            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="%2334495e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>');
-            background-repeat: no-repeat;
-            background-position: right 15px center;
-        }
-        .user-select option { background-color: #ffffff; color: #2c3e50; font-size: 16px; }
+        .user-select { width: 100%; padding: 12px; border: 2px solid #bdc3c7; border-radius: 8px; font-size: 16px; font-family: 'Sarabun', sans-serif; background-color: #ffffff; color: #2c3e50; outline: none; cursor: pointer; }
         .user-select:focus { border-color: #3498db; }
-        
-        .btn-login {
-            background-color: #3498db;
-            color: white;
-            border: none;
-            padding: 14px;
-            width: 100%;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: background 0.3s;
-        }
+        .btn-login { background-color: #3498db; color: white; border: none; padding: 14px; width: 100%; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; }
         .btn-login:hover { background-color: #2980b9; }
-        
-        .error-msg {
-            color: #e74c3c;
-            font-size: 14px;
-            margin-top: 10px;
-            display: none;
-            font-weight: bold;
-        }
+        .error-msg { color: #e74c3c; font-size: 14px; margin-top: 10px; display: none; font-weight: bold; }
+        #loadingOverlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); display: flex; justify-content: center; align-items: center; border-radius: 15px; z-index: 999; font-weight: bold; color: #3498db; }
     </style>
 </head>
 <body>
 
     <div class="login-container">
+        <!-- 🚀 หน้าต่างโหลดข้อมูลจาก Cloud -->
+        <div id="loadingOverlay">กำลังเชื่อมต่อฐานข้อมูล Cloud... ☁️</div>
+
         <div class="logo">📷</div>
         <h2>ระบบสแกนเอกสาร</h2>
         <p>กรุณาระบุตัวตนก่อนเข้าใช้งาน</p>
@@ -102,13 +41,12 @@
         <div class="input-group">
             <label>ผู้ทำรายการ:</label>
             <select id="userSelect" class="user-select">
-                <!-- รายชื่อจะถูกเติมด้วย Javascript ด้านล่าง -->
+                <option>-- กำลังโหลดรายชื่อ --</option>
             </select>
         </div>
         
         <div class="input-group" style="z-index: 10;">
             <label>รหัสผ่านเข้าใช้งาน:</label>
-            <!-- ลบ inputmode=numeric ออก เผื่อรหัสผ่านมีตัวอักษรภาษาอังกฤษ -->
             <input type="password" id="pinInput" placeholder="••••" onkeypress="checkEnter(event)">
         </div>
         
@@ -117,57 +55,75 @@
     </div>
 
     <script>
-        // 🚀 โหลดรายชื่อจากไฟล์ scanner_data.js ที่ Python เตรียมไว้ให้
-        const select = document.getElementById('userSelect');
+        // 🚀 ตั้งค่าการเชื่อมต่อ Firebase Database (ลิงก์เดียวกับโปรแกรมคอม)
+        const firebaseConfig = {
+            databaseURL: "https://dialysis-inventory-fab4e-default-rtdb.asia-southeast1.firebasedatabase.app/"
+        };
         
-        if (typeof ALL_USERS !== 'undefined' && ALL_USERS.length > 0) {
-            ALL_USERS.forEach(u => {
-                if(u.user && u.name) {
-                    let opt = document.createElement('option');
-                    opt.value = u.user; // ใช้ ไอดี(Username) เป็นค่าที่เลือก
-                    opt.textContent = `${u.name} (ไอดี: ${u.user})`; // โชว์ ชื่อ (ไอดี) ให้เห็นชัดเจน
-                    select.appendChild(opt);
-                }
-            });
-
-            // ตั้งค่าเริ่มต้นเป็นคนปัจจุบันที่เปิดหน้าเว็บขึ้นมา
-            if (typeof CURRENT_USER !== 'undefined') {
-                for (let i = 0; i < select.options.length; i++) {
-                    if (select.options[i].text.includes(CURRENT_USER)) {
-                        select.selectedIndex = i;
-                        break;
-                    }
-                }
-            }
-        } else {
-            let opt = document.createElement('option');
-            opt.textContent = "-- ไม่พบข้อมูลในระบบ --";
-            select.appendChild(opt);
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
         }
+        const db = firebase.database();
+        let ALL_USERS = [];
+
+        // 🚀 ดึงรายชื่อจาก Firebase แบบ Real-time ทันทีที่เปิดหน้าเว็บ!
+        db.ref('users_data').once('value').then((snapshot) => {
+            const data = snapshot.val();
+            const select = document.getElementById('userSelect');
+            select.innerHTML = ''; // ล้างค่าเดิม
+            
+            if (data && data.length > 0) {
+                ALL_USERS = data;
+                data.forEach(u => {
+                    const userId = u.user || u.username || u.id || "";
+                    const userName = u.name || u.fullname || "ไม่ระบุชื่อ";
+                    
+                    if(userId !== "") {
+                        let opt = document.createElement('option');
+                        opt.value = String(userId);
+                        opt.textContent = userName + " (ไอดี: " + userId + ")";
+                        select.appendChild(opt);
+                    }
+                });
+            } else {
+                let opt = document.createElement('option');
+                opt.textContent = "-- ไม่พบข้อมูลในระบบ --";
+                select.appendChild(opt);
+            }
+            
+            // ปิดหน้าจอโหลดเมื่อดึงข้อมูลเสร็จ
+            document.getElementById('loadingOverlay').style.display = 'none';
+            
+        }).catch((error) => {
+            console.error("Firebase Error:", error);
+            document.getElementById('loadingOverlay').innerText = "❌ ไม่สามารถเชื่อมต่อ Cloud ได้";
+            document.getElementById('loadingOverlay').style.color = "red";
+        });
 
         function verifyLogin() {
             const inputPass = document.getElementById("pinInput").value;
             const errorText = document.getElementById("errorText");
-            const selectedUserId = document.getElementById("userSelect").value; 
+            const selectedUserId = String(document.getElementById("userSelect").value); 
             
-            // 🚀 ค้นหาไอดีที่เลือก แล้วตรวจรหัสผ่านให้ตรงกับฐานข้อมูลเป๊ะๆ
-            const user = ALL_USERS.find(u => u.user === selectedUserId);
+            // ตรวจสอบรหัสผ่านที่ดึงมาจาก Cloud
+            const user = ALL_USERS.find(u => (String(u.user) === selectedUserId || String(u.username) === selectedUserId || String(u.id) === selectedUserId));
             
-            if (user && inputPass === user.pass) {
-                // ✅ รหัสถูกต้อง! ส่งชื่อเต็มๆ ไปโชว์ในหน้าสแกน
-                window.location.href = `index.html?user=${encodeURIComponent(user.name)}`;
-            } else {
-                // ❌ รหัสผิด เด้งแจ้งเตือน
-                errorText.style.display = "block";
-                document.getElementById("pinInput").value = "";
-                document.getElementById("pinInput").focus();
+            if (user) {
+                const dbPass = String(user.pass || user.password || "");
+                if (inputPass === dbPass) {
+                    window.location.href = `index.html?user=${encodeURIComponent(user.name || user.fullname)}`;
+                    return;
+                }
             }
+            
+            // รหัสผิด
+            errorText.style.display = "block";
+            document.getElementById("pinInput").value = "";
+            document.getElementById("pinInput").focus();
         }
 
         function checkEnter(event) {
-            if (event.key === "Enter") {
-                verifyLogin();
-            }
+            if (event.key === "Enter") { verifyLogin(); }
         }
     </script>
 </body>
