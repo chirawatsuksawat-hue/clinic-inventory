@@ -286,7 +286,11 @@ function showStockDialog(idx, mode) {
             if (res.value.action === 'audit') {
                 if (db && document.getElementById('syncStatus').innerText.includes('ออนไลน์')) {
                     db.ref(`inventory_data/${idx}`).update({ main_stock: res.value.new_main, sub_stock: res.value.new_sub }).then(() => {
-                        let log = { date: new Date().toLocaleDateString('en-GB')+" "+new Date().toLocaleTimeString('en-GB'), code: item.code, name: item.name, action: "ปรับยอด (Spot Audit)", qty: 0, unit: item.unit, main_bal: res.value.new_main, sub_bal: res.value.new_sub };
+                        // 🚀 ดึงชื่อและเพิ่ม user
+                        const currentParams = new URLSearchParams(window.location.search);
+                        const savedUserName = currentParams.get('user') || "มือถือ-ไม่ระบุชื่อ";
+                        
+                        let log = { date: new Date().toLocaleDateString('en-GB')+" "+new Date().toLocaleTimeString('en-GB'), code: item.code, name: item.name, action: "ปรับยอด (Spot Audit)", qty: 0, unit: item.unit, main_bal: res.value.new_main, sub_bal: res.value.new_sub, user: savedUserName };
                         db.ref('history_data').once('value').then(s => { let arr = s.val() || []; arr.unshift(log); db.ref('history_data').set(arr); });
                         Swal.fire({title:'สำเร็จ!', icon:'success', timer:1500, showConfirmButton: false});
                     });
@@ -308,7 +312,11 @@ function processStockUpdate(item, idx, qty, action) {
 
     if (db && document.getElementById('syncStatus').innerText.includes('ออนไลน์')) {
         db.ref(`inventory_data/${idx}`).update({ main_stock: n_main, sub_stock: n_sub }).then(() => {
-            let log = { date: new Date().toLocaleDateString('en-GB')+" "+new Date().toLocaleTimeString('en-GB'), code: item.code, name: item.name, action: actText, qty: qty, unit: item.unit, main_bal: n_main, sub_bal: n_sub };
+            // 🚀 ดึงชื่อและเพิ่ม user
+            const currentParams = new URLSearchParams(window.location.search);
+            const savedUserName = currentParams.get('user') || "มือถือ-ไม่ระบุชื่อ";
+
+            let log = { date: new Date().toLocaleDateString('en-GB')+" "+new Date().toLocaleTimeString('en-GB'), code: item.code, name: item.name, action: actText, qty: qty, unit: item.unit, main_bal: n_main, sub_bal: n_sub, user: savedUserName };
             db.ref('history_data').once('value').then(s => { let arr = s.val() || []; arr.unshift(log); db.ref('history_data').set(arr); });
             Swal.fire({title:'สำเร็จ!', icon:'success', timer:1500, showConfirmButton: false});
             document.getElementById('codeInput').value = '';
@@ -479,13 +487,18 @@ function saveBulkAudit() {
     }).then((res) => {
         if(res.isConfirmed) {
             let updates = {}; let logs = []; let changesCount = 0; let now = new Date().toLocaleDateString('en-GB')+" "+new Date().toLocaleTimeString('en-GB');
+            
+            // 🚀 ดึงชื่อและเตรียมเพิ่ม user ลงในประวัติทุกแถว
+            const currentParams = new URLSearchParams(window.location.search);
+            const savedUserName = currentParams.get('user') || "มือถือ-ไม่ระบุชื่อ";
+
             auditData.forEach((item, idx) => {
                 let orig = allItems[idx]; if(!orig) return;
                 let nMain = parseInt(item.main_stock) || 0, nSub = parseInt(item.sub_stock) || 0;
                 let oMain = parseInt(orig.main_stock || 0), oSub = parseInt(orig.sub_stock || 0);
                 if(nMain !== oMain || nSub !== oSub) {
                     updates[`inventory_data/${idx}/main_stock`] = nMain; updates[`inventory_data/${idx}/sub_stock`] = nSub;
-                    logs.push({ date: now, code: item.code, name: item.name, action: "ทำใบตรวจนับ (Audit) 📋", qty: 0, unit: item.unit, main_bal: nMain, sub_bal: nSub });
+                    logs.push({ date: now, code: item.code, name: item.name, action: "ทำใบตรวจนับ (Audit) 📋", qty: 0, unit: item.unit, main_bal: nMain, sub_bal: nSub, user: savedUserName });
                     changesCount++;
                 }
             });
