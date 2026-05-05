@@ -52,12 +52,23 @@
             padding: 12px;
             border: 2px solid #bdc3c7;
             border-radius: 8px;
-            font-size: 15px;
+            font-size: 16px; /* 16px ป้องกันบั๊ก Safari ในมือถือแอบซูมจอ */
             font-family: 'Sarabun', sans-serif;
-            background-color: #f8f9fa;
+            background-color: #ffffff; /* บังคับพื้นหลังสีขาวทึบ */
             color: #2c3e50;
             outline: none;
             cursor: pointer;
+            /* แต่งลูกศร Dropdown ใหม่ให้มาตรฐานเท่ากันทุกเครื่อง */
+            appearance: none; 
+            -webkit-appearance: none;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="%2334495e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>');
+            background-repeat: no-repeat;
+            background-position: right 15px center;
+        }
+        .user-select option {
+            background-color: #ffffff;
+            color: #2c3e50;
+            font-size: 16px;
         }
         .user-select:focus { border-color: #3498db; }
         
@@ -91,15 +102,16 @@
         <h2>ระบบสแกนเอกสาร</h2>
         <p>กรุณาระบุตัวตนก่อนเข้าใช้งาน</p>
         
-        <!-- 🚀 เพิ่ม Dropdown ให้เลือกชื่อพนักงานก่อนเข้าเว็บ -->
-        <div class="input-group">
+        <!-- 🚀 เพิ่ม style="position: relative; z-index: 100;" ให้อยู่ชั้นบนสุด -->
+        <div class="input-group" style="position: relative; z-index: 100;">
             <label>ผู้ทำรายการ:</label>
             <select id="userSelect" class="user-select">
                 <option value="เจ้าหน้าที่ (ไม่ระบุชื่อ)">-- กรุณาเลือกชื่อของคุณ --</option>
             </select>
         </div>
         
-        <div class="input-group">
+        <!-- 🚀 เพิ่ม style="position: relative; z-index: 10;" ให้อยู่ชั้นล่างกว่า จะได้ไม่แทงทะลุขึ้นมา -->
+        <div class="input-group" style="position: relative; z-index: 10;">
             <label>รหัสผ่าน (PIN):</label>
             <input type="password" id="pinInput" inputmode="numeric" placeholder="••••" onkeypress="checkEnter(event)">
         </div>
