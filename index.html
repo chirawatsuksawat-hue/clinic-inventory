@@ -18,10 +18,17 @@
 </head>
 <body>
 
+    <!-- 🚀 ย้ายแถบชื่อผู้ใช้งานมาวางไว้บรรทัดแรกสุดของ body ตรงนี้ครับ! -->
+    <div id="activeUserDisplay" style="text-align: center; color: #fff; background-color: #2c3e50; padding: 5px; font-size: 14px; margin-bottom: 0;">
+        👤 ผู้ทำรายการ: กำลังโหลด...
+    </div>
+
     <div class="mobile-header">
         <h5><i class="fas fa-boxes me-2"></i>ระบบคลังพัสดุ</h5>
         <button class="hamburger-btn" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
     </div>
+
+    <!-- ... (โค้ดส่วนอื่นๆ ของคุณ sky เหมือนเดิมเลยครับ) ... -->
 
     <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
 
@@ -206,5 +213,18 @@
 
     <audio id="soundScan" src="https://www.soundjay.com/buttons/sounds/beep-07.mp3"></audio>
     <script src="app.js"></script>
+    <script>
+    // 🚀 ดึงชื่อจาก URL มาแสดงบนแถบ Header ของหน้าสแกน
+    window.addEventListener('DOMContentLoaded', () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const userName = urlParams.get('user');
+        
+        if(userName) {
+            document.getElementById("activeUserDisplay").innerText = "👤 ผู้ทำรายการ: " + userName;
+        } else {
+            document.getElementById("activeUserDisplay").style.display = 'none'; // ซ่อนถ้าไม่มีชื่อ
+        }
+    });
+</script>
 </body>
 </html>

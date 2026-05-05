@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>เข้าสู่ระบบ - สแกนเอกสารมือถือ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Sarabun', sans-serif;
+            background-color: #f4f6f9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .login-container {
+            background: white;
+            padding: 40px 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            text-align: center;
+            width: 100%;
+            max-width: 350px;
+        }
+        .logo { font-size: 50px; margin-bottom: 10px; }
+        h2 { color: #2c3e50; margin-top: 0; margin-bottom: 5px; }
+        p { color: #7f8c8d; font-size: 14px; margin-bottom: 20px; }
+        
+        /* 🚀 สไตล์สำหรับกล่องแสดงชื่อผู้ใช้งาน */
+        .user-badge {
+            background-color: #e8f8f5;
+            color: #27ae60;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+            display: inline-block;
+            margin-bottom: 20px;
+            border: 1px solid #a3e4d7;
+        }
+        
+        .input-group { margin-bottom: 20px; text-align: left; }
+        .input-group label { display: block; margin-bottom: 5px; color: #34495e; font-weight: 600; }
+        .input-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #bdc3c7;
+            border-radius: 8px;
+            font-size: 16px;
+            box-sizing: border-box;
+            outline: none;
+            transition: border-color 0.3s;
+            text-align: center;
+            letter-spacing: 5px;
+        }
+        .input-group input:focus { border-color: #3498db; }
+        
+        .btn-login {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 14px;
+            width: 100%;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .btn-login:hover { background-color: #2980b9; }
+        
+        .error-msg {
+            color: #e74c3c;
+            font-size: 14px;
+            margin-top: 10px;
+            display: none;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="login-container">
+        <div class="logo">📷</div>
+        <h2>ระบบสแกนเอกสาร</h2>
+        
+        <!-- 🚀 กล่องแสดงชื่อผู้ใช้งาน -->
+        <div class="user-badge" id="userNameDisplay">ผู้ใช้งาน: กำลังโหลด...</div>
+        
+        <div class="input-group">
+            <label>รหัสผ่าน (PIN):</label>
+            <input type="password" id="pinInput" inputmode="numeric" placeholder="••••" onkeypress="checkEnter(event)">
+        </div>
+        
+        <button class="btn-login" onclick="verifyLogin()">เข้าสู่ระบบ</button>
+        <div class="error-msg" id="errorText">❌ รหัสผ่านไม่ถูกต้อง!</div>
+    </div>
+
+    <script>
+        const SECRET_PIN = "1234";
+
+        // 🚀 1. ดึงชื่อจาก URL ทันทีที่เปิดหน้าเว็บ
+        const urlParams = new URLSearchParams(window.location.search);
+        let userName = urlParams.get('user') || "เจ้าหน้าที่ (ไม่ทราบชื่อ)";
+        
+        // 🚀 2. เอาชื่อไปแสดงผลบนหน้าจอ
+        document.getElementById("userNameDisplay").innerText = "ผู้ใช้งาน: " + userName;
+
+        function verifyLogin() {
+            const input = document.getElementById("pinInput").value;
+            const errorText = document.getElementById("errorText");
+            
+            if (input === SECRET_PIN) {
+                // 🚀 3. ถ้ารหัสถูก ให้ส่งชื่อนี้ แนบต่อไปยังหน้า index.html ด้วย!
+                window.location.href = `index.html?user=${encodeURIComponent(userName)}`;
+            } else {
+                errorText.style.display = "block";
+                document.getElementById("pinInput").value = "";
+                document.getElementById("pinInput").focus();
+            }
+        }
+
+        function checkEnter(event) {
+            if (event.key === "Enter") {
+                verifyLogin();
+            }
+        }
+    </script>
+</body>
+</html>
