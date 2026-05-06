@@ -1,11 +1,9 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-    <!-- 🚀 ยามรักษาความปลอดภัย (อัปเดตใหม่: บังคับมือถือโหลดไฟล์ใหม่ ห้ามจำแคช!) -->
     <script>
         const params = new URLSearchParams(window.location.search);
         if (!params.get('user')) {
-            // 💡 ใส่เวลาปปัจจุบันต่อท้ายลิงก์ เพื่อบังคับให้มือถือดาวน์โหลดไฟล์ใหม่ล่าสุดเสมอ!
             window.location.replace("scanner_login.html?v=" + new Date().getTime());
         }
     </script>
@@ -27,10 +25,20 @@
 </head>
 <body>
 
-    <!-- 🚀 ย้ายแถบชื่อผู้ใช้งานมาวางไว้บรรทัดแรกสุดของ body ตรงนี้ครับ! -->
+    <!-- กล่องแสดงชื่อผู้ใช้งาน -->
     <div id="activeUserDisplay" style="text-align: center; color: #fff; background-color: #2c3e50; padding: 5px; font-size: 14px; margin-bottom: 0;">
         👤 ผู้ทำรายการ: กำลังโหลด...
     </div>
+
+    <!-- 🚀 ย้ายโค้ดดึงชื่อมาไว้ตรงนี้! ให้มันทำงาน "ทันที" ที่สร้างกล่องเสร็จ ไม่ต้องรอใคร -->
+    <script>
+        const currentUserName = new URLSearchParams(window.location.search).get('user');
+        if (currentUserName) {
+            document.getElementById("activeUserDisplay").innerText = "👤 ผู้ทำรายการ: " + currentUserName;
+        } else {
+            document.getElementById("activeUserDisplay").style.display = 'none';
+        }
+    </script>
 
     <div class="mobile-header">
         <h5><i class="fas fa-boxes me-2"></i>ระบบคลังพัสดุ</h5>
@@ -217,28 +225,13 @@
                         <div class="col-12"><button class="btn btn-info w-100 fs-4 fw-bold py-2 text-white" onclick="calcConfirm()">=</button></div>
                     </div>
                 </div>
-            <!-- 🚀 ใส่ Tag ปิดให้ครบ เพื่อป้องกัน UI พัง -->
             </div>
         </div>
     </div>
 
     <audio id="soundScan" src="https://www.soundjay.com/buttons/sounds/beep-07.mp3"></audio>
 
-    <!-- 🚀 บังคับมือถือโหลดไฟล์ app.js ใหม่ล่าสุดเสมอ ห้ามจำแคชเด็ดขาด! -->
-    <script>
-        document.write("<script src='app.js?v=" + new Date().getTime() + "'><\\/script>");
-    </script>
-    
-    <script>
-        // 🚀 ดึงชื่อจาก URL มาแสดงบนแถบ Header ของหน้าสแกน (ทำงานทันที)
-        const urlParams = new URLSearchParams(window.location.search);
-        const userName = urlParams.get('user');
-        
-        if(userName) {
-            document.getElementById("activeUserDisplay").innerText = "👤 ผู้ทำรายการ: " + userName;
-        } else {
-            document.getElementById("activeUserDisplay").style.display = 'none'; // ซ่อนถ้าไม่มีชื่อ
-        }
-    </script>
+    <!-- 🚀 โหลดไฟล์ app.js ปกติ แต่ใส่ ?v=2 เพื่อบังคับเคลียร์แคชอย่างปลอดภัย -->
+    <script src="app.js?v=2"></script>
 </body>
 </html>
