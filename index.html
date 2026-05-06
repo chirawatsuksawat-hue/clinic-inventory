@@ -230,8 +230,7 @@
     </script>
     
     <script>
-    // 🚀 ดึงชื่อจาก URL มาแสดงบนแถบ Header ของหน้าสแกน
-    window.addEventListener('DOMContentLoaded', () => {
+        // 🚀 ดึงชื่อจาก URL มาแสดงบนแถบ Header ของหน้าสแกน (ทำงานทันที)
         const urlParams = new URLSearchParams(window.location.search);
         const userName = urlParams.get('user');
         
@@ -240,7 +239,6 @@
         } else {
             document.getElementById("activeUserDisplay").style.display = 'none'; // ซ่อนถ้าไม่มีชื่อ
         }
-    });
     </script>
 </body>
 </html>
