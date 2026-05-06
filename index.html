@@ -55,6 +55,13 @@
         <ul class="nav flex-column mt-3">
             <li class="nav-item"><a class="nav-link active" onclick="closeAuditView()"><i class="fas fa-home me-2"></i> หน้าหลัก (คลังพัสดุ)</a></li>
             <li class="nav-item mt-2"><a class="nav-link text-warning" onclick="openAuditView()"><i class="fas fa-clipboard-check me-2"></i> โหมดใบตรวจนับ (Audit)</a></li>
+            
+            <!-- 🚀 เพิ่มปุ่มออกจากระบบตรงนี้ -->
+            <li class="nav-item mt-4 border-top pt-3">
+                <a class="nav-link text-danger fw-bold" href="#" onclick="logoutApp()">
+                    <i class="fas fa-sign-out-alt me-2"></i> ออกจากระบบ
+                </a>
+            </li>
         </ul>
     </div>
 
@@ -233,5 +240,38 @@
 
     <!-- 🚀 โหลดไฟล์ app.js ปกติ แต่ใส่ ?v=2 เพื่อบังคับเคลียร์แคชอย่างปลอดภัย -->
     <script src="app.js?v=2"></script>
+
+    <!-- 🚀 เพิ่มโค้ดป้องกันปุ่ม Back และฟังก์ชันออกจากระบบ -->
+    <script>
+        // 1. ป้องกันการกดปุ่ม "ย้อนกลับ" (Back Button) บนมือถือไม่ให้เด้งไปหน้า Login
+        window.history.pushState(null, "", window.location.href);
+        window.onpopstate = function() {
+            window.history.pushState(null, "", window.location.href);
+            // โชว์แจ้งเตือนให้ใช้ปุ่มในแอปแทน
+            Swal.fire({
+                toast: true, position: 'top', icon: 'info',
+                title: 'กรุณาใช้ปุ่มในระบบเพื่อเปลี่ยนหน้า',
+                showConfirmButton: false, timer: 1500
+            });
+        };
+
+        // 2. ฟังก์ชันเมื่อกดปุ่ม "ออกจากระบบ"
+        function logoutApp() {
+            Swal.fire({
+                title: 'ออกจากระบบ?',
+                text: "คุณต้องการออกจากระบบคลังพัสดุใช่หรือไม่?",
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'ใช่, ออกจากระบบ',
+                cancelButtonText: 'ยกเลิก',
+                confirmButtonColor: '#e74c3c'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // ล้างข้อมูลและเด้งกลับไปหน้า Login
+                    window.location.replace("scanner_login.html?v=" + new Date().getTime());
+                }
+            });
+        }
+    </script>
 </body>
 </html>
