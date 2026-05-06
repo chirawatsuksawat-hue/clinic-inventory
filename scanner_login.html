@@ -6,6 +6,9 @@
     <title>เข้าสู่ระบบ - สแกนเอกสาร</title>
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap" rel="stylesheet">
     
+    <!-- 🚀 เพิ่มตัวอ่านไอคอน (FontAwesome) ตรงนี้ครับ! -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <!-- 🚀 เรียกใช้ Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
@@ -13,8 +16,9 @@
     <style>
         body { font-family: 'Sarabun', sans-serif; background-color: #f4f6f9; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
         .login-container { background: white; padding: 40px 30px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); text-align: center; width: 100%; max-width: 350px; position: relative; }
-        .logo { font-size: 50px; margin-bottom: 10px; }
+        .logo { font-size: 55px; margin-bottom: 10px; color: #3498db; /* 💡 เพิ่มสีฟ้าให้ไอคอน */ }
         h2 { color: #2c3e50; margin-top: 0; margin-bottom: 5px; }
+        h3 { color: #2c3e50; font-size: 24px; margin-top: 0; margin-bottom: 5px; }
         p { color: #7f8c8d; font-size: 14px; margin-bottom: 25px; }
         .input-group { margin-bottom: 20px; text-align: left; position: relative; z-index: 100; }
         .input-group label { display: block; margin-bottom: 5px; color: #34495e; font-weight: 600; }
@@ -34,8 +38,9 @@
         <!-- 🚀 หน้าต่างโหลดข้อมูลจาก Cloud -->
         <div id="loadingOverlay">กำลังเชื่อมต่อฐานข้อมูล Cloud... ☁️</div>
 
-        <i class="fas fa-boxes text-primary"></i>
-        <h3 class="...">ระบบจัดการสต๊อก</h3>
+        <!-- 🚀 แก้ไขไอคอนตรงนี้ ใช้คลาส logo เพื่อขยายขนาด -->
+        <i class="fas fa-boxes logo"></i>
+        <h3>ระบบจัดการสต๊อก</h3>
         <p>กรุณาระบุตัวตนก่อนเข้าใช้งาน</p>
         
         <div class="input-group">
