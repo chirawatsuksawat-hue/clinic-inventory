@@ -1,6 +1,6 @@
 {
   "latest_version": "1.1.1",
-  "release_date": "2026-05-04",
-  "download_url": "https://github.com/chirawatsuksawat-hue/clinic-inventory/archive/refs/heads/main.zip",
-  "release_notes": "เพิ่มระบบเช็คอัปเดตโปรแกรม"
+  "release_date": "2026-05-07",
+  "download_url": "https://github.com/chirawatsuksawat-hue/clinic-inventory/raw/main/DialysisPro_Setup.exe",
+  "release_notes": "แก้บั๊กจอดำ และอัปเดตระบบ Cloud"
 }
