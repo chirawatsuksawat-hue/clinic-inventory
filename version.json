@@ -1,6 +1,6 @@
 {
     "latest_version": "3.0.0",
     "release_date": "2026-05-08",
-    "download_url": "https://github.com/chirawatsuksawat-hue/clinic-inventory/releases/download/SoftwareUpdate/DialysisPro_Setup.exe",
+    "download_url": "https://github.com/chirawatsuksawat-hue/clinic-inventory/releases/download/v3.0.0/DialysisPro_Setup.exe",
     "release_notes": "1. เปลี่ยนช่องกรอกชื่อเป็นรายการเลือก (Combobox Dropdown)"
 }
