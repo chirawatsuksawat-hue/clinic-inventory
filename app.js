@@ -332,17 +332,34 @@ function manualAction(mode, scannedCode = "") {
             title: '➕ เพิ่มทะเบียนพัสดุใหม่', width: '600px',
             html: `
                 <div class="text-start mt-3" style="font-family: 'Sarabun', sans-serif;">
-                    <div class="row"><div class="col-md-4 mb-3"><label class="form-label fw-bold">ลำดับ</label><input id="swal-seq" class="form-control" placeholder="1, 2, ..."></div>
-                    <div class="col-md-8 mb-3"><label class="form-label fw-bold text-primary">หมวดหมู่</label><select id="swal-cat" class="form-select border-primary" style="height: 45px;">${getCategoryOptionsHTML('')}</select></div></div>
-                    <div class="row"><div class="col-md-6 mb-3"><label class="form-label fw-bold">รหัสพัสดุ (Code)</label><input id="swal-code" class="form-control" placeholder="เช่น A01" value="${scannedCode}"></div>
-                    <div class="col-md-6 mb-3"><label class="form-label fw-bold">ชื่อพัสดุ / อุปกรณ์</label><input id="swal-name" class="form-control" placeholder="ระบุชื่อพัสดุ"></div></div>
-                    <div class="row"><div class="col-md-4 mb-3"><label class="form-label fw-bold">หน่วยนับ</label><input id="swal-unit" class="form-control" placeholder="เช่น ชิ้น, กล่อง"></div>
-                    <div class="col-md-4 mb-3"><label class="form-label fw-bold">บรรจุ/กล่อง</label><input type="number" id="swal-per-box" class="form-control" value=""></div>
-                    <div class="col-md-4 mb-3"><label class="form-label fw-bold">ราคา/หน่วย (บาท)</label><input type="number" id="swal-price" class="form-control" value=""></div></div>
-                    <hr><div class="row bg-light p-2 rounded mx-0">
-                    <div class="col-md-4 mb-2 px-1"><label class="form-label fw-bold text-secondary" style="font-size: 0.9rem;">ใช้เฉลี่ย/เดือน</label><input type="number" id="swal-usage" class="form-control text-center" value=""></div>
-                    <div class="col-md-4 mb-2 px-1"><label class="form-label fw-bold text-secondary" style="font-size: 0.9rem;">ยอดตั้งต้น</label><input type="number" id="swal-target" class="form-control text-center" value=""></div>
-                    <div class="col-md-4 mb-2 px-1"><label class="form-label fw-bold text-secondary" style="font-size: 0.9rem;">แจ้งเตือนใกล้หมด</label><input type="number" id="swal-min" class="form-control text-center" value=""></div></div></div>
+                    <div class="row">
+                        <div class="col-md-4 mb-3"><label class="form-label fw-bold">ลำดับ</label><input id="swal-seq" class="form-control" placeholder="1, 2, ..."></div>
+                        <div class="col-md-8 mb-3"><label class="form-label fw-bold text-primary">หมวดหมู่</label><select id="swal-cat" class="form-select border-primary" style="height: 45px;">${getCategoryOptionsHTML('')}</select></div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">รหัสพัสดุ (Code)</label>
+                            <div class="input-group">
+                                <input id="swal-code" class="form-control" placeholder="เช่น A01" value="${scannedCode}">
+                                <button type="button" class="btn btn-warning text-dark fw-bold px-3" onclick="generateRandomCodePopup()" title="สุ่มรหัส"><i class="fas fa-dice"></i></button>
+                                <button type="button" class="btn btn-info text-white fw-bold px-3" onclick="startScannerPopup()" title="เปิดกล้องสแกน"><i class="fas fa-camera"></i></button>
+                            </div>
+                            <div id="readerPopup" style="display: none; width: 100%; margin-top: 8px; border-radius: 8px; overflow: hidden; border: 2px solid #17a2b8;"></div>
+                        </div>
+                        <div class="col-md-6 mb-3"><label class="form-label fw-bold">ชื่อพัสดุ / อุปกรณ์</label><input id="swal-name" class="form-control" placeholder="ระบุชื่อพัสดุ"></div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4 mb-3"><label class="form-label fw-bold">หน่วยนับ</label><input id="swal-unit" class="form-control" placeholder="เช่น ชิ้น, กล่อง"></div>
+                        <div class="col-md-4 mb-3"><label class="form-label fw-bold">บรรจุ/กล่อง</label><input type="number" id="swal-per-box" class="form-control" value=""></div>
+                        <div class="col-md-4 mb-3"><label class="form-label fw-bold">ราคา/หน่วย (บาท)</label><input type="number" id="swal-price" class="form-control" value=""></div>
+                    </div>
+                    <hr>
+                    <div class="row bg-light p-2 rounded mx-0">
+                        <div class="col-md-4 mb-2 px-1"><label class="form-label fw-bold text-secondary" style="font-size: 0.9rem;">ใช้เฉลี่ย/เดือน</label><input type="number" id="swal-usage" class="form-control text-center" value=""></div>
+                        <div class="col-md-4 mb-2 px-1"><label class="form-label fw-bold text-secondary" style="font-size: 0.9rem;">ยอดตั้งต้น</label><input type="number" id="swal-target" class="form-control text-center" value=""></div>
+                        <div class="col-md-4 mb-2 px-1"><label class="form-label fw-bold text-secondary" style="font-size: 0.9rem;">แจ้งเตือนใกล้หมด</label><input type="number" id="swal-min" class="form-control text-center" value=""></div>
+                    </div>
+                </div>
             `,
             showCancelButton: true, confirmButtonText: '<i class="fas fa-save"></i> บันทึกข้อมูล', confirmButtonColor: '#2ecc71', cancelButtonText: 'ยกเลิก',
             preConfirm: () => { return { seq_num: document.getElementById('swal-seq').value.trim(), code: document.getElementById('swal-code').value.trim(), name: document.getElementById('swal-name').value.trim(), category: document.getElementById('swal-cat').value, unit: document.getElementById('swal-unit').value.trim() || 'ชิ้น', qty_per_box: document.getElementById('swal-per-box').value || "1", price: parseFloat(document.getElementById('swal-price').value) || 0, monthly_usage: parseFloat(document.getElementById('swal-usage').value) || 0, target_stock: parseInt(document.getElementById('swal-target').value) || 0, min_alert: parseInt(document.getElementById('swal-min').value) || 10 } }
@@ -555,3 +572,49 @@ function toggleAuditScan() {
 }
 
 function onAuditScanSuccess(t) { try{document.getElementById('soundScan').play()}catch(e){} if(auditHtml5QrCode) { auditHtml5QrCode.stop().then(() => { auditHtml5QrCode.clear(); auditHtml5QrCode = null; document.getElementById('auditReader').style.display = 'none'; }); } document.getElementById('auditSearch').value = t; renderAuditList(); }
+
+// ==========================================
+// 🚀 ระบบสแกนและสุ่มรหัส สำหรับหน้าต่าง SweetAlert2
+// ==========================================
+let popupScanner = null;
+
+// 1. ฟังก์ชันเปิดกล้องในป๊อปอัป
+function startScannerPopup() {
+    const readerDiv = document.getElementById('readerPopup');
+    readerDiv.style.display = 'block';
+
+    if (popupScanner) {
+        popupScanner.clear();
+    }
+
+    popupScanner = new Html5QrcodeScanner(
+        "readerPopup",
+        { fps: 10, qrbox: { width: 220, height: 220 } },
+        false
+    );
+
+    popupScanner.render((decodedText) => {
+        // นำข้อความที่สแกนได้ไปใส่ในช่องรหัส
+        document.getElementById('swal-code').value = decodedText;
+        
+        // ปิดกล้อง
+        popupScanner.clear();
+        readerDiv.style.display = 'none';
+        
+        // ส่งเสียงติ๊ด
+        try { document.getElementById('soundScan').play(); } catch(e) {}
+    }, (error) => {
+        // กำลังรอสแกน...
+    });
+}
+
+// 2. ฟังก์ชันสุ่มรหัสพัสดุ
+function generateRandomCodePopup() {
+    const prefix = "ITM-"; // เปลี่ยนตัวอักษรนำหน้าตรงนี้ได้ครับ
+    const randomNum = Math.floor(1000 + Math.random() * 9000); 
+    const newCode = prefix + randomNum;
+    
+    const inputField = document.getElementById('swal-code');
+    inputField.value = newCode;
+    inputField.focus(); // กระพริบโฟกัสให้รู้ว่าเลขเปลี่ยนแล้ว
+}
