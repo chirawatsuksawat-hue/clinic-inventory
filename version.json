@@ -1,6 +1,6 @@
 {
-    "latest_version": "2.0.0",
+    "latest_version": "2.0.7",
     "release_date": "2026-05-08",
-    "download_url": "https://github.com/chirawatsuksawat-hue/clinic-inventory/releases/download/v2.0.0/DialysisPro_Setup.exe",
-    "release_notes": "เพิ่มปุ่มลัด 'เปิด Visit' ในหน้าแรก"
+    "download_url": "https://github.com/chirawatsuksawat-hue/clinic-inventory/releases/download/v2.0.7/DialysisPro_Setup.exe",
+    "release_notes": "ปล่อยอัปเดตใหม่ (Admin)"
 }
