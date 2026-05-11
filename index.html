@@ -52,11 +52,8 @@
         </div>
         <ul class="nav flex-column mt-3">
             <li class="nav-item"><a class="nav-link active" onclick="closeManualView(); closeAuditView();"><i class="fas fa-home me-2"></i> หน้าหลัก (คลังพัสดุ)</a></li>
-            
             <li class="nav-item mt-2"><a class="nav-link text-info fw-bold" onclick="openManualView()"><i class="fas fa-keyboard me-2"></i> ทำรายการแบบแมนนวล</a></li>
-            
             <li class="nav-item mt-2"><a class="nav-link text-warning fw-bold" onclick="openAuditView()"><i class="fas fa-clipboard-check me-2"></i> โหมดใบตรวจนับ (Audit)</a></li>
-            
             <li class="nav-item mt-4 border-top pt-3">
                 <a class="nav-link text-danger fw-bold" href="javascript:void(0);" onclick="logoutApp()">
                     <i class="fas fa-sign-out-alt me-2"></i> ออกจากระบบ
@@ -67,7 +64,6 @@
 
     <div id="dashboardView" class="main-content">
         <h2 class="header-title w-100 mb-3 d-none d-md-block">แดชบอร์ด - ภาพรวมสต๊อกพัสดุออนไลน์</h2>
-        
         <div class="alert alert-info fw-bold shadow-sm mb-4" style="border-radius: 10px; font-size: 0.95rem;">
             <i class="fas fa-wifi me-2"></i> ระบบคลังออนไลน์ (เชื่อมต่อข้อมูลกับคลินิกอัตโนมัติ)
         </div>
@@ -140,18 +136,28 @@
             </div>
         </div>
 
-        <div class="card mb-4 bg-white p-3 p-md-4 border-2 border-info shadow-sm">
-            <h5 class="fw-bold text-info mb-3">กรุณาเลือกประเภทการทำรายการ</h5>
-            <div class="d-flex flex-column flex-sm-row flex-wrap gap-2">
-                <button class="btn btn-success action-btn" onclick="openItemSelector('receive_main')"><i class="fas fa-download me-1"></i> รับของเข้าคลัง</button>
-                <button class="btn btn-primary action-btn text-white" onclick="openItemSelector('transfer')"><i class="fas fa-exchange-alt me-1"></i> โอนย้ายคลัง</button>
-                <button class="btn btn-warning action-btn text-dark" onclick="openItemSelector('use')"><i class="fas fa-upload me-1"></i> เบิกจ่าย (หักออก)</button>
+        <div class="card mb-4 bg-white p-3 p-md-4 border-2 border-primary shadow-sm">
+            <h5 class="fw-bold text-primary mb-3"><i class="fa-solid fa-qrcode me-2"></i>สแกนเพื่อค้นหาและทำรายการด่วน</h5>
+            <button class="btn btn-scan w-100 mb-3 shadow" style="background-color: #3498db;" onclick="toggleManualScan()"><i class="fa-solid fa-expand me-2"></i> เปิดกล้องสแกน QR Code</button>
+            <div id="manualReader" style="display: none; border-radius: 8px; overflow: hidden; border: 2px solid #3498db;"></div>
+            
+            <div class="input-group shadow-sm mt-3" style="border-radius: 10px; overflow: hidden;">
+                <span class="input-group-text bg-white border-0"><i class="fa-solid fa-barcode text-muted"></i></span>
+                <input type="text" id="manualCodeInput" class="form-control border-0 bg-light" placeholder="พิมพ์ หรือ สแกนรหัสพัสดุ..." onkeypress="if(event.key === 'Enter') handleManualScan(this.value)">
+                <button class="btn btn-primary px-3 fw-bold" onclick="handleManualScan(document.getElementById('manualCodeInput').value)">ค้นหา</button>
             </div>
-            
+        </div>
+
+        <div class="card mb-4 bg-white p-3 p-md-4 border-2 border-info shadow-sm">
+            <h5 class="fw-bold text-info mb-3">หรือ ค้นหาพัสดุจากรายชื่อ</h5>
+            <div class="d-flex flex-column flex-sm-row flex-wrap gap-2">
+                <button class="btn btn-success action-btn shadow-sm" onclick="openItemSelector('receive_main')"><i class="fas fa-download me-1"></i> รับของเข้าคลัง</button>
+                <button class="btn btn-primary action-btn text-white shadow-sm" onclick="openItemSelector('transfer')"><i class="fas fa-exchange-alt me-1"></i> โอนย้ายคลัง</button>
+                <button class="btn btn-warning action-btn text-dark shadow-sm" onclick="openItemSelector('use')"><i class="fas fa-upload me-1"></i> เบิกจ่าย (หักออก)</button>
+            </div>
             <hr class="mt-4 mb-3">
-            
             <div class="text-end">
-                <button class="btn btn-outline-primary fw-bold px-4 py-2 shadow-sm w-100 w-sm-auto" onclick="manualAction('add_item')"><i class="fas fa-plus me-1"></i> เพิ่มทะเบียนพัสดุใหม่ (ไม่มีในระบบ)</button>
+                <button class="btn btn-outline-primary fw-bold px-4 py-2 shadow-sm w-100 w-sm-auto" onclick="manualAction('add_item')"><i class="fas fa-plus me-1"></i> เพิ่มทะเบียนพัสดุใหม่</button>
             </div>
         </div>
     </div>
@@ -165,7 +171,7 @@
             <button class="btn btn-success fw-bold px-4 py-2 shadow-sm w-100 w-md-auto" onclick="saveBulkAudit()"><i class="fas fa-save me-2"></i>บันทึกผลการนับทั้งหมด</button>
         </div>
         <div class="alert alert-warning border-warning shadow-sm" style="border-radius: 10px;">
-            <i class="fas fa-info-circle me-2"></i> <b>วิธีใช้:</b> พิมพ์ตัวเลข <u>"ยอดที่นับได้จริง"</u> ลงในช่อง (กดรูปเครื่องคิดเลขข้างๆ เพื่อบวกเลขได้เลย)
+            <i class="fas fa-info-circle me-2"></i> <b>วิธีใช้:</b> พิมพ์ตัวเลข <u>"ยอดที่นับได้จริง"</u> ลงในช่อง (กดเครื่องคิดเลขข้างๆเพื่อบวกเลขได้เลย)
         </div>
         <button class="btn btn-scan w-100 mb-3 shadow" style="background-color: #34495e;" onclick="toggleAuditScan()"><i class="fa-solid fa-expand me-2"></i> สแกน QR Code ค้นหาพัสดุ</button>
         <div id="auditReader"></div>
@@ -249,7 +255,7 @@
 
     <audio id="soundScan" src="https://www.soundjay.com/buttons/sounds/beep-07.mp3"></audio>
 
-    <script src="app.js?v=3"></script>
+    <script src="app.js?v=4"></script>
 
     <script>
         window.history.pushState(null, "", window.location.href);

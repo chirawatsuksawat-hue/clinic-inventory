@@ -7,8 +7,12 @@ let allItems = [];
 let historyData = []; 
 let auditData = []; 
 let currentMode = 'out';
+
+// 🚀 ประกาศตัวแปรรองรับกล้องทั้ง 3 หน้า
 let html5QrCode = null; 
 let auditHtml5QrCode = null;
+let manualHtml5QrCode = null; 
+
 let db = null;
 let currentCalcIndex = -1;
 let currentCalcField = '';
@@ -172,9 +176,19 @@ function renderDialysisFluids() {
 }
 
 // ==========================================
-// 🚀 ฟังก์ชันเปิด-ปิดแท็บ แมนนวล และ Audit
+// 🚀 ฟังก์ชัน ปิดกล้องทั้งหมด
+// ==========================================
+function stopAllScanners() {
+    if (html5QrCode) { html5QrCode.stop().then(() => { html5QrCode.clear(); html5QrCode = null; document.getElementById('reader').style.display = 'none'; }).catch(()=>{}); }
+    if (auditHtml5QrCode) { auditHtml5QrCode.stop().then(() => { auditHtml5QrCode.clear(); auditHtml5QrCode = null; document.getElementById('auditReader').style.display = 'none'; }).catch(()=>{}); }
+    if (manualHtml5QrCode) { manualHtml5QrCode.stop().then(() => { manualHtml5QrCode.clear(); manualHtml5QrCode = null; document.getElementById('manualReader').style.display = 'none'; }).catch(()=>{}); }
+}
+
+// ==========================================
+// 🚀 ฟังก์ชัน เปิด-ปิด แท็บหน้าจอ
 // ==========================================
 function openManualView() {
+    stopAllScanners();
     document.getElementById('dashboardView').style.display = 'none';
     document.getElementById('auditView').style.display = 'none';
     document.getElementById('manualView').style.display = 'block';
@@ -182,11 +196,13 @@ function openManualView() {
 }
 
 function closeManualView() {
+    stopAllScanners();
     document.getElementById('manualView').style.display = 'none';
     document.getElementById('dashboardView').style.display = 'block';
 }
 
 function openAuditView() {
+    stopAllScanners();
     document.getElementById('dashboardView').style.display = 'none';
     document.getElementById('manualView').style.display = 'none';
     document.getElementById('auditView').style.display = 'block';
@@ -197,10 +213,58 @@ function openAuditView() {
 }
 
 function closeAuditView() {
-    if (auditHtml5QrCode) { auditHtml5QrCode.stop().then(() => { auditHtml5QrCode.clear(); auditHtml5QrCode = null; document.getElementById('auditReader').style.display = 'none'; }).catch(err => {}); }
+    stopAllScanners();
     document.getElementById('auditView').style.display = 'none';
     document.getElementById('dashboardView').style.display = 'block';
     auditData = []; 
+}
+
+// ==========================================
+// 🚀 ระบบสแกนแบบ Manual ใหม่ล่าสุด
+// ==========================================
+function toggleManualScan() {
+    const rDiv = document.getElementById('manualReader');
+    if (manualHtml5QrCode) { manualHtml5QrCode.stop().then(() => { manualHtml5QrCode.clear(); manualHtml5QrCode = null; rDiv.style.display = 'none'; }); return; }
+    rDiv.style.display = 'block'; manualHtml5QrCode = new Html5Qrcode("manualReader");
+    manualHtml5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } }, onManualScanSuccess, ()=>{})
+        .catch(() => { manualHtml5QrCode.start({ facingMode: "user" }, { fps: 10, qrbox: { width: 250, height: 250 } }, onManualScanSuccess, ()=>{})
+        .catch(() => { Swal.fire("ข้อผิดพลาด", "ไม่สามารถเปิดกล้องได้", "error"); rDiv.style.display = 'none'; manualHtml5QrCode = null; }); });
+}
+
+function onManualScanSuccess(t) { 
+    try{document.getElementById('soundScan').play()}catch(e){} 
+    if(manualHtml5QrCode) { manualHtml5QrCode.stop().then(() => { manualHtml5QrCode.clear(); manualHtml5QrCode = null; document.getElementById('manualReader').style.display = 'none'; }); } 
+    handleManualScan(t); 
+}
+
+function handleManualScan(code) {
+    code = code.trim(); if(!code) return;
+    document.getElementById('manualCodeInput').value = ''; // เคลียร์ช่องพิมพ์
+    const idx = allItems.findIndex(i => i && i.code === code);
+    
+    if (idx > -1) {
+        const item = allItems[idx];
+        Swal.fire({
+            title: '📌 เลือกลักษณะรายการที่ต้องการทำ',
+            html: `
+                <h5 class="text-primary fw-bold mt-2">${item.name}</h5>
+                <div class="p-2 bg-light mb-3 mt-2 rounded text-center" style="font-size: 1.1rem;">
+                    คลังหลัก: <b class="text-dark">${item.main_stock || 0}</b> | คลังย่อย: <b class="text-danger">${item.sub_stock || 0}</b>
+                </div>
+                <div class="d-grid gap-2">
+                    <button class="btn btn-success fw-bold py-2 shadow-sm" onclick="Swal.close(); setTimeout(()=>showStockDialog(${idx}, 'receive_main'), 300)"><i class="fas fa-download me-1"></i> รับของเข้าคลัง</button>
+                    <button class="btn btn-primary fw-bold py-2 shadow-sm" onclick="Swal.close(); setTimeout(()=>showStockDialog(${idx}, 'transfer'), 300)"><i class="fas fa-exchange-alt me-1"></i> โอนย้ายคลัง</button>
+                    <button class="btn btn-warning fw-bold py-2 shadow-sm" onclick="Swal.close(); setTimeout(()=>showStockDialog(${idx}, 'use'), 300)"><i class="fas fa-upload me-1"></i> เบิกจ่าย (หักออก)</button>
+                </div>
+            `,
+            showConfirmButton: false,
+            showCancelButton: true,
+            cancelButtonText: 'ยกเลิก'
+        });
+    } else {
+        Swal.fire({ title: 'ไม่พบรหัสนี้!', html: `รหัสบาร์โค้ด: <b class="text-danger fs-5">${code}</b><br><br>นำรหัสนี้ไปลงทะเบียนใหม่หรือไม่?`, icon: 'warning', showCancelButton: true, confirmButtonText: '➕ ลงทะเบียนใหม่'
+        }).then(res => { if (res.isConfirmed) manualAction('add_item', code); });
+    }
 }
 
 // ==========================================
@@ -351,7 +415,6 @@ function processStockUpdate(item, idx, qty, action) {
             let log = { date: new Date().toLocaleDateString('en-GB')+" "+new Date().toLocaleTimeString('en-GB'), code: item.code, name: item.name, action: actText, qty: qty, unit: item.unit, main_bal: n_main, sub_bal: n_sub, user: savedUserName };
             db.ref('history_data').once('value').then(s => { let arr = s.val() || []; arr.unshift(log); db.ref('history_data').set(arr); });
             Swal.fire({title:'สำเร็จ!', icon:'success', timer:1500, showConfirmButton: false});
-            document.getElementById('codeInput').value = '';
         });
     } else if (typeof pywebview !== 'undefined' && pywebview.api) {
         pywebview.api.update_stock_from_web(item.code, qty, action).then(r => { if(r.success) { Swal.fire({title:'สำเร็จ!', icon:'success', timer:1500}); forceReload(); } else Swal.fire('Error', r.message, 'error'); });
@@ -556,6 +619,7 @@ function setMode(m) {
 
 function handleScanResult(code) {
     code = code.trim(); if(!code) return;
+    document.getElementById('codeInput').value = '';
     const idx = allItems.findIndex(i => i && i.code === code);
     if (idx > -1) {
         let act = 'receive_sub'; if(currentMode === 'out') act = 'use'; if(currentMode === 'audit') act = 'audit';
