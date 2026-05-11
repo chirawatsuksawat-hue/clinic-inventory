@@ -171,6 +171,40 @@ function renderDialysisFluids() {
     });
 }
 
+// ==========================================
+// 🚀 ฟังก์ชันเปิด-ปิดแท็บ แมนนวล และ Audit
+// ==========================================
+function openManualView() {
+    document.getElementById('dashboardView').style.display = 'none';
+    document.getElementById('auditView').style.display = 'none';
+    document.getElementById('manualView').style.display = 'block';
+    if(window.innerWidth <= 768) toggleSidebar();
+}
+
+function closeManualView() {
+    document.getElementById('manualView').style.display = 'none';
+    document.getElementById('dashboardView').style.display = 'block';
+}
+
+function openAuditView() {
+    document.getElementById('dashboardView').style.display = 'none';
+    document.getElementById('manualView').style.display = 'none';
+    document.getElementById('auditView').style.display = 'block';
+    if(window.innerWidth <= 768) toggleSidebar();
+    auditData = JSON.parse(JSON.stringify(allItems)); 
+    document.getElementById('auditSearch').value = '';
+    renderAuditList();
+}
+
+function closeAuditView() {
+    if (auditHtml5QrCode) { auditHtml5QrCode.stop().then(() => { auditHtml5QrCode.clear(); auditHtml5QrCode = null; document.getElementById('auditReader').style.display = 'none'; }).catch(err => {}); }
+    document.getElementById('auditView').style.display = 'none';
+    document.getElementById('dashboardView').style.display = 'block';
+    auditData = []; 
+}
+
+// ==========================================
+
 let pendingManualMode = '';
 function openItemSelector(mode) {
     pendingManualMode = mode;
@@ -286,7 +320,6 @@ function showStockDialog(idx, mode) {
             if (res.value.action === 'audit') {
                 if (db && document.getElementById('syncStatus').innerText.includes('ออนไลน์')) {
                     db.ref(`inventory_data/${idx}`).update({ main_stock: res.value.new_main, sub_stock: res.value.new_sub }).then(() => {
-                        // 🚀 ดึงชื่อและเพิ่ม user
                         const currentParams = new URLSearchParams(window.location.search);
                         const savedUserName = currentParams.get('user') || "มือถือ-ไม่ระบุชื่อ";
                         
@@ -312,7 +345,6 @@ function processStockUpdate(item, idx, qty, action) {
 
     if (db && document.getElementById('syncStatus').innerText.includes('ออนไลน์')) {
         db.ref(`inventory_data/${idx}`).update({ main_stock: n_main, sub_stock: n_sub }).then(() => {
-            // 🚀 ดึงชื่อและเพิ่ม user
             const currentParams = new URLSearchParams(window.location.search);
             const savedUserName = currentParams.get('user') || "มือถือ-ไม่ระบุชื่อ";
 
@@ -439,22 +471,6 @@ function calcConfirm() {
     bootstrap.Modal.getInstance(document.getElementById('calculatorModal')).hide();
 }
 
-function openAuditView() {
-    document.getElementById('dashboardView').style.display = 'none';
-    document.getElementById('auditView').style.display = 'block';
-    if(window.innerWidth <= 768) toggleSidebar();
-    auditData = JSON.parse(JSON.stringify(allItems)); 
-    document.getElementById('auditSearch').value = '';
-    renderAuditList();
-}
-
-function closeAuditView() {
-    if (auditHtml5QrCode) { auditHtml5QrCode.stop().then(() => { auditHtml5QrCode.clear(); auditHtml5QrCode = null; document.getElementById('auditReader').style.display = 'none'; }).catch(err => {}); }
-    document.getElementById('auditView').style.display = 'none';
-    document.getElementById('dashboardView').style.display = 'block';
-    auditData = []; 
-}
-
 function renderAuditList() {
     const term = document.getElementById('auditSearch').value.toLowerCase();
     const tbody = document.getElementById('auditListContainerTable');
@@ -505,7 +521,6 @@ function saveBulkAudit() {
         if(res.isConfirmed) {
             let updates = {}; let logs = []; let changesCount = 0; let now = new Date().toLocaleDateString('en-GB')+" "+new Date().toLocaleTimeString('en-GB');
             
-            // 🚀 ดึงชื่อและเตรียมเพิ่ม user ลงในประวัติทุกแถว
             const currentParams = new URLSearchParams(window.location.search);
             const savedUserName = currentParams.get('user') || "มือถือ-ไม่ระบุชื่อ";
 
@@ -573,12 +588,8 @@ function toggleAuditScan() {
 
 function onAuditScanSuccess(t) { try{document.getElementById('soundScan').play()}catch(e){} if(auditHtml5QrCode) { auditHtml5QrCode.stop().then(() => { auditHtml5QrCode.clear(); auditHtml5QrCode = null; document.getElementById('auditReader').style.display = 'none'; }); } document.getElementById('auditSearch').value = t; renderAuditList(); }
 
-// ==========================================
-// 🚀 ระบบสแกนและสุ่มรหัส สำหรับหน้าต่าง SweetAlert2
-// ==========================================
 let popupScanner = null;
 
-// 1. ฟังก์ชันเปิดกล้องในป๊อปอัป
 function startScannerPopup() {
     const readerDiv = document.getElementById('readerPopup');
     readerDiv.style.display = 'block';
@@ -594,27 +605,20 @@ function startScannerPopup() {
     );
 
     popupScanner.render((decodedText) => {
-        // นำข้อความที่สแกนได้ไปใส่ในช่องรหัส
         document.getElementById('swal-code').value = decodedText;
-        
-        // ปิดกล้อง
         popupScanner.clear();
         readerDiv.style.display = 'none';
-        
-        // ส่งเสียงติ๊ด
         try { document.getElementById('soundScan').play(); } catch(e) {}
     }, (error) => {
-        // กำลังรอสแกน...
     });
 }
 
-// 2. ฟังก์ชันสุ่มรหัสพัสดุ
 function generateRandomCodePopup() {
-    const prefix = "ITM-"; // เปลี่ยนตัวอักษรนำหน้าตรงนี้ได้ครับ
+    const prefix = "ITM-"; 
     const randomNum = Math.floor(1000 + Math.random() * 9000); 
     const newCode = prefix + randomNum;
     
     const inputField = document.getElementById('swal-code');
     inputField.value = newCode;
-    inputField.focus(); // กระพริบโฟกัสให้รู้ว่าเลขเปลี่ยนแล้ว
+    inputField.focus(); 
 }
