@@ -14,7 +14,9 @@ body { font-family: 'Sarabun', sans-serif; background-color: #f4f6f9; overflow-x
 
 .card { border-radius: 12px; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
 .table-responsive { max-height: 500px; overflow-y: auto; }
-.table thead th { background-color: #34495E; color: white; position: sticky; top: 0; z-index: 1; white-space: nowrap;}
+
+/* 🌟 แก้ไข: บังคับให้หัวตารางหน้าแรกอยู่เหนือเนื้อหา แต่ต่ำกว่าปุ่มเครื่องคิดเลขและโมดอล */
+.table thead th { background-color: #34495E; color: white; position: sticky; top: 0; z-index: 10; white-space: nowrap;}
 .table td { vertical-align: middle; font-size: 1.05rem; white-space: nowrap; }
 
 .action-btn { font-weight: bold; border-radius: 8px; padding: 10px 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.2s; flex: 1; min-width: 140px; text-align: center;}
@@ -24,7 +26,28 @@ body { font-family: 'Sarabun', sans-serif; background-color: #f4f6f9; overflow-x
 #reader, #auditReader { width: 100%; border-radius: 15px; overflow: hidden; display: none; border: 4px dashed #00bfa5; margin-bottom: 15px; background: #fff; }
 
 .audit-input { font-size: 1.1rem; font-weight: bold; }
-.table-audit th { background-color: #f8f9fa; color: #333; position: sticky; top: 0; z-index: 1; border-bottom: 2px solid #dee2e6;}
+
+/* 🌟 แก้ไข: ดัน Z-index หัวตารางของหน้า Audit ขึ้นมาบังปุ่มเครื่องคิดเลขใหมด */
+.table-audit th { 
+    background-color: #f8f9fa; 
+    color: #333; 
+    position: sticky; 
+    top: 0; 
+    z-index: 50;  /* 🚀 เพิ่ม z-index ให้มากกว่าปุ่มเครื่องคิดเลข (ปุ่มในกลุ่มจะ z-index แค่ 1 หรือ 2) */
+    border-bottom: 2px solid #dee2e6;
+}
+
+/* 🌟 แก้ไข: เพิ่ม CSS สำหรับกล่องข้อความเครื่องคิดเลข เพื่อให้เลื่อนขวาได้ */
+#calcDisplay {
+    white-space: nowrap;      /* บังคับไม่ให้ตัดขึ้นบรรทัดใหม่ */
+    overflow-x: auto;         /* อนุญาตให้เลื่อนซ้ายขวาได้ */
+    scrollbar-width: none;    /* ซ่อนแถบเลื่อนบน Firefox */
+}
+
+/* ซ่อนแถบเลื่อนแนวนอนบน WebKit (Chrome, Safari, Edge) */
+#calcDisplay::-webkit-scrollbar {
+    display: none;
+}
 
 @media (max-width: 768px) { 
     .mobile-header { display: flex; }

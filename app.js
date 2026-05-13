@@ -505,7 +505,19 @@ function openCalculator(idx, targetId, currentValue) {
     new bootstrap.Modal(document.getElementById('calculatorModal')).show();
 }
 
-function calcAppend(val) { document.getElementById('calcDisplay').value += val; }
+function calcAppend(val) { 
+    const display = document.getElementById('calcDisplay');
+    display.value += val; 
+    // 🚀 บังคับให้ Scrollbar แนวนอนเลื่อนตามตัวเลขที่พิมพ์ใหม่เสมอ
+    display.scrollLeft = display.scrollWidth;
+}
+
+function calcBackspace() {
+    let display = document.getElementById('calcDisplay');
+    display.value = display.value.slice(0, -1);
+    // 🚀 เลื่อนตามตอนลบด้วย
+    display.scrollLeft = display.scrollWidth;
+}
 function calcClear() { document.getElementById('calcDisplay').value = ''; }
 function calcBackspace() {
     let display = document.getElementById('calcDisplay');
