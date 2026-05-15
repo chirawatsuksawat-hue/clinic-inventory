@@ -707,12 +707,6 @@ function renderHistoryList() {
         return;
     }
 
-    // หาวันที่ของรายการล่าสุดเพื่อใช้กำหนดปุ่ม Undo
-    let latestDateStr = "";
-    if (historyData.length > 0) {
-        latestDateStr = historyData[0].date.split(" ")[0]; // เอาเฉพาะวันที่ เช่น "15/05/2026"
-    }
-
     historyData.forEach((log, index) => {
         if(term && !log.name.toLowerCase().includes(term) && !(log.code||"").toLowerCase().includes(term) && !(log.action||"").toLowerCase().includes(term) && !(log.user||"").toLowerCase().includes(term)) return;
         
@@ -720,18 +714,21 @@ function renderHistoryList() {
         if(log.action.includes("รับเข้า")) actionColor = "text-success";
         else if(log.action.includes("ใช้งาน") || log.action.includes("เบิกจ่าย")) actionColor = "text-warning";
         else if(log.action.includes("โอนย้าย") || log.action.includes("คืนเข้า")) actionColor = "text-primary";
-        else if(log.action.includes("ปรับยอด")) actionColor = "text-dark";
+        else if(log.action.includes("ปรับยอด") || log.action.includes("ตรวจนับ")) actionColor = "text-dark";
         
         let total_bal = parseInt(log.main_bal || 0) + parseInt(log.sub_bal || 0);
-        let logDateOnly = log.date.split(" ")[0];
 
-        // 🌟 สร้างปุ่มลบ (Undo) 🌟
-        // เงื่อนไข: ให้ลบได้เฉพาะรายการที่เป็นของ "วันนี้" เท่านั้น และต้องมี ID (เพื่อความปลอดภัย)
-        let btnHtml = '-';
-        if (logDateOnly === latestDateStr && log.id && log.raw_action && log.raw_action !== 'audit') {
-            btnHtml = `<button class="btn btn-outline-danger btn-sm" onclick="undoTransaction('${log.id}', ${index})" title="ยกเลิกรายการนี้และคืนยอดสต๊อก"><i class="fas fa-undo"></i> ย้อนกลับ</button>`;
-        } else if (log.raw_action === 'audit') {
-            btnHtml = `<span class="badge bg-light text-muted border">ลบไม่ได้ (Audit)</span>`;
+        // 🌟 อัปเดตตรรกะปุ่มย้อนกลับให้แสดงชัดเจนขึ้น 🌟
+        let btnHtml = '';
+        if (log.raw_action && log.raw_action !== 'audit') {
+            // ถ้าระบุแอคชั่นชัดเจน และไม่ใช่การ Audit -> ให้กดย้อนกลับได้
+            btnHtml = `<button class="btn btn-outline-danger btn-sm fw-bold shadow-sm" onclick="undoTransaction('${log.id}', ${index})" title="ยกเลิกรายการนี้และคืนยอดสต๊อก"><i class="fas fa-undo"></i> ย้อนกลับ</button>`;
+        } else if (log.raw_action === 'audit' || log.action.includes("Audit")) {
+            // ถ้าเป็นการตรวจนับ -> ไม่อนุญาตให้ย้อน
+            btnHtml = `<span class="badge bg-light text-muted border px-2 py-2">แก้ไขด้วย Audit</span>`;
+        } else {
+            // รายการเก่าที่ไม่มี raw_action
+            btnHtml = `<span class="badge bg-light text-muted border px-2 py-2" title="รายการเก่าไม่มีข้อมูลสำหรับย้อนกลับ">รายการเก่า</span>`;
         }
 
         let row = `
