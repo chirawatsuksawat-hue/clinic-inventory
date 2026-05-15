@@ -21,7 +21,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
-    <link rel="stylesheet" href="style.css?v=5">
+    <link rel="stylesheet" href="style.css?v=6">
 </head>
 <body>
 
@@ -51,9 +51,10 @@
             <button class="btn btn-close btn-close-white" onclick="toggleSidebar()"></button>
         </div>
         <ul class="nav flex-column mt-3">
-            <li class="nav-item"><a class="nav-link active" onclick="closeManualView(); closeAuditView();"><i class="fas fa-home me-2"></i> หน้าหลัก (คลังพัสดุ)</a></li>
+            <li class="nav-item"><a class="nav-link active" onclick="closeAllViews(); document.getElementById('dashboardView').style.display = 'block';"><i class="fas fa-home me-2"></i> หน้าหลัก (คลังพัสดุ)</a></li>
             <li class="nav-item mt-2"><a class="nav-link text-info fw-bold" onclick="openManualView()"><i class="fas fa-keyboard me-2"></i> ทำรายการแบบแมนนวล</a></li>
             <li class="nav-item mt-2"><a class="nav-link text-warning fw-bold" onclick="openAuditView()"><i class="fas fa-clipboard-check me-2"></i> โหมดใบตรวจนับ (Audit)</a></li>
+            <li class="nav-item mt-2"><a class="nav-link text-success fw-bold" onclick="openHistoryView()"><i class="fas fa-history me-2"></i> ประวัติการทำรายการ</a></li>
             <li class="nav-item mt-4 border-top pt-3">
                 <a class="nav-link text-danger fw-bold" href="javascript:void(0);" onclick="logoutApp()">
                     <i class="fas fa-sign-out-alt me-2"></i> ออกจากระบบ
@@ -131,7 +132,7 @@
     <div id="manualView" class="main-content" style="display: none;">
         <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
             <div>
-                <button class="btn btn-outline-secondary btn-sm mb-2 rounded-pill px-3 w-100 w-sm-auto" onclick="closeManualView()"><i class="fas fa-arrow-left me-1"></i> กลับหน้าหลัก</button>
+                <button class="btn btn-outline-secondary btn-sm mb-2 rounded-pill px-3 w-100 w-sm-auto" onclick="closeAllViews(); document.getElementById('dashboardView').style.display = 'block';"><i class="fas fa-arrow-left me-1"></i> กลับหน้าหลัก</button>
                 <h3 class="m-0 fw-bold text-info"><i class="fas fa-keyboard me-2"></i>ทำรายการแบบแมนนวล</h3>
             </div>
         </div>
@@ -165,7 +166,7 @@
     <div id="auditView" class="main-content" style="display: none;">
         <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
             <div>
-                <button class="btn btn-outline-secondary btn-sm mb-2 rounded-pill px-3 w-100 w-sm-auto" onclick="closeAuditView()"><i class="fas fa-arrow-left me-1"></i> กลับหน้าหลัก</button>
+                <button class="btn btn-outline-secondary btn-sm mb-2 rounded-pill px-3 w-100 w-sm-auto" onclick="closeAllViews(); document.getElementById('dashboardView').style.display = 'block';"><i class="fas fa-arrow-left me-1"></i> กลับหน้าหลัก</button>
                 <h3 class="m-0 fw-bold" style="color: #495057;"><i class="fas fa-clipboard-list me-2"></i>ใบตรวจนับสต๊อก</h3>
             </div>
             <button class="btn btn-success fw-bold px-4 py-2 shadow-sm w-100 w-md-auto" onclick="saveBulkAudit()"><i class="fas fa-save me-2"></i>บันทึกผลการนับทั้งหมด</button>
@@ -196,6 +197,44 @@
                         </tr>
                     </thead>
                     <tbody id="auditListContainerTable"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="historyView" class="main-content" style="display: none;">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+            <div>
+                <button class="btn btn-outline-secondary btn-sm mb-2 rounded-pill px-3 w-100 w-sm-auto" onclick="closeAllViews(); document.getElementById('dashboardView').style.display = 'block';"><i class="fas fa-arrow-left me-1"></i> กลับหน้าหลัก</button>
+                <h3 class="m-0 fw-bold text-success"><i class="fas fa-history me-2"></i>ประวัติการทำรายการ</h3>
+            </div>
+            <button class="btn btn-outline-primary btn-sm rounded-pill px-3" onclick="renderHistoryList()"><i class="fas fa-sync-alt me-1"></i> รีเฟรช</button>
+        </div>
+
+        <div class="input-group shadow-sm mb-4" style="border-radius: 10px; overflow: hidden;">
+            <span class="input-group-text bg-white border-0"><i class="fas fa-search text-muted"></i></span>
+            <input type="text" id="historySearch" class="form-control border-0 py-3 bg-white" placeholder="ค้นหา ชื่อ, รหัส, การทำรายการ, ผู้ทำรายการ..." onkeyup="renderHistoryList()">
+        </div>
+
+        <div class="card shadow-sm border-0">
+            <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
+                <table class="table table-hover align-middle mb-0 border">
+                    <thead class="bg-success text-white">
+                        <tr>
+                            <th class="text-center">วันที่-เวลา</th>
+                            <th>รหัส</th>
+                            <th>ชื่อพัสดุ</th>
+                            <th class="text-center">การกระทำ</th>
+                            <th class="text-center">จำนวน</th>
+                            <th class="text-center">หน่วย</th>
+                            <th class="text-center">ยอดคงเหลือรวม</th>
+                            <th>ผู้ทำรายการ</th>
+                            <th class="text-center">จัดการ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyListContainerTable">
+                        <tr><td colspan="9" class="text-center py-5 text-muted">ไม่มีประวัติการทำรายการ</td></tr>
+                    </tbody>
                 </table>
             </div>
         </div>
@@ -255,7 +294,7 @@
 
     <audio id="soundScan" src="https://www.soundjay.com/buttons/sounds/beep-07.mp3"></audio>
 
-    <script src="app.js?v=5"></script>
+    <script src="app.js?v=6"></script>
 
     <script>
         window.history.pushState(null, "", window.location.href);

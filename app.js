@@ -8,7 +8,7 @@ let historyData = [];
 let auditData = []; 
 let currentMode = 'out';
 
-// 🚀 ประกาศตัวแปรรองรับกล้องทั้ง 3 หน้า
+// ประกาศตัวแปรรองรับกล้องทั้ง 3 หน้า
 let html5QrCode = null; 
 let auditHtml5QrCode = null;
 let manualHtml5QrCode = null; 
@@ -68,6 +68,7 @@ function loadOnlineData() {
     db.ref('history_data').on('value', (snap) => {
         historyData = snap.val() || [];
         if(document.getElementById('auditView').style.display === 'block') renderAuditList();
+        if(document.getElementById('historyView').style.display === 'block') renderHistoryList(); // อัปเดตหน้าประวัติ
     });
 }
 
@@ -75,7 +76,7 @@ function loadLocalData() {
     fetch('inventory_db.json?t=' + new Date().getTime())
         .then(r => r.json()).then(data => { allItems = data; updateTableUI(); }).catch(e => console.error(e));
     fetch('inventory_history.json?t=' + new Date().getTime())
-        .then(r => r.json()).then(data => { historyData = data; }).catch(e => console.error(e));
+        .then(r => r.json()).then(data => { historyData = data; if(document.getElementById('historyView').style.display === 'block') renderHistoryList(); }).catch(e => console.error(e));
 }
 
 function forceReload() {
@@ -175,36 +176,28 @@ function renderDialysisFluids() {
     });
 }
 
-// ==========================================
-// 🚀 ฟังก์ชัน ปิดกล้องทั้งหมด
-// ==========================================
 function stopAllScanners() {
     if (html5QrCode) { html5QrCode.stop().then(() => { html5QrCode.clear(); html5QrCode = null; document.getElementById('reader').style.display = 'none'; }).catch(()=>{}); }
     if (auditHtml5QrCode) { auditHtml5QrCode.stop().then(() => { auditHtml5QrCode.clear(); auditHtml5QrCode = null; document.getElementById('auditReader').style.display = 'none'; }).catch(()=>{}); }
     if (manualHtml5QrCode) { manualHtml5QrCode.stop().then(() => { manualHtml5QrCode.clear(); manualHtml5QrCode = null; document.getElementById('manualReader').style.display = 'none'; }).catch(()=>{}); }
 }
 
-// ==========================================
-// 🚀 ฟังก์ชัน เปิด-ปิด แท็บหน้าจอ
-// ==========================================
-function openManualView() {
+function closeAllViews() {
     stopAllScanners();
     document.getElementById('dashboardView').style.display = 'none';
+    document.getElementById('manualView').style.display = 'none';
     document.getElementById('auditView').style.display = 'none';
+    document.getElementById('historyView').style.display = 'none';
+}
+
+function openManualView() {
+    closeAllViews();
     document.getElementById('manualView').style.display = 'block';
     if(window.innerWidth <= 768) toggleSidebar();
 }
 
-function closeManualView() {
-    stopAllScanners();
-    document.getElementById('manualView').style.display = 'none';
-    document.getElementById('dashboardView').style.display = 'block';
-}
-
 function openAuditView() {
-    stopAllScanners();
-    document.getElementById('dashboardView').style.display = 'none';
-    document.getElementById('manualView').style.display = 'none';
+    closeAllViews();
     document.getElementById('auditView').style.display = 'block';
     if(window.innerWidth <= 768) toggleSidebar();
     auditData = JSON.parse(JSON.stringify(allItems)); 
@@ -212,11 +205,13 @@ function openAuditView() {
     renderAuditList();
 }
 
-function closeAuditView() {
-    stopAllScanners();
-    document.getElementById('auditView').style.display = 'none';
-    document.getElementById('dashboardView').style.display = 'block';
-    auditData = []; 
+// 🌟 ฟังก์ชันเปิดหน้าประวัติ 🌟
+function openHistoryView() {
+    closeAllViews();
+    document.getElementById('historyView').style.display = 'block';
+    if(window.innerWidth <= 768) toggleSidebar();
+    document.getElementById('historySearch').value = '';
+    renderHistoryList();
 }
 
 // ==========================================
@@ -387,7 +382,9 @@ function showStockDialog(idx, mode) {
                         const currentParams = new URLSearchParams(window.location.search);
                         const savedUserName = currentParams.get('user') || "มือถือ-ไม่ระบุชื่อ";
                         
-                        let log = { date: new Date().toLocaleDateString('en-GB')+" "+new Date().toLocaleTimeString('en-GB'), code: item.code, name: item.name, action: "ปรับยอด (Spot Audit)", qty: 0, unit: item.unit, main_bal: res.value.new_main, sub_bal: res.value.new_sub, user: savedUserName };
+                        // 🌟 สร้าง ID เฉพาะสำหรับ History
+                        let historyId = "HIST-" + new Date().getTime();
+                        let log = { id: historyId, date: new Date().toLocaleDateString('en-GB')+" "+new Date().toLocaleTimeString('en-GB'), code: item.code, name: item.name, action: "ปรับยอด (Spot Audit)", qty: 0, unit: item.unit, main_bal: res.value.new_main, sub_bal: res.value.new_sub, user: savedUserName };
                         db.ref('history_data').once('value').then(s => { let arr = s.val() || []; arr.unshift(log); db.ref('history_data').set(arr); });
                         Swal.fire({title:'สำเร็จ!', icon:'success', timer:1500, showConfirmButton: false});
                     });
@@ -412,7 +409,9 @@ function processStockUpdate(item, idx, qty, action) {
             const currentParams = new URLSearchParams(window.location.search);
             const savedUserName = currentParams.get('user') || "มือถือ-ไม่ระบุชื่อ";
 
-            let log = { date: new Date().toLocaleDateString('en-GB')+" "+new Date().toLocaleTimeString('en-GB'), code: item.code, name: item.name, action: actText, qty: qty, unit: item.unit, main_bal: n_main, sub_bal: n_sub, user: savedUserName };
+            // 🌟 สร้าง ID เฉพาะสำหรับ History
+            let historyId = "HIST-" + new Date().getTime();
+            let log = { id: historyId, date: new Date().toLocaleDateString('en-GB')+" "+new Date().toLocaleTimeString('en-GB'), code: item.code, name: item.name, action: actText, qty: qty, unit: item.unit, main_bal: n_main, sub_bal: n_sub, user: savedUserName, raw_action: action }; // เก็บ raw_action เผื่อใช้อ้างอิงตอน Undo
             db.ref('history_data').once('value').then(s => { let arr = s.val() || []; arr.unshift(log); db.ref('history_data').set(arr); });
             Swal.fire({title:'สำเร็จ!', icon:'success', timer:1500, showConfirmButton: false});
         });
@@ -508,21 +507,15 @@ function openCalculator(idx, targetId, currentValue) {
 function calcAppend(val) { 
     const display = document.getElementById('calcDisplay');
     display.value += val; 
-    // 🚀 บังคับให้ Scrollbar แนวนอนเลื่อนตามตัวเลขที่พิมพ์ใหม่เสมอ
     display.scrollLeft = display.scrollWidth;
 }
 
 function calcBackspace() {
     let display = document.getElementById('calcDisplay');
     display.value = display.value.slice(0, -1);
-    // 🚀 เลื่อนตามตอนลบด้วย
     display.scrollLeft = display.scrollWidth;
 }
 function calcClear() { document.getElementById('calcDisplay').value = ''; }
-function calcBackspace() {
-    let display = document.getElementById('calcDisplay');
-    display.value = display.value.slice(0, -1);
-}
 function calcCalculate() {
     let expr = document.getElementById('calcDisplay').value;
     if(/^[0-9+\-*/.\s]+$/.test(expr)) { try { let res = eval(expr); if(isFinite(res)) document.getElementById('calcDisplay').value = Math.floor(res); } catch(e) { } } 
@@ -605,7 +598,8 @@ function saveBulkAudit() {
                 let oMain = parseInt(orig.main_stock || 0), oSub = parseInt(orig.sub_stock || 0);
                 if(nMain !== oMain || nSub !== oSub) {
                     updates[`inventory_data/${idx}/main_stock`] = nMain; updates[`inventory_data/${idx}/sub_stock`] = nSub;
-                    logs.push({ date: now, code: item.code, name: item.name, action: "ทำใบตรวจนับ (Audit) 📋", qty: 0, unit: item.unit, main_bal: nMain, sub_bal: nSub, user: savedUserName });
+                    let historyId = "HIST-" + new Date().getTime() + "-" + idx; // 🌟
+                    logs.push({ id: historyId, date: now, code: item.code, name: item.name, action: "ทำใบตรวจนับ (Audit) 📋", qty: 0, unit: item.unit, main_bal: nMain, sub_bal: nSub, user: savedUserName, raw_action: 'audit' }); // 🌟
                     changesCount++;
                 }
             });
@@ -615,7 +609,7 @@ function saveBulkAudit() {
                 db.ref().update(updates).then(() => {
                     if(logs.length > 0) { db.ref('history_data').once('value').then(s => { let arr = s.val() || []; arr = logs.concat(arr); db.ref('history_data').set(arr); }); }
                     Swal.fire('สำเร็จ!', `อัปเดตยอดสต๊อกใหม่จำนวน ${changesCount} รายการเรียบร้อยแล้ว`, 'success');
-                    closeAuditView(); 
+                    closeAllViews(); document.getElementById('dashboardView').style.display = 'block'; 
                 });
             } else { Swal.fire('ข้อผิดพลาด', 'ต้องต่ออินเทอร์เน็ตเพื่อบันทึกใบตรวจนับ', 'error'); }
         }
@@ -697,4 +691,122 @@ function generateRandomCodePopup() {
     const inputField = document.getElementById('swal-code');
     inputField.value = newCode;
     inputField.focus(); 
+}
+
+// ==========================================
+// 🌟 ฟังก์ชันจัดการหน้า History (ประวัติ) 🌟
+// ==========================================
+
+function renderHistoryList() {
+    const term = document.getElementById('historySearch').value.toLowerCase();
+    const tbody = document.getElementById('historyListContainerTable');
+    tbody.innerHTML = '';
+    
+    if(!historyData || historyData.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9" class="text-center py-5 text-muted">ไม่มีประวัติการทำรายการ</td></tr>';
+        return;
+    }
+
+    // หาวันที่ของรายการล่าสุดเพื่อใช้กำหนดปุ่ม Undo
+    let latestDateStr = "";
+    if (historyData.length > 0) {
+        latestDateStr = historyData[0].date.split(" ")[0]; // เอาเฉพาะวันที่ เช่น "15/05/2026"
+    }
+
+    historyData.forEach((log, index) => {
+        if(term && !log.name.toLowerCase().includes(term) && !(log.code||"").toLowerCase().includes(term) && !(log.action||"").toLowerCase().includes(term) && !(log.user||"").toLowerCase().includes(term)) return;
+        
+        let actionColor = "text-secondary";
+        if(log.action.includes("รับเข้า")) actionColor = "text-success";
+        else if(log.action.includes("ใช้งาน") || log.action.includes("เบิกจ่าย")) actionColor = "text-warning";
+        else if(log.action.includes("โอนย้าย") || log.action.includes("คืนเข้า")) actionColor = "text-primary";
+        else if(log.action.includes("ปรับยอด")) actionColor = "text-dark";
+        
+        let total_bal = parseInt(log.main_bal || 0) + parseInt(log.sub_bal || 0);
+        let logDateOnly = log.date.split(" ")[0];
+
+        // 🌟 สร้างปุ่มลบ (Undo) 🌟
+        // เงื่อนไข: ให้ลบได้เฉพาะรายการที่เป็นของ "วันนี้" เท่านั้น และต้องมี ID (เพื่อความปลอดภัย)
+        let btnHtml = '-';
+        if (logDateOnly === latestDateStr && log.id && log.raw_action && log.raw_action !== 'audit') {
+            btnHtml = `<button class="btn btn-outline-danger btn-sm" onclick="undoTransaction('${log.id}', ${index})" title="ยกเลิกรายการนี้และคืนยอดสต๊อก"><i class="fas fa-undo"></i> ย้อนกลับ</button>`;
+        } else if (log.raw_action === 'audit') {
+            btnHtml = `<span class="badge bg-light text-muted border">ลบไม่ได้ (Audit)</span>`;
+        }
+
+        let row = `
+        <tr>
+            <td class="text-center text-secondary">${log.date}</td>
+            <td class="text-secondary">${log.code || '-'}</td>
+            <td class="fw-bold" style="white-space: normal; min-width: 150px;">${log.name}</td>
+            <td class="text-center fw-bold ${actionColor}">${log.action}</td>
+            <td class="text-center fw-bold fs-5">${log.qty > 0 ? log.qty : '-'}</td>
+            <td class="text-center text-muted">${log.unit || 'ชิ้น'}</td>
+            <td class="text-center fw-bold text-info fs-5">${total_bal}</td>
+            <td><span class="badge bg-secondary"><i class="fas fa-user me-1"></i>${log.user || 'ไม่ระบุ'}</span></td>
+            <td class="text-center">${btnHtml}</td>
+        </tr>`;
+        tbody.insertAdjacentHTML('beforeend', row);
+    });
+}
+
+function undoTransaction(historyId, histIndex) {
+    if (!db || !document.getElementById('syncStatus').innerText.includes('ออนไลน์')) {
+        return Swal.fire('ข้อผิดพลาด', 'ต้องเชื่อมต่ออินเทอร์เน็ตเพื่อยกเลิกรายการ', 'error');
+    }
+
+    let logToUndo = historyData[histIndex];
+    if (!logToUndo || logToUndo.id !== historyId) {
+        return Swal.fire('ข้อผิดพลาด', 'ไม่พบข้อมูลรายการที่ต้องการยกเลิก', 'error');
+    }
+
+    Swal.fire({
+        title: 'ยืนยันการย้อนกลับ?',
+        html: `คุณกำลังจะยกเลิกการทำรายการ:<br><b class="text-primary">${logToUndo.name}</b><br>จำนวน: <b class="text-danger">${logToUndo.qty}</b><br><br><span class="text-muted fs-6">* ยอดสต๊อกปัจจุบันจะถูกคืนค่ากลับไปก่อนทำรายการนี้</span>`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: '<i class="fas fa-undo"></i> ใช่, ย้อนกลับรายการ',
+        cancelButtonText: 'ปิด'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            
+            // หาสินค้าใน Inventory 
+            let itemIdx = allItems.findIndex(i => i && i.code === logToUndo.code);
+            if (itemIdx === -1) return Swal.fire('ข้อผิดพลาด', 'ไม่พบรหัสสินค้านี้ในระบบแล้ว', 'error');
+            
+            let item = allItems[itemIdx];
+            let n_main = parseInt(item.main_stock || 0);
+            let n_sub = parseInt(item.sub_stock || 0);
+            let qty = parseInt(logToUndo.qty || 0);
+            let act = logToUndo.raw_action;
+
+            // คืนค่า (ทำตรงข้ามกับตอนหัก/รับ)
+            if (act === 'receive_main') n_main -= qty;
+            else if (act === 'receive_sub') n_sub -= qty;
+            else if (act === 'use') n_sub += qty;
+            else if (act === 'transfer_to_sub') { n_main += qty; n_sub -= qty; }
+            else if (act === 'transfer_to_main') { n_sub += qty; n_main -= qty; }
+            
+            // ป้องกันยอดติดลบ
+            if(n_main < 0) n_main = 0;
+            if(n_sub < 0) n_sub = 0;
+
+            Swal.fire({title: 'กำลังย้อนกลับ...', allowOutsideClick: false, didOpen: () => Swal.showLoading()});
+
+            // 1. อัปเดต Inventory
+            db.ref(`inventory_data/${itemIdx}`).update({ main_stock: n_main, sub_stock: n_sub }).then(() => {
+                // 2. ลบออกจาก History
+                let newHistory = [...historyData];
+                newHistory.splice(histIndex, 1);
+                
+                db.ref('history_data').set(newHistory).then(() => {
+                    Swal.fire('สำเร็จ!', 'ทำรายการย้อนกลับและคืนยอดเรียบร้อยแล้ว', 'success');
+                });
+            }).catch(e => {
+                Swal.fire('ข้อผิดพลาด', 'ไม่สามารถเชื่อมต่อฐานข้อมูลได้: ' + e.message, 'error');
+            });
+        }
+    });
 }
