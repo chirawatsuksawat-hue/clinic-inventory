@@ -409,9 +409,10 @@ function processStockUpdate(item, idx, qty, action) {
             const currentParams = new URLSearchParams(window.location.search);
             const savedUserName = currentParams.get('user') || "มือถือ-ไม่ระบุชื่อ";
 
-            // 🌟 สร้าง ID เฉพาะสำหรับ History
+            // 🌟 จุดสำคัญ: ต้องเก็บ id และ raw_action เพื่อให้ระบบรู้ว่าต้องย้อนกลับยังไง
             let historyId = "HIST-" + new Date().getTime();
-            let log = { id: historyId, date: new Date().toLocaleDateString('en-GB')+" "+new Date().toLocaleTimeString('en-GB'), code: item.code, name: item.name, action: actText, qty: qty, unit: item.unit, main_bal: n_main, sub_bal: n_sub, user: savedUserName, raw_action: action }; // เก็บ raw_action เผื่อใช้อ้างอิงตอน Undo
+            let log = { id: historyId, date: new Date().toLocaleDateString('en-GB')+" "+new Date().toLocaleTimeString('en-GB'), code: item.code, name: item.name, action: actText, qty: qty, unit: item.unit, main_bal: n_main, sub_bal: n_sub, user: savedUserName, raw_action: action }; 
+            
             db.ref('history_data').once('value').then(s => { let arr = s.val() || []; arr.unshift(log); db.ref('history_data').set(arr); });
             Swal.fire({title:'สำเร็จ!', icon:'success', timer:1500, showConfirmButton: false});
         });
@@ -598,8 +599,9 @@ function saveBulkAudit() {
                 let oMain = parseInt(orig.main_stock || 0), oSub = parseInt(orig.sub_stock || 0);
                 if(nMain !== oMain || nSub !== oSub) {
                     updates[`inventory_data/${idx}/main_stock`] = nMain; updates[`inventory_data/${idx}/sub_stock`] = nSub;
-                    let historyId = "HIST-" + new Date().getTime() + "-" + idx; // 🌟
-                    logs.push({ id: historyId, date: now, code: item.code, name: item.name, action: "ทำใบตรวจนับ (Audit) 📋", qty: 0, unit: item.unit, main_bal: nMain, sub_bal: nSub, user: savedUserName, raw_action: 'audit' }); // 🌟
+                    let historyId = "HIST-" + new Date().getTime() + "-" + idx; 
+                    // 🌟 ระบุว่าเป็น raw_action: 'audit' (กันไม่ให้กดย้อนกลับมั่ว)
+                    logs.push({ id: historyId, date: now, code: item.code, name: item.name, action: "ทำใบตรวจนับ (Audit) 📋", qty: 0, unit: item.unit, main_bal: nMain, sub_bal: nSub, user: savedUserName, raw_action: 'audit' }); 
                     changesCount++;
                 }
             });
@@ -609,7 +611,7 @@ function saveBulkAudit() {
                 db.ref().update(updates).then(() => {
                     if(logs.length > 0) { db.ref('history_data').once('value').then(s => { let arr = s.val() || []; arr = logs.concat(arr); db.ref('history_data').set(arr); }); }
                     Swal.fire('สำเร็จ!', `อัปเดตยอดสต๊อกใหม่จำนวน ${changesCount} รายการเรียบร้อยแล้ว`, 'success');
-                    closeAllViews(); document.getElementById('dashboardView').style.display = 'block'; 
+                    closeAuditView(); 
                 });
             } else { Swal.fire('ข้อผิดพลาด', 'ต้องต่ออินเทอร์เน็ตเพื่อบันทึกใบตรวจนับ', 'error'); }
         }
@@ -714,21 +716,19 @@ function renderHistoryList() {
         if(log.action.includes("รับเข้า")) actionColor = "text-success";
         else if(log.action.includes("ใช้งาน") || log.action.includes("เบิกจ่าย")) actionColor = "text-warning";
         else if(log.action.includes("โอนย้าย") || log.action.includes("คืนเข้า")) actionColor = "text-primary";
-        else if(log.action.includes("ปรับยอด") || log.action.includes("ตรวจนับ")) actionColor = "text-dark";
+        else if(log.action.includes("ปรับยอด") || log.action.includes("ตรวจนับ") || log.action.includes("Audit")) actionColor = "text-dark";
         
         let total_bal = parseInt(log.main_bal || 0) + parseInt(log.sub_bal || 0);
 
-        // 🌟 อัปเดตตรรกะปุ่มย้อนกลับให้แสดงชัดเจนขึ้น 🌟
+        // 🌟 เพิ่มปุ่มให้ชัดเจน 🌟
         let btnHtml = '';
         if (log.raw_action && log.raw_action !== 'audit') {
-            // ถ้าระบุแอคชั่นชัดเจน และไม่ใช่การ Audit -> ให้กดย้อนกลับได้
-            btnHtml = `<button class="btn btn-outline-danger btn-sm fw-bold shadow-sm" onclick="undoTransaction('${log.id}', ${index})" title="ยกเลิกรายการนี้และคืนยอดสต๊อก"><i class="fas fa-undo"></i> ย้อนกลับ</button>`;
+            btnHtml = `<button class="btn btn-outline-danger btn-sm fw-bold shadow-sm" onclick="undoTransaction('${log.id}', ${index})" title="ยกเลิกรายการนี้"><i class="fas fa-undo"></i> ย้อนกลับ</button>`;
         } else if (log.raw_action === 'audit' || log.action.includes("Audit")) {
-            // ถ้าเป็นการตรวจนับ -> ไม่อนุญาตให้ย้อน
             btnHtml = `<span class="badge bg-light text-muted border px-2 py-2">แก้ไขด้วย Audit</span>`;
         } else {
-            // รายการเก่าที่ไม่มี raw_action
-            btnHtml = `<span class="badge bg-light text-muted border px-2 py-2" title="รายการเก่าไม่มีข้อมูลสำหรับย้อนกลับ">รายการเก่า</span>`;
+            // รายการเก่าที่ไม่มีข้อมูลจะขึ้นแบบนี้แทน '-' ครับ
+            btnHtml = `<span class="badge bg-light text-muted border px-2 py-2" title="รายการนี้เก่าเกินไป ไม่สามารถย้อนกลับได้">รายการเก่า</span>`;
         }
 
         let row = `
@@ -768,8 +768,6 @@ function undoTransaction(historyId, histIndex) {
         cancelButtonText: 'ปิด'
     }).then((result) => {
         if (result.isConfirmed) {
-            
-            // หาสินค้าใน Inventory 
             let itemIdx = allItems.findIndex(i => i && i.code === logToUndo.code);
             if (itemIdx === -1) return Swal.fire('ข้อผิดพลาด', 'ไม่พบรหัสสินค้านี้ในระบบแล้ว', 'error');
             
@@ -779,22 +777,19 @@ function undoTransaction(historyId, histIndex) {
             let qty = parseInt(logToUndo.qty || 0);
             let act = logToUndo.raw_action;
 
-            // คืนค่า (ทำตรงข้ามกับตอนหัก/รับ)
+            // คืนค่ายอดสต๊อกตามประเภทการกระทำ
             if (act === 'receive_main') n_main -= qty;
             else if (act === 'receive_sub') n_sub -= qty;
             else if (act === 'use') n_sub += qty;
             else if (act === 'transfer_to_sub') { n_main += qty; n_sub -= qty; }
             else if (act === 'transfer_to_main') { n_sub += qty; n_main -= qty; }
             
-            // ป้องกันยอดติดลบ
             if(n_main < 0) n_main = 0;
             if(n_sub < 0) n_sub = 0;
 
             Swal.fire({title: 'กำลังย้อนกลับ...', allowOutsideClick: false, didOpen: () => Swal.showLoading()});
 
-            // 1. อัปเดต Inventory
             db.ref(`inventory_data/${itemIdx}`).update({ main_stock: n_main, sub_stock: n_sub }).then(() => {
-                // 2. ลบออกจาก History
                 let newHistory = [...historyData];
                 newHistory.splice(histIndex, 1);
                 
