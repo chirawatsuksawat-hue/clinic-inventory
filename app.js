@@ -19,8 +19,22 @@ let currentCalcField = '';
 let currentCalcTargetId = '';
 
 function getCategoryOptionsHTML(selectedCat = '') {
-    let cats = new Set(["เวชภัณฑ์ทางการแพทย์", "อุปกรณ์สำนักงาน", "น้ำยา/อุปกรณ์ทำความสะอาด", "น้ำยาไต (ทั่วไป)", "อื่นๆ"]);
-    allItems.forEach(item => { if(item && item.category) cats.add(item.category); });
+    // 🌟 ล็อกหมวดหมู่มาตรฐานให้เหมือนในคอมพิวเตอร์เป๊ะๆ
+    let cats = new Set(["เวชภัณฑ์ทางการแพทย์", "อุปกรณ์สำนักงาน", "น้ำยา/อุปกรณ์ทำความสะอาด", "อื่นๆ"]);
+    
+    // ดึงหมวดหมู่อื่นๆ จากฐานข้อมูล (เผื่อมีการพิมพ์เพิ่ม) แต่กรองชื่อน้ำยาแปลกๆ ออก!
+    let ignoreList = ["k2", "k3", "k4", "hemo", "nss", "part", "saline", "a1", "a2", "a3"];
+    
+    allItems.forEach(item => { 
+        if(item && item.category) {
+            let catLower = item.category.toLowerCase();
+            // ถ้าหมวดหมู่ไม่ได้อยู่ในคำต้องห้าม ถึงจะยอมให้เพิ่มเป็นตัวเลือก
+            if(!ignoreList.some(kw => catLower.includes(kw))) {
+                cats.add(item.category);
+            }
+        }
+    });
+    
     let html = '';
     cats.forEach(cat => {
         let sel = cat === selectedCat ? 'selected' : '';
@@ -137,11 +151,19 @@ function renderDialysisFluids() {
     const container = document.getElementById('dialysisFluidContainer');
     if(!container) return;
 
-    let nonDialysateCats = ["เวชภัณฑ์ทางการแพทย์", "อุปกรณ์สำนักงาน", "น้ำยา/อุปกรณ์ทำความสะอาด", "อื่นๆ"];
-    let fluids = allItems.map((item, index) => ({item, index})).filter(x => x.item && x.item.category && !nonDialysateCats.includes(x.item.category));
+    // 🌟 ดึงมาแสดงเฉพาะรายการที่ "ชื่อ" หรือ "หมวดหมู่" มีคำว่าน้ำยาไต/น้ำเกลือจริงๆ เท่านั้น
+    let fluidKeywords = ["k2", "k3", "k4", "hemo", "nss", "น้ำยาไต", "part a", "part b", "saline"];
+    
+    let fluids = allItems.map((item, index) => ({item, index})).filter(x => {
+        if (!x.item || !x.item.name) return false;
+        let nameLower = x.item.name.toLowerCase();
+        let catLower = (x.item.category || "").toLowerCase();
+        
+        return fluidKeywords.some(kw => nameLower.includes(kw) || catLower.includes(kw));
+    });
 
     if (fluids.length === 0) {
-        container.innerHTML = '<div class="col-12 text-center text-muted py-2">ยังไม่มีการลงทะเบียนรายการในหมวดหมู่ "น้ำยาไต / น้ำเกลือ"</div>';
+        container.innerHTML = '<div class="col-12 text-center text-muted py-2">ยังไม่มีรายการน้ำยาไต หรือ น้ำเกลือ ในคลังพัสดุ</div>';
         return;
     }
 
@@ -167,7 +189,7 @@ function renderDialysisFluids() {
                     </div>
                     <div class="d-flex gap-1 mt-auto">
                         <button class="btn btn-warning btn-sm flex-fill fw-bold shadow-sm" onclick="showStockDialog(${idx}, 'use')"><i class="fas fa-minus-circle"></i> เบิก</button>
-                        <button class="btn btn-secondary btn-sm flex-fill fw-bold text-white shadow-sm" onclick="showStockDialog(${idx}, 'audit')"><i class="fas fa-clipboard-check"></i> นับยอด</button>
+                        <button class="btn btn-secondary btn-sm flex-fill fw-bold text-white shadow-sm" onclick="showStockDialog(${idx}, 'audit')"><i class="fas fa-clipboard-check"></i> นับ</button>
                     </div>
                 </div>
             </div>
