@@ -53,6 +53,7 @@
         <ul class="nav flex-column mt-3">
             <li class="nav-item"><a class="nav-link active" onclick="closeAllViews(); document.getElementById('dashboardView').style.display = 'block';"><i class="fas fa-home me-2"></i> หน้าหลัก (คลังพัสดุ)</a></li>
             <li class="nav-item mt-2"><a class="nav-link text-info fw-bold" onclick="openManualView()"><i class="fas fa-keyboard me-2"></i> ทำรายการแบบแมนนวล</a></li>
+            <li class="nav-item mt-2"><a class="nav-link text-primary fw-bold" onclick="openVisitView()"><i class="fas fa-bed me-2"></i> คิวคนไข้ฟอกไตวันนี้</a></li>
             <li class="nav-item mt-2"><a class="nav-link text-warning fw-bold" onclick="openAuditView()"><i class="fas fa-clipboard-check me-2"></i> โหมดใบตรวจนับ (Audit)</a></li>
             <li class="nav-item mt-2"><a class="nav-link text-success fw-bold" onclick="openHistoryView()"><i class="fas fa-history me-2"></i> ประวัติการทำรายการ</a></li>
             <li class="nav-item mt-4 border-top pt-3">
@@ -294,6 +295,23 @@
 
     <audio id="soundScan" src="https://www.soundjay.com/buttons/sounds/beep-07.mp3"></audio>
 
+    <div id="visitView" class="main-content" style="display: none;">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+            <div>
+                <button class="btn btn-outline-secondary btn-sm mb-2 rounded-pill px-3 w-100 w-sm-auto" onclick="closeAllViews(); document.getElementById('dashboardView').style.display = 'block';"><i class="fas fa-arrow-left me-1"></i> กลับหน้าหลัก</button>
+                <h3 class="m-0 fw-bold text-primary"><i class="fas fa-bed me-2"></i>คิวผู้ป่วยฟอกไตวันนี้</h3>
+            </div>
+            <button class="btn btn-outline-primary btn-sm rounded-pill px-3 shadow-sm" onclick="loadVisitsData()"><i class="fas fa-sync-alt me-1"></i> รีเฟรชข้อมูลคิว</button>
+        </div>
+
+        <div class="card mb-4 bg-white p-3 p-md-4 border-2 border-primary shadow-sm">
+            <h5 class="fw-bold text-primary mb-3"><i class="fas fa-calendar-day me-2"></i>รายชื่อคิวประจำวันที่: <span id="visitDateDisplay" class="text-dark"></span></h5>
+            <div id="visitListContainer" class="row g-2">
+                <div class="col-12 text-center text-muted py-3"><i class="fas fa-spinner fa-spin me-2"></i>กำลังดึงข้อมูลคิวฟอกไต...</div>
+            </div>
+        </div>
+    </div>
+    
     <script src="app.js?v=6"></script>
 
     <script>

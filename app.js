@@ -210,6 +210,7 @@ function closeAllViews() {
     document.getElementById('manualView').style.display = 'none';
     document.getElementById('auditView').style.display = 'none';
     document.getElementById('historyView').style.display = 'none';
+    document.getElementById('visitView').style.display = 'none';
 }
 
 function openManualView() {
@@ -822,5 +823,100 @@ function undoTransaction(historyId, histIndex) {
                 Swal.fire('ข้อผิดพลาด', 'ไม่สามารถเชื่อมต่อฐานข้อมูลได้: ' + e.message, 'error');
             });
         }
+    });
+}
+
+// ==========================================
+// 🌟 ฟังก์ชันจัดการหน้าคิวคนไข้ (Visits Queue) 🌟
+// ==========================================
+let visitsData = [];
+
+function openVisitView() {
+    closeAllViews();
+    document.getElementById('visitView').style.display = 'block';
+    if(window.innerWidth <= 768) toggleSidebar();
+    
+    // ตั้งค่ายึดวันที่ปัจจุบัน (พ.ศ.)
+    let today = new Date();
+    let dd = String(today.getDate()).padStart(2, '0');
+    let mm = String(today.getMonth() + 1).padStart(2, '0');
+    let yyyy = today.getFullYear() + 543; 
+    document.getElementById('visitDateDisplay').innerText = `${dd}/${mm}/${yyyy}`;
+    
+    loadVisitsData();
+}
+
+function loadVisitsData() {
+    if(!db) return Swal.fire('ผิดพลาด', 'ระบบออฟไลน์ ไม่สามารถดึงคิวได้', 'error');
+    
+    document.getElementById('visitListContainer').innerHTML = '<div class="col-12 text-center text-muted py-4"><i class="fas fa-spinner fa-spin fa-2x mb-2"></i><br>กำลังดึงคิวจากฐานข้อมูลคลินิก...</div>';
+    
+    // ดึงข้อมูล Visit จาก Firebase
+    db.ref('patients_database/visits').once('value').then((snap) => {
+        visitsData = snap.val() || [];
+        renderVisitsList();
+    }).catch(err => {
+        document.getElementById('visitListContainer').innerHTML = '<div class="col-12 text-center text-danger py-3">เกิดข้อผิดพลาดในการโหลดข้อมูล: ' + err.message + '</div>';
+    });
+}
+
+function renderVisitsList() {
+    const container = document.getElementById('visitListContainer');
+    let todayStr = document.getElementById('visitDateDisplay').innerText;
+
+    // กรองเอาเฉพาะคิวของ "วันนี้" เท่านั้น
+    let todayVisits = visitsData.filter(v => v && v.date && v.date.split(" ")[0] === todayStr);
+
+    if (todayVisits.length === 0) {
+        container.innerHTML = '<div class="col-12 text-center text-muted py-5"><i class="fas fa-bed fa-3x mb-3 text-light"></i><br><h4>ไม่มีคิวผู้ป่วยฟอกไตสำหรับวันนี้</h4></div>';
+        return;
+    }
+
+    container.innerHTML = '';
+    todayVisits.forEach((v) => {
+        let statusColor = "warning";
+        let statusText = v.status || "รอตรวจ";
+        if (statusText.includes("กำลังฟอก")) statusColor = "primary";
+        else if (statusText.includes("เสร็จแล้ว") || statusText.includes("ตรวจเสร็จ")) statusColor = "success";
+        else if (statusText.includes("ยกเลิก")) statusColor = "danger";
+
+        // วาดการ์ดแสดงประวัติคนไข้แบบดูง่ายบนมือถือ
+        let card = `
+        <div class="col-12 col-md-6 col-lg-4 mb-3">
+            <div class="border rounded p-3 shadow-sm bg-light h-100 d-flex flex-column">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="badge bg-${statusColor} fs-6 px-3 py-2">${statusText}</span>
+                    <span class="text-muted fw-bold"><i class="fas fa-clock me-1"></i>${v.time || '-'}</span>
+                </div>
+                <h4 class="fw-bold text-dark mb-1 mt-2">${v.name}</h4>
+                <div class="text-secondary mb-3" style="font-size: 0.95rem;">
+                    HN: <b class="text-dark">${v.hn}</b> | เตียง: <b class="text-primary">${v.bed || '-'}</b>
+                </div>
+                <div class="bg-white rounded border p-2 mb-3" style="font-size: 0.85rem;">
+                    <div class="mb-1"><b>สิทธิ:</b> ${v.right || '-'}</div>
+                    <div class="mb-1"><b>น้ำเกลือ:</b> <span class="text-info">${v.saline || '-'}</span></div>
+                    <div><b>ยาที่ใช้:</b> <span class="text-danger">${v.meds || '-'}</span></div>
+                </div>
+                
+                <button class="btn btn-warning w-100 fw-bold shadow-sm mt-auto" style="color: #495057;" onclick="dispenseToPatient('${v.hn}', '${v.name}')">
+                    <i class="fas fa-box-open me-2"></i> จ่ายพัสดุให้รายนี้
+                </button>
+            </div>
+        </div>`;
+        container.insertAdjacentHTML('beforeend', card);
+    });
+}
+
+// เมื่อกดจ่ายพัสดุให้คนไข้ จะกระโดดไปหน้า Manual และเปิดหน้าต่างเบิกพัสดุให้เลย
+function dispenseToPatient(hn, name) {
+    Swal.fire({
+        title: 'เตรียมเบิกพัสดุ',
+        html: `กำลังเข้าสู่โหมดเบิกจ่ายให้:<br><b class="text-primary fs-5">${name}</b><br><small class="text-muted">(HN: ${hn})</small>`,
+        icon: 'info',
+        timer: 1500,
+        showConfirmButton: false
+    }).then(() => {
+        openManualView();
+        setTimeout(() => openItemSelector('use'), 400);
     });
 }
