@@ -18,7 +18,7 @@ let currentCalcIndex = -1;
 let currentCalcField = '';
 let currentCalcTargetId = '';
 
-function getCategoryOptionsHTML(selectedCat = '') {
+function getCategoryOptionsHTML() {
     // ล็อกหมวดหมู่พื้นฐาน
     let cats = new Set(["เวชภัณฑ์ทางการแพทย์", "อุปกรณ์สำนักงาน", "น้ำยา/อุปกรณ์ทำความสะอาด", "น้ำยาไต (ทั่วไป)", "อื่นๆ"]);
     
@@ -31,8 +31,7 @@ function getCategoryOptionsHTML(selectedCat = '') {
     
     let html = '';
     cats.forEach(cat => {
-        let sel = cat === selectedCat ? 'selected' : '';
-        html += `<option value="${cat}" ${sel}>${cat}</option>`;
+        html += `<option value="${cat}">`;
     });
     return html;
 }
@@ -446,7 +445,11 @@ function manualAction(mode, scannedCode = "") {
                 <div class="text-start mt-3" style="font-family: 'Sarabun', sans-serif;">
                     <div class="row">
                         <div class="col-md-4 mb-3"><label class="form-label fw-bold">ลำดับ</label><input id="swal-seq" class="form-control" placeholder="1, 2, ..."></div>
-                        <div class="col-md-8 mb-3"><label class="form-label fw-bold text-primary">หมวดหมู่</label><select id="swal-cat" class="form-select border-primary" style="height: 45px;">${getCategoryOptionsHTML('')}</select></div>
+                        <div class="col-md-8 mb-3">
+                            <label class="form-label fw-bold text-primary">หมวดหมู่</label>
+                            <input type="text" id="swal-cat" list="catList" class="form-control border-primary" style="height: 45px;" placeholder="พิมพ์หมวดหมู่ใหม่ หรือเลือกจากรายการ...">
+                            <datalist id="catList">${getCategoryOptionsHTML()}</datalist>
+                        </div>
                     </div>
                     <div class="row">
                         <div class="col-md-6 mb-3">
@@ -531,6 +534,41 @@ function manualAction(mode, scannedCode = "") {
             }
         });
     }
+}
+
+function editItem(idx) {
+    const item = allItems[idx]; 
+    Swal.fire({
+        title: '📝 แก้ไขข้อมูลพัสดุ', width: '600px',
+        html: `
+            <div class="text-start mt-3" style="font-family: 'Sarabun', sans-serif;">
+                <div class="row">
+                    <div class="col-md-4 mb-3"><label class="form-label fw-bold">ลำดับ</label><input id="edit-seq" class="form-control" value="${item.seq_num || ''}"></div>
+                    <div class="col-md-8 mb-3">
+                        <label class="form-label fw-bold text-primary">หมวดหมู่</label>
+                        <input type="text" id="edit-cat" list="catListEdit" class="form-control border-primary" style="height: 45px;" value="${item.category || ''}" placeholder="พิมพ์หมวดหมู่ใหม่ หรือเลือกจากรายการ...">
+                        <datalist id="catListEdit">${getCategoryOptionsHTML()}</datalist>
+                    </div>
+                </div>
+                <div class="row"><div class="col-md-6 mb-3"><label class="form-label fw-bold">รหัสพัสดุ (Code)</label><input id="edit-code" class="form-control" value="${item.code || ''}"></div>
+                <div class="col-md-6 mb-3"><label class="form-label fw-bold">ชื่อพัสดุ / อุปกรณ์</label><input id="edit-name" class="form-control" value="${item.name || ''}"></div></div>
+                <div class="row"><div class="col-md-4 mb-3"><label class="form-label fw-bold">หน่วยนับ</label><input id="edit-unit" class="form-control" value="${item.unit || 'ชิ้น'}"></div>
+                <div class="col-md-4 mb-3"><label class="form-label fw-bold">บรรจุ/กล่อง</label><input type="number" id="edit-per-box" class="form-control" value="${item.qty_per_box || ''}"></div>
+                <div class="col-md-4 mb-3"><label class="form-label fw-bold">ราคา/หน่วย (บาท)</label><input type="number" id="edit-price" class="form-control" value="${item.price || ''}"></div></div>
+                <hr><div class="row bg-light p-2 rounded mx-0">
+                <div class="col-md-4 mb-2 px-1"><label class="form-label fw-bold text-secondary" style="font-size: 0.9rem;">ใช้เฉลี่ย/เดือน</label><input type="number" id="edit-usage" class="form-control text-center" value="${item.monthly_usage || ''}"></div>
+                <div class="col-md-4 mb-2 px-1"><label class="form-label fw-bold text-secondary" style="font-size: 0.9rem;">ยอดตั้งต้น</label><input type="number" id="edit-target" class="form-control text-center" value="${item.target_stock || ''}"></div>
+                <div class="col-md-4 mb-2 px-1"><label class="form-label fw-bold text-secondary" style="font-size: 0.9rem;">แจ้งเตือนใกล้หมด</label><input type="number" id="edit-min" class="form-control text-center" value="${item.min_alert || ''}"></div></div></div>
+        `,
+        showCancelButton: true, confirmButtonText: '<i class="fas fa-save"></i> บันทึกการแก้ไข', confirmButtonColor: '#3498db', cancelButtonText: 'ยกเลิก',
+        preConfirm: () => { return { seq_num: document.getElementById('edit-seq').value.trim(), code: document.getElementById('edit-code').value.trim(), name: document.getElementById('edit-name').value.trim(), category: document.getElementById('edit-cat').value, unit: document.getElementById('edit-unit').value.trim() || 'ชิ้น', qty_per_box: document.getElementById('edit-per-box').value || "1", price: parseFloat(document.getElementById('edit-price').value) || 0, monthly_usage: parseFloat(document.getElementById('edit-usage').value) || 0, target_stock: parseInt(document.getElementById('edit-target').value) || 0, min_alert: parseInt(document.getElementById('edit-min').value) || 10 } }
+    }).then((res) => {
+        if (res.isConfirmed) {
+            if(!res.value.name || !res.value.code) return Swal.fire('ผิดพลาด', 'กรุณากรอกชื่อและรหัสให้ครบ', 'warning');
+            if (db && document.getElementById('syncStatus').innerText.includes('ออนไลน์')) { db.ref(`inventory_data/${idx}`).update(res.value).then(() => Swal.fire('สำเร็จ!', 'แก้ไขข้อมูลเรียบร้อยแล้ว', 'success')); } 
+            else if (typeof pywebview !== 'undefined' && pywebview.api && pywebview.api.edit_item_from_web) { pywebview.api.edit_item_from_web(idx, res.value).then(r => forceReload()); Swal.fire('สำเร็จ!', 'แก้ไขข้อมูลในเครื่องแล้ว', 'success'); }
+        }
+    });
 }
 
 function openCalculator(idx, targetId, currentValue) {
