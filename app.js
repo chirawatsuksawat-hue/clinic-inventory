@@ -8,10 +8,11 @@ let historyData = [];
 let auditData = []; 
 let currentMode = 'out';
 
-// ประกาศตัวแปรรองรับกล้องทั้ง 3 หน้า
+// ประกาศตัวแปรรองรับกล้อง
 let html5QrCode = null; 
 let auditHtml5QrCode = null;
 let manualHtml5QrCode = null; 
+let popupScanner = null; // ตัวนี้ใช้สำหรับหน้าเพิ่ม/แก้ไขพัสดุ
 
 let db = null;
 let currentCalcIndex = -1;
@@ -231,7 +232,7 @@ function openHistoryView() {
 }
 
 // ==========================================
-// 🚀 ระบบสแกนแบบ Manual ใหม่ล่าสุด
+// 🚀 ระบบสแกนแบบ Manual
 // ==========================================
 function toggleManualScan() {
     const rDiv = document.getElementById('manualReader');
@@ -456,8 +457,8 @@ function manualAction(mode, scannedCode = "") {
                             <label class="form-label fw-bold">รหัสพัสดุ (Code)</label>
                             <div class="input-group">
                                 <input id="swal-code" class="form-control" placeholder="เช่น A01" value="${scannedCode}">
-                                <button type="button" class="btn btn-warning text-dark fw-bold px-3" onclick="generateRandomCodePopup()" title="สุ่มรหัส"><i class="fas fa-dice"></i></button>
-                                <button type="button" class="btn btn-info text-white fw-bold px-3" onclick="startScannerPopup()" title="เปิดกล้องสแกน"><i class="fas fa-camera"></i></button>
+                                <button type="button" class="btn btn-warning text-dark fw-bold px-3" onclick="generateRandomCodePopup('swal-code')" title="สุ่มรหัส"><i class="fas fa-dice"></i></button>
+                                <button type="button" class="btn btn-info text-white fw-bold px-3" onclick="startScannerPopup('readerPopup', 'swal-code')" title="เปิดกล้องสแกน"><i class="fas fa-camera"></i></button>
                             </div>
                             <div id="readerPopup" style="display: none; width: 100%; margin-top: 8px; border-radius: 8px; overflow: hidden; border: 2px solid #17a2b8;"></div>
                         </div>
@@ -515,7 +516,6 @@ function manualAction(mode, scannedCode = "") {
                 };
 
                 if (db && document.getElementById('syncStatus').innerText.includes('ออนไลน์')) { 
-                    // เช็คลำดับให้ชัวร์ที่สุดก่อนดันขึ้น Firebase ป้องกันเซฟทับตัวเก่า
                     db.ref('inventory_data').once('value').then(snap => {
                         let data = snap.val() || [];
                         let nextIdx = Array.isArray(data) ? data.length : Math.max(...Object.keys(data).map(Number)) + 1;
@@ -523,7 +523,7 @@ function manualAction(mode, scannedCode = "") {
                         
                         db.ref(`inventory_data/${nextIdx}`).set(newItem).then(() => {
                             Swal.fire('สำเร็จ', 'บันทึกพัสดุใหม่ขึ้นระบบออนไลน์แล้ว', 'success');
-                            forceReload(); // โหลดตารางใหม่ทันที
+                            forceReload(); 
                         });
                     });
                 } 
@@ -550,15 +550,30 @@ function editItem(idx) {
                         <datalist id="catListEdit">${getCategoryOptionsHTML()}</datalist>
                     </div>
                 </div>
-                <div class="row"><div class="col-md-6 mb-3"><label class="form-label fw-bold">รหัสพัสดุ (Code)</label><input id="edit-code" class="form-control" value="${item.code || ''}"></div>
-                <div class="col-md-6 mb-3"><label class="form-label fw-bold">ชื่อพัสดุ / อุปกรณ์</label><input id="edit-name" class="form-control" value="${item.name || ''}"></div></div>
-                <div class="row"><div class="col-md-4 mb-3"><label class="form-label fw-bold">หน่วยนับ</label><input id="edit-unit" class="form-control" value="${item.unit || 'ชิ้น'}"></div>
-                <div class="col-md-4 mb-3"><label class="form-label fw-bold">บรรจุ/กล่อง</label><input type="number" id="edit-per-box" class="form-control" value="${item.qty_per_box || ''}"></div>
-                <div class="col-md-4 mb-3"><label class="form-label fw-bold">ราคา/หน่วย (บาท)</label><input type="number" id="edit-price" class="form-control" value="${item.price || ''}"></div></div>
-                <hr><div class="row bg-light p-2 rounded mx-0">
-                <div class="col-md-4 mb-2 px-1"><label class="form-label fw-bold text-secondary" style="font-size: 0.9rem;">ใช้เฉลี่ย/เดือน</label><input type="number" id="edit-usage" class="form-control text-center" value="${item.monthly_usage || ''}"></div>
-                <div class="col-md-4 mb-2 px-1"><label class="form-label fw-bold text-secondary" style="font-size: 0.9rem;">ยอดตั้งต้น</label><input type="number" id="edit-target" class="form-control text-center" value="${item.target_stock || ''}"></div>
-                <div class="col-md-4 mb-2 px-1"><label class="form-label fw-bold text-secondary" style="font-size: 0.9rem;">แจ้งเตือนใกล้หมด</label><input type="number" id="edit-min" class="form-control text-center" value="${item.min_alert || ''}"></div></div></div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">รหัสพัสดุ (Code)</label>
+                        <div class="input-group">
+                            <input id="edit-code" class="form-control" value="${item.code || ''}">
+                            <button type="button" class="btn btn-warning text-dark fw-bold px-3" onclick="generateRandomCodePopup('edit-code')" title="สุ่มรหัส"><i class="fas fa-dice"></i></button>
+                            <button type="button" class="btn btn-info text-white fw-bold px-3" onclick="startScannerPopup('readerPopupEdit', 'edit-code')" title="เปิดกล้องสแกน"><i class="fas fa-camera"></i></button>
+                        </div>
+                        <div id="readerPopupEdit" style="display: none; width: 100%; margin-top: 8px; border-radius: 8px; overflow: hidden; border: 2px solid #17a2b8;"></div>
+                    </div>
+                    <div class="col-md-6 mb-3"><label class="form-label fw-bold">ชื่อพัสดุ / อุปกรณ์</label><input id="edit-name" class="form-control" value="${item.name || ''}"></div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4 mb-3"><label class="form-label fw-bold">หน่วยนับ</label><input id="edit-unit" class="form-control" value="${item.unit || 'ชิ้น'}"></div>
+                    <div class="col-md-4 mb-3"><label class="form-label fw-bold">บรรจุ/กล่อง</label><input type="number" id="edit-per-box" class="form-control" value="${item.qty_per_box || ''}"></div>
+                    <div class="col-md-4 mb-3"><label class="form-label fw-bold">ราคา/หน่วย (บาท)</label><input type="number" id="edit-price" class="form-control" value="${item.price || ''}"></div>
+                </div>
+                <hr>
+                <div class="row bg-light p-2 rounded mx-0">
+                    <div class="col-md-4 mb-2 px-1"><label class="form-label fw-bold text-secondary" style="font-size: 0.9rem;">ใช้เฉลี่ย/เดือน</label><input type="number" id="edit-usage" class="form-control text-center" value="${item.monthly_usage || ''}"></div>
+                    <div class="col-md-4 mb-2 px-1"><label class="form-label fw-bold text-secondary" style="font-size: 0.9rem;">ยอดตั้งต้น</label><input type="number" id="edit-target" class="form-control text-center" value="${item.target_stock || ''}"></div>
+                    <div class="col-md-4 mb-2 px-1"><label class="form-label fw-bold text-secondary" style="font-size: 0.9rem;">แจ้งเตือนใกล้หมด</label><input type="number" id="edit-min" class="form-control text-center" value="${item.min_alert || ''}"></div>
+                </div>
+            </div>
         `,
         showCancelButton: true, confirmButtonText: '<i class="fas fa-save"></i> บันทึกการแก้ไข', confirmButtonColor: '#3498db', cancelButtonText: 'ยกเลิก',
         preConfirm: () => { return { seq_num: document.getElementById('edit-seq').value.trim(), code: document.getElementById('edit-code').value.trim(), name: document.getElementById('edit-name').value.trim(), category: document.getElementById('edit-cat').value, unit: document.getElementById('edit-unit').value.trim() || 'ชิ้น', qty_per_box: document.getElementById('edit-per-box').value || "1", price: parseFloat(document.getElementById('edit-price').value) || 0, monthly_usage: parseFloat(document.getElementById('edit-usage').value) || 0, target_stock: parseInt(document.getElementById('edit-target').value) || 0, min_alert: parseInt(document.getElementById('edit-min').value) || 10 } }
@@ -732,10 +747,11 @@ function toggleAuditScan() {
 
 function onAuditScanSuccess(t) { try{document.getElementById('soundScan').play()}catch(e){} if(auditHtml5QrCode) { auditHtml5QrCode.stop().then(() => { auditHtml5QrCode.clear(); auditHtml5QrCode = null; document.getElementById('auditReader').style.display = 'none'; }); } document.getElementById('auditSearch').value = t; renderAuditList(); }
 
-let popupScanner = null;
-
-function startScannerPopup() {
-    const readerDiv = document.getElementById('readerPopup');
+// ==========================================
+// 🌟 ฟังก์ชันกล้องสแกนรวม (ใช้ได้ทั้งป๊อปอัปเพิ่ม และ แก้ไข)
+// ==========================================
+function startScannerPopup(readerId, inputId) {
+    const readerDiv = document.getElementById(readerId);
     readerDiv.style.display = 'block';
 
     if (popupScanner) {
@@ -743,26 +759,25 @@ function startScannerPopup() {
     }
 
     popupScanner = new Html5QrcodeScanner(
-        "readerPopup",
+        readerId,
         { fps: 10, qrbox: { width: 220, height: 220 } },
         false
     );
 
     popupScanner.render((decodedText) => {
-        document.getElementById('swal-code').value = decodedText;
+        document.getElementById(inputId).value = decodedText;
         popupScanner.clear();
         readerDiv.style.display = 'none';
         try { document.getElementById('soundScan').play(); } catch(e) {}
-    }, (error) => {
-    });
+    }, (error) => {});
 }
 
-function generateRandomCodePopup() {
+function generateRandomCodePopup(inputId) {
     const prefix = "ITM-"; 
     const randomNum = Math.floor(1000 + Math.random() * 9000); 
     const newCode = prefix + randomNum;
     
-    const inputField = document.getElementById('swal-code');
+    const inputField = document.getElementById(inputId);
     inputField.value = newCode;
     inputField.focus(); 
 }
