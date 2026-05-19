@@ -802,48 +802,82 @@ function renderHistoryList() {
     
     tbody.innerHTML = '';
     
-    if(!historyData || historyData.length === 0) {
+    // ตรวจสอบว่า historyData มีข้อมูลหรือไม่
+    if (!historyData || !Array.isArray(historyData) || historyData.length === 0) {
         tbody.innerHTML = '<tr><td colspan="9" class="text-center py-5 text-muted">ไม่มีประวัติการทำรายการ</td></tr>';
         return;
     }
 
+    let hasData = false;
+
+    // วนลูปสร้างตาราง
     historyData.forEach((log, index) => {
-        // 🌟 ป้องกันข้อมูลพังหรือค่าว่าง
-        if(!log || !log.name) return; 
-        
-        if(term && !log.name.toLowerCase().includes(term) && !(log.code||"").toLowerCase().includes(term) && !(log.action||"").toLowerCase().includes(term) && !(log.user||"").toLowerCase().includes(term)) return;
-        
-        let actionColor = "text-secondary";
-        if(log.action.includes("รับเข้า")) actionColor = "text-success";
-        else if(log.action.includes("ใช้งาน") || log.action.includes("เบิกจ่าย")) actionColor = "text-warning";
-        else if(log.action.includes("โอนย้าย") || log.action.includes("คืนเข้า")) actionColor = "text-primary";
-        else if(log.action.includes("ปรับยอด") || log.action.includes("ตรวจนับ") || log.action.includes("Audit")) actionColor = "text-dark";
-        
-        let total_bal = parseInt(log.main_bal || 0) + parseInt(log.sub_bal || 0);
+        try {
+            // ป้องกันโค้ดพังถ้าข้อมูลมาไม่ครบ
+            if (!log || typeof log !== 'object') return;
+            
+            // ดึงค่ามาใช้ พร้อมใส่ค่า Default เผื่อเป็น undefined หรือ null
+            let logName = log.name || 'ไม่ทราบชื่อพัสดุ';
+            let logCode = log.code || '-';
+            let logAction = log.action || 'ไม่มีการกระทำ';
+            let logUser = log.user || 'ไม่ระบุ';
+            let logDate = log.date || '-';
+            let logQty = parseInt(log.qty) || 0;
+            let logUnit = log.unit || 'ชิ้น';
+            let totalBal = (parseInt(log.main_bal) || 0) + (parseInt(log.sub_bal) || 0);
 
-        let btnHtml = '';
-        if (log.raw_action && log.raw_action !== 'audit') {
-            btnHtml = `<button class="btn btn-outline-danger btn-sm fw-bold shadow-sm" onclick="undoTransaction('${log.id}', ${index})" title="ยกเลิกรายการนี้"><i class="fas fa-undo"></i> ย้อนกลับ</button>`;
-        } else if (log.raw_action === 'audit' || log.action.includes("Audit")) {
-            btnHtml = `<span class="badge bg-light text-muted border px-2 py-2">แก้ไขด้วย Audit</span>`;
-        } else {
-            btnHtml = `<span class="badge bg-light text-muted border px-2 py-2" title="รายการนี้เก่าเกินไป ไม่สามารถย้อนกลับได้">รายการเก่า</span>`;
+            // ระบบค้นหา
+            if (term) {
+                let match = logName.toLowerCase().includes(term) || 
+                            logCode.toLowerCase().includes(term) || 
+                            logAction.toLowerCase().includes(term) || 
+                            logUser.toLowerCase().includes(term);
+                if (!match) return;
+            }
+
+            hasData = true; // มีข้อมูลผ่านการค้นหามาได้
+
+            // กำหนดสีของข้อความ Action
+            let actionColor = "text-secondary";
+            if (logAction.includes("รับเข้า")) actionColor = "text-success";
+            else if (logAction.includes("ใช้งาน") || logAction.includes("เบิกจ่าย")) actionColor = "text-warning";
+            else if (logAction.includes("โอนย้าย") || logAction.includes("คืนเข้า")) actionColor = "text-primary";
+            else if (logAction.includes("ปรับยอด") || logAction.includes("ตรวจนับ") || logAction.includes("Audit") || log.raw_action === 'audit') actionColor = "text-dark";
+
+            // ปุ่มจัดการ
+            let btnHtml = '';
+            if (log.raw_action && log.raw_action !== 'audit' && !logAction.includes("Audit")) {
+                btnHtml = `<button class="btn btn-outline-danger btn-sm fw-bold shadow-sm" onclick="undoTransaction('${log.id}', ${index})" title="ยกเลิกรายการนี้"><i class="fas fa-undo"></i> ย้อนกลับ</button>`;
+            } else if (log.raw_action === 'audit' || logAction.includes("Audit") || logAction.includes("ตรวจนับ")) {
+                btnHtml = `<span class="badge bg-light text-muted border px-2 py-2">ปรับยอดด้วยระบบ</span>`;
+            } else {
+                btnHtml = `<span class="badge bg-light text-muted border px-2 py-2" title="รายการนี้เก่าเกินไป ไม่สามารถย้อนกลับได้">รายการเก่า</span>`;
+            }
+
+            // สร้างแถวตาราง
+            let row = `
+            <tr>
+                <td class="text-center text-secondary">${logDate}</td>
+                <td class="text-secondary">${logCode}</td>
+                <td class="fw-bold" style="white-space: normal; min-width: 150px;">${logName}</td>
+                <td class="text-center fw-bold ${actionColor}">${logAction}</td>
+                <td class="text-center fw-bold fs-5">${logQty > 0 ? logQty : '-'}</td>
+                <td class="text-center text-muted">${logUnit}</td>
+                <td class="text-center fw-bold text-info fs-5">${totalBal}</td>
+                <td><span class="badge bg-secondary"><i class="fas fa-user me-1"></i>${logUser}</span></td>
+                <td class="text-center">${btnHtml}</td>
+            </tr>`;
+            
+            tbody.insertAdjacentHTML('beforeend', row);
+        } catch (e) {
+            console.error("Error rendering history item:", e, log);
         }
-
-        let row = `
-        <tr>
-            <td class="text-center text-secondary">${log.date || '-'}</td>
-            <td class="text-secondary">${log.code || '-'}</td>
-            <td class="fw-bold" style="white-space: normal; min-width: 150px;">${log.name}</td>
-            <td class="text-center fw-bold ${actionColor}">${log.action}</td>
-            <td class="text-center fw-bold fs-5">${log.qty > 0 ? log.qty : '-'}</td>
-            <td class="text-center text-muted">${log.unit || 'ชิ้น'}</td>
-            <td class="text-center fw-bold text-info fs-5">${total_bal}</td>
-            <td><span class="badge bg-secondary"><i class="fas fa-user me-1"></i>${log.user || 'ไม่ระบุ'}</span></td>
-            <td class="text-center">${btnHtml}</td>
-        </tr>`;
-        tbody.insertAdjacentHTML('beforeend', row);
     });
+
+    // ถ้าวนลูปเสร็จแล้วแต่ไม่มีข้อมูลที่ตรงกับคำค้นหา
+    if (!hasData) {
+        tbody.innerHTML = `<tr><td colspan="9" class="text-center py-4 text-danger fw-bold">ไม่พบข้อมูล "${term}" ที่ค้นหา</td></tr>`;
+    }
 }
 
 function undoTransaction(historyId, histIndex) {
