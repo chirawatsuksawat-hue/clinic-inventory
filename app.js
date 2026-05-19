@@ -73,18 +73,27 @@ function loadOnlineData() {
         allItems = Array.isArray(data) ? data : Object.keys(data).map(k => data[k]);
         updateTableUI();
     });
+    
+    // 🌟 แก้ไขจุดนี้: ดึงข้อมูลประวัติและแปลงให้เป็น Array เสมอ
     db.ref('history_data').on('value', (snap) => {
-        historyData = snap.val() || [];
+        let hData = snap.val() || [];
+        // บังคับแปลงเป็น Array และกรองค่าแหว่ง (null) ทิ้ง
+        historyData = (Array.isArray(hData) ? hData : Object.keys(hData).map(k => hData[k])).filter(item => item !== null);
+        
         if(document.getElementById('auditView').style.display === 'block') renderAuditList();
-        if(document.getElementById('historyView').style.display === 'block') renderHistoryList(); // อัปเดตหน้าประวัติ
+        if(document.getElementById('historyView').style.display === 'block') renderHistoryList(); 
     });
 }
 
 function loadLocalData() {
     fetch('inventory_db.json?t=' + new Date().getTime())
         .then(r => r.json()).then(data => { allItems = data; updateTableUI(); }).catch(e => console.error(e));
+        
     fetch('inventory_history.json?t=' + new Date().getTime())
-        .then(r => r.json()).then(data => { historyData = data; if(document.getElementById('historyView').style.display === 'block') renderHistoryList(); }).catch(e => console.error(e));
+        .then(r => r.json()).then(data => { 
+            historyData = (Array.isArray(data) ? data : Object.keys(data).map(k => data[k])).filter(item => item !== null);
+            if(document.getElementById('historyView').style.display === 'block') renderHistoryList(); 
+        }).catch(e => console.error(e));
 }
 
 function forceReload() {
@@ -789,6 +798,8 @@ function generateRandomCodePopup(inputId) {
 function renderHistoryList() {
     const term = document.getElementById('historySearch').value.toLowerCase();
     const tbody = document.getElementById('historyListContainerTable');
+    if (!tbody) return;
+    
     tbody.innerHTML = '';
     
     if(!historyData || historyData.length === 0) {
@@ -797,6 +808,9 @@ function renderHistoryList() {
     }
 
     historyData.forEach((log, index) => {
+        // 🌟 ป้องกันข้อมูลพังหรือค่าว่าง
+        if(!log || !log.name) return; 
+        
         if(term && !log.name.toLowerCase().includes(term) && !(log.code||"").toLowerCase().includes(term) && !(log.action||"").toLowerCase().includes(term) && !(log.user||"").toLowerCase().includes(term)) return;
         
         let actionColor = "text-secondary";
@@ -807,20 +821,18 @@ function renderHistoryList() {
         
         let total_bal = parseInt(log.main_bal || 0) + parseInt(log.sub_bal || 0);
 
-        // 🌟 เพิ่มปุ่มให้ชัดเจน 🌟
         let btnHtml = '';
         if (log.raw_action && log.raw_action !== 'audit') {
             btnHtml = `<button class="btn btn-outline-danger btn-sm fw-bold shadow-sm" onclick="undoTransaction('${log.id}', ${index})" title="ยกเลิกรายการนี้"><i class="fas fa-undo"></i> ย้อนกลับ</button>`;
         } else if (log.raw_action === 'audit' || log.action.includes("Audit")) {
             btnHtml = `<span class="badge bg-light text-muted border px-2 py-2">แก้ไขด้วย Audit</span>`;
         } else {
-            // รายการเก่าที่ไม่มีข้อมูลจะขึ้นแบบนี้แทน '-' ครับ
             btnHtml = `<span class="badge bg-light text-muted border px-2 py-2" title="รายการนี้เก่าเกินไป ไม่สามารถย้อนกลับได้">รายการเก่า</span>`;
         }
 
         let row = `
         <tr>
-            <td class="text-center text-secondary">${log.date}</td>
+            <td class="text-center text-secondary">${log.date || '-'}</td>
             <td class="text-secondary">${log.code || '-'}</td>
             <td class="fw-bold" style="white-space: normal; min-width: 150px;">${log.name}</td>
             <td class="text-center fw-bold ${actionColor}">${log.action}</td>
