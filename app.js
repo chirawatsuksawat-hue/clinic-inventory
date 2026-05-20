@@ -154,8 +154,8 @@ function renderDialysisFluids() {
     const container = document.getElementById('dialysisFluidContainer');
     if(!container) return;
 
-    // 🌟 ดึงมาแสดงเฉพาะรายการที่ "ชื่อ" หรือ "หมวดหมู่" มีคำว่าน้ำยาไต/น้ำเกลือจริงๆ เท่านั้น
-    let fluidKeywords = ["k2", "k3", "k4", "hemo", "nss", "น้ำยาไต", "part a", "part b", "saline"];
+    // 🌟 เพิ่มคำว่า "haemo" เข้าไปในคีย์เวิร์ด เพื่อให้ระบบดึง Haemo B มาแสดง
+    let fluidKeywords = ["k2", "k3", "k4", "hemo", "haemo", "nss", "น้ำยาไต", "part a", "part b", "saline"];
     
     let fluids = allItems.map((item, index) => ({item, index})).filter(x => {
         if (!x.item || !x.item.name) return false;
