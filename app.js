@@ -8,11 +8,12 @@ let historyData = [];
 let auditData = []; 
 let currentMode = 'out';
 
-// ประกาศตัวแปรรองรับกล้อง
+// ประกาศตัวแปรรองรับกล้อง (เพิ่มกล้องสำหรับหน้า Quick Items)
 let html5QrCode = null; 
 let auditHtml5QrCode = null;
 let manualHtml5QrCode = null; 
-let popupScanner = null; // ตัวนี้ใช้สำหรับหน้าเพิ่ม/แก้ไขพัสดุ
+let quickHtml5QrCode = null; // 🌟 เพิ่มตัวสแกนสำหรับหน้าพัสดุด่วน
+let popupScanner = null;
 
 let db = null;
 let currentCalcIndex = -1;
@@ -20,10 +21,7 @@ let currentCalcField = '';
 let currentCalcTargetId = '';
 
 function getCategoryOptionsHTML() {
-    // ล็อกหมวดหมู่พื้นฐาน
     let cats = new Set(["เวชภัณฑ์ทางการแพทย์", "อุปกรณ์สำนักงาน", "น้ำยา/อุปกรณ์ทำความสะอาด", "น้ำยาไต (ทั่วไป)", "อื่นๆ"]);
-    
-    // ดึงหมวดหมู่อื่นๆ จากฐานข้อมูลมาแสดงทั้งหมดอย่างครบถ้วน
     allItems.forEach(item => { 
         if(item && item.category && item.category.length < 40) {
             cats.add(item.category);
@@ -74,10 +72,8 @@ function loadOnlineData() {
         updateTableUI();
     });
     
-    // ดึงข้อมูลประวัติและแปลงให้เป็น Array เสมอ
     db.ref('history_data').on('value', (snap) => {
         let hData = snap.val() || [];
-        // บังคับแปลงเป็น Array และกรองค่าแหว่ง (null) ทิ้ง
         historyData = (Array.isArray(hData) ? hData : Object.keys(hData).map(k => hData[k])).filter(item => item !== null);
         
         if(document.getElementById('auditView').style.display === 'block') renderAuditList();
@@ -147,23 +143,48 @@ function updateTableUI() {
         </tr>`;
         tbody.insertAdjacentHTML('beforeend', row);
     });
-    renderDialysisFluids();
+
+    // 🌟 ถ้าเปิดหน้าแท็บทำรายการพัสดุด่วนอยู่ ให้อัปเดตตารางหน้านั้นด้วย
+    if(document.getElementById('quickItemsView') && document.getElementById('quickItemsView').style.display === 'block') {
+        renderQuickItems();
+    }
 }
 
-function renderDialysisFluids() {
-    const container = document.getElementById('dialysisFluidContainer');
+// 🌟 ฟังก์ชันจัดการแท็บใหม่ (หน้าทำรายการพัสดุด่วน) 🌟
+function openQuickItemsView() {
+    closeAllViews();
+    document.getElementById('quickItemsView').style.display = 'block';
+    if(window.innerWidth <= 768) toggleSidebar();
+    
+    // เคลียร์ช่องค้นหาเมื่อเปิดใหม่ และดึงรายการมาโชว์
+    document.getElementById('quickSearchInput').value = '';
+    renderQuickItems();
+}
+
+function renderQuickItems() {
+    const container = document.getElementById('quickItemsContainer');
     if(!container) return;
 
-    // 🌟 ดึง "ทุกรายการ" ที่มีชื่อมาแสดง
+    // คำค้นหาจากช่องสแกน/พิมพ์
+    const term = (document.getElementById('quickSearchInput') ? document.getElementById('quickSearchInput').value.toLowerCase() : '');
+
     let fluids = allItems.map((item, index) => ({item, index})).filter(x => {
-        return x.item && x.item.name; // ขอแค่มีชื่อพัสดุ ก็ดึงมาแสดงทั้งหมด
+        if (!x.item || !x.item.name) return false;
+        
+        // ถ้ามีการค้นหา ให้กรองเอาเฉพาะที่ตรง
+        if (term) {
+            let match = x.item.name.toLowerCase().includes(term) || 
+                        (x.item.code || "").toLowerCase().includes(term) || 
+                        (x.item.seq_num || "").toLowerCase().includes(term);
+            if (!match) return false;
+        }
+        return true;
     });
 
-    // 🌟 เรียงลำดับการ์ดตาม "เลขลำดับ" ให้ตรงกับในตาราง
     fluids.sort((a, b) => (parseFloat(a.item.seq_num) || 99999) - (parseFloat(b.item.seq_num) || 99999));
 
     if (fluids.length === 0) {
-        container.innerHTML = '<div class="col-12 text-center text-muted py-2">ยังไม่มีรายการพัสดุในคลัง</div>';
+        container.innerHTML = `<div class="col-12 text-center text-danger py-4 fw-bold">ไม่พบรายการพัสดุ ${term ? 'ที่ตรงกับ "'+term+'"' : ''}</div>`;
         return;
     }
 
@@ -198,15 +219,33 @@ function renderDialysisFluids() {
     });
 }
 
+function toggleQuickScan() {
+    const rDiv = document.getElementById('quickReader');
+    if (quickHtml5QrCode) { quickHtml5QrCode.stop().then(() => { quickHtml5QrCode.clear(); quickHtml5QrCode = null; rDiv.style.display = 'none'; }); return; }
+    rDiv.style.display = 'block'; quickHtml5QrCode = new Html5Qrcode("quickReader");
+    quickHtml5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } }, onQuickScanSuccess, ()=>{})
+        .catch(() => { quickHtml5QrCode.start({ facingMode: "user" }, { fps: 10, qrbox: { width: 250, height: 250 } }, onQuickScanSuccess, ()=>{})
+        .catch(() => { Swal.fire("ข้อผิดพลาด", "ไม่สามารถเปิดกล้องได้", "error"); rDiv.style.display = 'none'; quickHtml5QrCode = null; }); });
+}
+
+function onQuickScanSuccess(t) { 
+    try{document.getElementById('soundScan').play()}catch(e){} 
+    if(quickHtml5QrCode) { quickHtml5QrCode.stop().then(() => { quickHtml5QrCode.clear(); quickHtml5QrCode = null; document.getElementById('quickReader').style.display = 'none'; }); } 
+    document.getElementById('quickSearchInput').value = t; 
+    renderQuickItems(); 
+}
+
 function stopAllScanners() {
     if (html5QrCode) { html5QrCode.stop().then(() => { html5QrCode.clear(); html5QrCode = null; document.getElementById('reader').style.display = 'none'; }).catch(()=>{}); }
     if (auditHtml5QrCode) { auditHtml5QrCode.stop().then(() => { auditHtml5QrCode.clear(); auditHtml5QrCode = null; document.getElementById('auditReader').style.display = 'none'; }).catch(()=>{}); }
     if (manualHtml5QrCode) { manualHtml5QrCode.stop().then(() => { manualHtml5QrCode.clear(); manualHtml5QrCode = null; document.getElementById('manualReader').style.display = 'none'; }).catch(()=>{}); }
+    if (quickHtml5QrCode) { quickHtml5QrCode.stop().then(() => { quickHtml5QrCode.clear(); quickHtml5QrCode = null; document.getElementById('quickReader').style.display = 'none'; }).catch(()=>{}); }
 }
 
 function closeAllViews() {
     stopAllScanners();
     document.getElementById('dashboardView').style.display = 'none';
+    document.getElementById('quickItemsView').style.display = 'none';
     document.getElementById('manualView').style.display = 'none';
     document.getElementById('auditView').style.display = 'none';
     document.getElementById('historyView').style.display = 'none';

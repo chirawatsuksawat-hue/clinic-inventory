@@ -21,7 +21,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
-    <link rel="stylesheet" href="style.css?v=8">
+    <link rel="stylesheet" href="style.css?v=9">
 </head>
 <body>
 
@@ -52,9 +52,12 @@
         </div>
         <ul class="nav flex-column mt-3">
             <li class="nav-item"><a class="nav-link active" onclick="closeAllViews(); document.getElementById('dashboardView').style.display = 'block';"><i class="fas fa-home me-2"></i> หน้าหลัก (คลังพัสดุ)</a></li>
-            <li class="nav-item mt-2"><a class="nav-link text-info fw-bold" onclick="openManualView()"><i class="fas fa-keyboard me-2"></i> ทำรายการแบบแมนนวล</a></li>
-            <li class="nav-item mt-2"><a class="nav-link text-primary fw-bold" onclick="openVisitView()"><i class="fas fa-bed me-2"></i> คิวคนไข้ฟอกไตวันนี้</a></li>
-            <li class="nav-item mt-2"><a class="nav-link text-warning fw-bold" onclick="openAuditView()"><i class="fas fa-clipboard-check me-2"></i> โหมดใบตรวจนับ (Audit)</a></li>
+            
+            <li class="nav-item mt-2"><a class="nav-link text-info fw-bold" onclick="openQuickItemsView()"><i class="fas fa-box me-2"></i> ทำรายการพัสดุด่วน</a></li>
+            
+            <li class="nav-item mt-2"><a class="nav-link text-primary fw-bold" onclick="openManualView()"><i class="fas fa-keyboard me-2"></i> โหมดสแกนบาร์โค้ดหลัก</a></li>
+            <li class="nav-item mt-2"><a class="nav-link text-warning fw-bold" onclick="openVisitView()"><i class="fas fa-bed me-2"></i> คิวคนไข้ฟอกไตวันนี้</a></li>
+            <li class="nav-item mt-2"><a class="nav-link text-secondary fw-bold" onclick="openAuditView()"><i class="fas fa-clipboard-check me-2"></i> โหมดใบตรวจนับ (Audit)</a></li>
             <li class="nav-item mt-2"><a class="nav-link text-success fw-bold" onclick="openHistoryView()"><i class="fas fa-history me-2"></i> ประวัติการทำรายการ</a></li>
             <li class="nav-item mt-4 border-top pt-3">
                 <a class="nav-link text-danger fw-bold" href="javascript:void(0);" onclick="logoutApp()">
@@ -68,31 +71,6 @@
         <h2 class="header-title w-100 mb-3 d-none d-md-block">แดชบอร์ด - ภาพรวมสต๊อกพัสดุออนไลน์</h2>
         <div class="alert alert-info fw-bold shadow-sm mb-4" style="border-radius: 10px; font-size: 0.95rem;">
             <i class="fas fa-wifi me-2"></i> ระบบคลังออนไลน์ (เชื่อมต่อข้อมูลกับคลินิกอัตโนมัติ)
-        </div>
-
-        <div class="card mb-4 bg-white p-3 p-md-4 border-2 border-info shadow-sm">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h5 class="fw-bold text-info m-0"><i class="fas fa-box me-2"></i>ทำรายการพัสดุด่วนทั้งหมด</h5>
-            </div>
-            <div id="dialysisFluidContainer" class="row g-2">
-                <div class="col-12 text-center text-muted py-3">กำลังโหลดข้อมูล...</div>
-            </div>
-        </div>
-
-        <div class="card mb-4 bg-white p-3 p-md-4 shadow-sm border-2 border-success">
-            <h5 class="fw-bold text-success mb-3"><i class="fa-solid fa-camera me-2"></i>สแกนเพื่อทำรายการด่วน</h5>
-            <div class="d-flex flex-column flex-sm-row gap-2 mb-3">
-                <button id="btnModeOut" class="btn btn-warning flex-fill fw-bold py-2 shadow-sm active" onclick="setMode('out')">📤 ตัดสต๊อก (เบิก)</button>
-                <button id="btnModeIn" class="btn btn-outline-success flex-fill fw-bold py-2 shadow-sm" onclick="setMode('in')">📥 รับเข้าคลัง</button>
-                <button id="btnModeAudit" class="btn btn-outline-secondary flex-fill fw-bold py-2 shadow-sm" onclick="setMode('audit')">📋 ปรับยอด (1 ชิ้น)</button>
-            </div>
-            <button class="btn btn-scan w-100 mb-3 shadow" onclick="toggleScan()"><i class="fa-solid fa-expand me-2"></i>เปิดกล้องสแกน QR</button>
-            <div id="reader"></div>
-            <div class="input-group shadow-sm mt-3" style="border-radius: 10px; overflow: hidden;">
-                <span class="input-group-text bg-white border-0"><i class="fa-solid fa-barcode text-muted"></i></span>
-                <input type="text" id="codeInput" class="form-control border-0 bg-light" placeholder="รหัสบาร์โค้ด..." onkeypress="if(event.key === 'Enter') handleScanResult(this.value)">
-                <button class="btn btn-primary px-3 fw-bold" onclick="handleScanResult(document.getElementById('codeInput').value)">ค้นหา</button>
-            </div>
         </div>
 
         <div class="row">
@@ -130,28 +108,59 @@
         </div>
     </div>
 
-    <div id="manualView" class="main-content" style="display: none;">
+    <div id="quickItemsView" class="main-content" style="display: none;">
         <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
             <div>
                 <button class="btn btn-outline-secondary btn-sm mb-2 rounded-pill px-3 w-100 w-sm-auto" onclick="closeAllViews(); document.getElementById('dashboardView').style.display = 'block';"><i class="fas fa-arrow-left me-1"></i> กลับหน้าหลัก</button>
-                <h3 class="m-0 fw-bold text-info"><i class="fas fa-keyboard me-2"></i>ทำรายการแบบแมนนวล</h3>
+                <h3 class="m-0 fw-bold text-info"><i class="fas fa-box me-2"></i>ทำรายการพัสดุด่วน</h3>
             </div>
         </div>
 
         <div class="card mb-4 bg-white p-3 p-md-4 border-2 border-primary shadow-sm">
-            <h5 class="fw-bold text-primary mb-3"><i class="fa-solid fa-qrcode me-2"></i>สแกนเพื่อค้นหาและทำรายการด่วน</h5>
-            <button class="btn btn-scan w-100 mb-3 shadow" style="background-color: #3498db;" onclick="toggleManualScan()"><i class="fa-solid fa-expand me-2"></i> เปิดกล้องสแกน QR Code</button>
-            <div id="manualReader" style="display: none; border-radius: 8px; overflow: hidden; border: 2px solid #3498db;"></div>
+            <h5 class="fw-bold text-primary mb-3"><i class="fa-solid fa-qrcode me-2"></i>สแกน หรือ พิมพ์ค้นหาเพื่อกรองพัสดุ</h5>
+            <button class="btn btn-scan w-100 mb-3 shadow" style="background-color: #34495e;" onclick="toggleQuickScan()"><i class="fa-solid fa-expand me-2"></i> เปิดกล้องสแกน QR Code</button>
+            <div id="quickReader" style="display: none; border-radius: 8px; overflow: hidden; border: 2px solid #34495e;"></div>
             
             <div class="input-group shadow-sm mt-3" style="border-radius: 10px; overflow: hidden;">
-                <span class="input-group-text bg-white border-0"><i class="fa-solid fa-barcode text-muted"></i></span>
-                <input type="text" id="manualCodeInput" class="form-control border-0 bg-light" placeholder="พิมพ์ หรือ สแกนรหัสพัสดุ..." onkeypress="if(event.key === 'Enter') handleManualScan(this.value)">
-                <button class="btn btn-primary px-3 fw-bold" onclick="handleManualScan(document.getElementById('manualCodeInput').value)">ค้นหา</button>
+                <span class="input-group-text bg-white border-0"><i class="fas fa-search text-muted"></i></span>
+                <input type="text" id="quickSearchInput" class="form-control border-0 bg-light py-2" placeholder="พิมพ์ชื่อ, ลำดับ หรือสแกนรหัสพัสดุ..." onkeyup="renderQuickItems()">
+                <button class="btn btn-primary px-3 fw-bold" onclick="renderQuickItems()">ค้นหา</button>
             </div>
         </div>
 
         <div class="card mb-4 bg-white p-3 p-md-4 border-2 border-info shadow-sm">
-            <h5 class="fw-bold text-info mb-3">หรือ ค้นหาพัสดุจากรายชื่อ</h5>
+            <div id="quickItemsContainer" class="row g-2">
+                <div class="col-12 text-center text-muted py-3">กำลังโหลดข้อมูล...</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="manualView" class="main-content" style="display: none;">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+            <div>
+                <button class="btn btn-outline-secondary btn-sm mb-2 rounded-pill px-3 w-100 w-sm-auto" onclick="closeAllViews(); document.getElementById('dashboardView').style.display = 'block';"><i class="fas fa-arrow-left me-1"></i> กลับหน้าหลัก</button>
+                <h3 class="m-0 fw-bold text-primary"><i class="fas fa-keyboard me-2"></i>โหมดสแกนบาร์โค้ดหลัก</h3>
+            </div>
+        </div>
+
+        <div class="card mb-4 bg-white p-3 p-md-4 shadow-sm border-2 border-success">
+            <h5 class="fw-bold text-success mb-3"><i class="fa-solid fa-camera me-2"></i>สแกนเพื่อทำรายการด่วน</h5>
+            <div class="d-flex flex-column flex-sm-row gap-2 mb-3">
+                <button id="btnModeOut" class="btn btn-warning flex-fill fw-bold py-2 shadow-sm active" onclick="setMode('out')">📤 ตัดสต๊อก (เบิก)</button>
+                <button id="btnModeIn" class="btn btn-outline-success flex-fill fw-bold py-2 shadow-sm" onclick="setMode('in')">📥 รับเข้าคลัง</button>
+                <button id="btnModeAudit" class="btn btn-outline-secondary flex-fill fw-bold py-2 shadow-sm" onclick="setMode('audit')">📋 ปรับยอด (1 ชิ้น)</button>
+            </div>
+            <button class="btn btn-scan w-100 mb-3 shadow" onclick="toggleScan()"><i class="fa-solid fa-expand me-2"></i>เปิดกล้องสแกน QR</button>
+            <div id="reader"></div>
+            <div class="input-group shadow-sm mt-3" style="border-radius: 10px; overflow: hidden;">
+                <span class="input-group-text bg-white border-0"><i class="fa-solid fa-barcode text-muted"></i></span>
+                <input type="text" id="codeInput" class="form-control border-0 bg-light" placeholder="รหัสบาร์โค้ด..." onkeypress="if(event.key === 'Enter') handleScanResult(this.value)">
+                <button class="btn btn-primary px-3 fw-bold" onclick="handleScanResult(document.getElementById('codeInput').value)">ทำรายการ</button>
+            </div>
+        </div>
+
+        <div class="card mb-4 bg-white p-3 p-md-4 border-2 border-info shadow-sm">
+            <h5 class="fw-bold text-info mb-3">หรือ ค้นหาพัสดุจากรายชื่อทั้งหมด</h5>
             <div class="d-flex flex-column flex-sm-row flex-wrap gap-2">
                 <button class="btn btn-success action-btn shadow-sm" onclick="openItemSelector('receive_main')"><i class="fas fa-download me-1"></i> รับของเข้าคลัง</button>
                 <button class="btn btn-primary action-btn text-white shadow-sm" onclick="openItemSelector('transfer')"><i class="fas fa-exchange-alt me-1"></i> โอนย้ายคลัง</button>
@@ -312,7 +321,7 @@
         </div>
     </div>
     
-    <script src="app.js?v=8"></script>
+    <script src="app.js?v=9"></script>
 
     <script>
         window.history.pushState(null, "", window.location.href);
