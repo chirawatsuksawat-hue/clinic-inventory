@@ -154,19 +154,16 @@ function renderDialysisFluids() {
     const container = document.getElementById('dialysisFluidContainer');
     if(!container) return;
 
-    // 🌟 เพิ่มคำว่า "haemo" เข้าไปในคีย์เวิร์ด เพื่อให้ระบบดึง Haemo B มาแสดง
-    let fluidKeywords = ["k2", "k3", "k4", "hemo", "haemo", "nss", "น้ำยาไต", "part a", "part b", "saline"];
-    
+    // 🌟 ยกเลิกการกรองคำ (Keywords) ทิ้งไปเลย ให้ดึง "ทุกรายการ" ที่มีชื่อมาแสดง
     let fluids = allItems.map((item, index) => ({item, index})).filter(x => {
-        if (!x.item || !x.item.name) return false;
-        let nameLower = x.item.name.toLowerCase();
-        let catLower = (x.item.category || "").toLowerCase();
-        
-        return fluidKeywords.some(kw => nameLower.includes(kw) || catLower.includes(kw));
+        return x.item && x.item.name; // ขอแค่มีชื่อพัสดุ ก็ดึงมาแสดงทั้งหมด
     });
 
+    // 🌟 เรียงลำดับการ์ดตาม "เลขลำดับ" ให้ตรงกับในตาราง
+    fluids.sort((a, b) => (parseFloat(a.item.seq_num) || 99999) - (parseFloat(b.item.seq_num) || 99999));
+
     if (fluids.length === 0) {
-        container.innerHTML = '<div class="col-12 text-center text-muted py-2">ยังไม่มีรายการน้ำยาไต หรือ น้ำเกลือ ในคลังพัสดุ</div>';
+        container.innerHTML = '<div class="col-12 text-center text-muted py-2">ยังไม่มีรายการพัสดุในคลัง</div>';
         return;
     }
 
