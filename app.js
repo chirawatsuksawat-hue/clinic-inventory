@@ -74,7 +74,7 @@ function loadOnlineData() {
         updateTableUI();
     });
     
-    // 🌟 แก้ไขจุดนี้: ดึงข้อมูลประวัติและแปลงให้เป็น Array เสมอ
+    // ดึงข้อมูลประวัติและแปลงให้เป็น Array เสมอ
     db.ref('history_data').on('value', (snap) => {
         let hData = snap.val() || [];
         // บังคับแปลงเป็น Array และกรองค่าแหว่ง (null) ทิ้ง
@@ -154,7 +154,7 @@ function renderDialysisFluids() {
     const container = document.getElementById('dialysisFluidContainer');
     if(!container) return;
 
-    // 🌟 ยกเลิกการกรองคำ (Keywords) ทิ้งไปเลย ให้ดึง "ทุกรายการ" ที่มีชื่อมาแสดง
+    // 🌟 ดึง "ทุกรายการ" ที่มีชื่อมาแสดง
     let fluids = allItems.map((item, index) => ({item, index})).filter(x => {
         return x.item && x.item.name; // ขอแค่มีชื่อพัสดุ ก็ดึงมาแสดงทั้งหมด
     });
@@ -405,7 +405,7 @@ function showStockDialog(idx, mode) {
                         const currentParams = new URLSearchParams(window.location.search);
                         const savedUserName = currentParams.get('user') || "มือถือ-ไม่ระบุชื่อ";
                         
-                        // 🌟 สร้าง ID เฉพาะสำหรับ History
+                        // สร้าง ID เฉพาะสำหรับ History
                         let historyId = "HIST-" + new Date().getTime();
                         let log = { id: historyId, date: new Date().toLocaleDateString('en-GB')+" "+new Date().toLocaleTimeString('en-GB'), code: item.code, name: item.name, action: "ปรับยอด (Spot Audit)", qty: 0, unit: item.unit, main_bal: res.value.new_main, sub_bal: res.value.new_sub, user: savedUserName };
                         db.ref('history_data').once('value').then(s => { let arr = s.val() || []; arr.unshift(log); db.ref('history_data').set(arr); });
@@ -432,7 +432,7 @@ function processStockUpdate(item, idx, qty, action) {
             const currentParams = new URLSearchParams(window.location.search);
             const savedUserName = currentParams.get('user') || "มือถือ-ไม่ระบุชื่อ";
 
-            // 🌟 จุดสำคัญ: ต้องเก็บ id และ raw_action เพื่อให้ระบบรู้ว่าต้องย้อนกลับยังไง
+            // จุดสำคัญ: ต้องเก็บ id และ raw_action เพื่อให้ระบบรู้ว่าต้องย้อนกลับยังไง
             let historyId = "HIST-" + new Date().getTime();
             let log = { id: historyId, date: new Date().toLocaleDateString('en-GB')+" "+new Date().toLocaleTimeString('en-GB'), code: item.code, name: item.name, action: actText, qty: qty, unit: item.unit, main_bal: n_main, sub_bal: n_sub, user: savedUserName, raw_action: action }; 
             
@@ -693,7 +693,7 @@ function saveBulkAudit() {
                 if(nMain !== oMain || nSub !== oSub) {
                     updates[`inventory_data/${idx}/main_stock`] = nMain; updates[`inventory_data/${idx}/sub_stock`] = nSub;
                     let historyId = "HIST-" + new Date().getTime() + "-" + idx; 
-                    // 🌟 ระบุว่าเป็น raw_action: 'audit' (กันไม่ให้กดย้อนกลับมั่ว)
+                    // ระบุว่าเป็น raw_action: 'audit' (กันไม่ให้กดย้อนกลับมั่ว)
                     logs.push({ id: historyId, date: now, code: item.code, name: item.name, action: "ทำใบตรวจนับ (Audit) 📋", qty: 0, unit: item.unit, main_bal: nMain, sub_bal: nSub, user: savedUserName, raw_action: 'audit' }); 
                     changesCount++;
                 }
