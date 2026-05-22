@@ -75,7 +75,30 @@ function loadOnlineData() {
     
     db.ref('history_data').on('value', (snap) => {
         let hData = snap.val() || [];
-        historyData = (Array.isArray(hData) ? hData : Object.keys(hData).map(k => hData[k])).filter(item => item !== null);
+        let rawArray = (Array.isArray(hData) ? hData : Object.keys(hData).map(k => hData[k])).filter(item => item !== null);
+        
+        // 🌟 ระบบล้างประวัติเก่า (เก่ากว่า 30 วัน ลบทิ้งอัตโนมัติ) 🌟
+        let now = new Date();
+        let needUpdateDb = false;
+        
+        historyData = rawArray.filter(log => {
+            if (!log || !log.date) return true;
+            let parts = log.date.split(" ")[0].split("/");
+            if (parts.length === 3) {
+                let d = new Date(parts[2], parts[1] - 1, parts[0]);
+                let diffDays = (now - d) / (1000 * 60 * 60 * 24);
+                if (diffDays > 30) {
+                    needUpdateDb = true;
+                    return false; // กรองทิ้งไปเลย (ลบ)
+                }
+            }
+            return true; // ไม่เกิน 30 วัน ให้เก็บไว้
+        });
+
+        // 🌟 ถ้าตรวจพบว่ามีประวัติโดนลบ ให้สั่งอัปเดตฐานข้อมูลบน Cloud ทันที
+        if (needUpdateDb && document.getElementById('syncStatus').innerText.includes('ออนไลน์')) {
+            db.ref('history_data').set(historyData);
+        }
         
         if(document.getElementById('auditView').style.display === 'block') renderAuditList();
         if(document.getElementById('historyView').style.display === 'block') renderHistoryList(); 
@@ -88,7 +111,21 @@ function loadLocalData() {
         
     fetch('inventory_history.json?t=' + new Date().getTime())
         .then(r => r.json()).then(data => { 
-            historyData = (Array.isArray(data) ? data : Object.keys(data).map(k => data[k])).filter(item => item !== null);
+            let rawArray = (Array.isArray(data) ? data : Object.keys(data).map(k => data[k])).filter(item => item !== null);
+            
+            // 🌟 กรองประวัติบน Local File ด้วย
+            let now = new Date();
+            historyData = rawArray.filter(log => {
+                if (!log || !log.date) return true;
+                let parts = log.date.split(" ")[0].split("/");
+                if (parts.length === 3) {
+                    let d = new Date(parts[2], parts[1] - 1, parts[0]);
+                    let diffDays = (now - d) / (1000 * 60 * 60 * 24);
+                    return diffDays <= 30;
+                }
+                return true;
+            });
+
             if(document.getElementById('historyView').style.display === 'block') renderHistoryList(); 
         }).catch(e => console.error(e));
 }

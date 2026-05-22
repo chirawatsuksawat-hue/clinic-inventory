@@ -21,7 +21,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
-    <link rel="stylesheet" href="style.css?v=11">
+    <link rel="stylesheet" href="style.css?v=12">
 
     <style>
         @media print {
@@ -53,6 +53,10 @@
             input[type="number"] {
                 border: none !important;
                 background: transparent !important;
+            }
+            /* คลาสพิเศษสำหรับซ่อนคอลัมน์จัดการเวลาพิมพ์ */
+            .print-hide {
+                display: none !important;
             }
         }
     </style>
@@ -388,7 +392,7 @@
 
     <audio id="soundScan" src="https://www.soundjay.com/buttons/sounds/beep-07.mp3"></audio>
 
-    <script src="app.js?v=11"></script>
+    <script src="app.js?v=12"></script>
 
     <script>
         window.history.pushState(null, "", window.location.href);
