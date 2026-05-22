@@ -21,7 +21,41 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
-    <link rel="stylesheet" href="style.css?v=10">
+    <link rel="stylesheet" href="style.css?v=11">
+
+    <style>
+        @media print {
+            body { background-color: #fff !important; }
+            /* ซ่อนเมนู ปุ่ม ช่องค้นหา และส่วนที่ไม่ต้องการพิมพ์ */
+            .sidebar, .mobile-header, .sidebar-overlay, button, .btn, .input-group, .alert, #dashboardReader, #quickReader, #manualReader, #auditReader { 
+                display: none !important; 
+            }
+            .main-content { 
+                margin-left: 0 !important; 
+                padding: 0 !important; 
+                width: 100% !important; 
+            }
+            .card { 
+                border: none !important; 
+                box-shadow: none !important; 
+                margin-bottom: 10px !important;
+            }
+            /* ปลดล็อกความสูงตาราง ให้แสดงครบทุกบรรทัดเวลาพิมพ์ */
+            .table-responsive { 
+                max-height: none !important; 
+                overflow: visible !important; 
+            }
+            .table th, .table td { 
+                border: 1px solid #000 !important; 
+                color: #000 !important;
+            }
+            /* ซ่อนกรอบของช่องกรอกตัวเลขในใบ Audit ตอนพิมพ์ */
+            input[type="number"] {
+                border: none !important;
+                background: transparent !important;
+            }
+        }
+    </style>
 </head>
 <body>
 
@@ -66,7 +100,12 @@
     </div>
 
     <div id="dashboardView" class="main-content">
-        <h2 class="header-title w-100 mb-3 d-none d-md-block">แดชบอร์ด - ภาพรวมสต๊อกพัสดุออนไลน์</h2>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2 class="header-title w-100 m-0 d-none d-md-block">แดชบอร์ด - ภาพรวมสต๊อกพัสดุออนไลน์</h2>
+            <button class="btn btn-outline-dark fw-bold rounded-pill px-3 shadow-sm d-none d-md-block ms-3 text-nowrap" onclick="window.print()">
+                <i class="fas fa-print me-1"></i> พิมพ์หน้านี้
+            </button>
+        </div>
         <div class="alert alert-info fw-bold shadow-sm mb-4" style="border-radius: 10px; font-size: 0.95rem;">
             <i class="fas fa-wifi me-2"></i> ระบบคลังออนไลน์ (เชื่อมต่อข้อมูลกับคลินิกอัตโนมัติ)
         </div>
@@ -92,6 +131,7 @@
                         <h5 class="mb-0 text-primary fw-bold"><i class="fas fa-cubes me-2"></i> สต๊อกพัสดุคงเหลือ</h5>
                         <div class="d-flex align-items-center justify-content-between">
                             <span class="badge bg-secondary fs-6 px-3 py-2 me-2" id="syncStatus"><i class="fas fa-spinner fa-spin me-1"></i> ตรวจสอบระบบ...</span>
+                            <button class="btn btn-outline-dark rounded-pill px-3 me-2 d-md-none" onclick="window.print()"><i class="fas fa-print"></i></button>
                             <button class="btn btn-outline-primary btn-sm rounded-pill px-3" onclick="forceReload()"><i class="fas fa-sync-alt"></i></button>
                         </div>
                     </div>
@@ -106,7 +146,7 @@
                                         <th class="text-center">คลังหลัก</th>
                                         <th class="text-center">คลังย่อย</th>
                                         <th class="text-center text-primary">ยอดรวม</th>
-                                        <th class="text-center">จัดการ</th>
+                                        <th class="text-center print-hide">จัดการ</th>
                                     </tr>
                                 </thead>
                                 <tbody id="inventory-table-body">
@@ -126,6 +166,9 @@
                 <button class="btn btn-outline-secondary btn-sm mb-2 rounded-pill px-3 w-100 w-sm-auto" onclick="closeAllViews(); document.getElementById('dashboardView').style.display = 'block';"><i class="fas fa-arrow-left me-1"></i> กลับหน้าหลัก</button>
                 <h3 class="m-0 fw-bold text-info"><i class="fas fa-box me-2"></i>ทำรายการพัสดุด่วน</h3>
             </div>
+            <button class="btn btn-outline-dark fw-bold rounded-pill px-3 shadow-sm w-100 w-md-auto" onclick="window.print()">
+                <i class="fas fa-print me-1"></i> พิมพ์หน้านี้
+            </button>
         </div>
 
         <div class="card mb-4 bg-white p-3 p-md-4 border-2 border-primary shadow-sm">
@@ -153,6 +196,9 @@
                 <button class="btn btn-outline-secondary btn-sm mb-2 rounded-pill px-3 w-100 w-sm-auto" onclick="closeAllViews(); document.getElementById('dashboardView').style.display = 'block';"><i class="fas fa-arrow-left me-1"></i> กลับหน้าหลัก</button>
                 <h3 class="m-0 fw-bold text-primary"><i class="fas fa-keyboard me-2"></i>โหมดสแกนบาร์โค้ดหลัก</h3>
             </div>
+            <button class="btn btn-outline-dark fw-bold rounded-pill px-3 shadow-sm w-100 w-md-auto" onclick="window.print()">
+                <i class="fas fa-print me-1"></i> พิมพ์หน้านี้
+            </button>
         </div>
 
         <div class="card mb-4 bg-white p-3 p-md-4 shadow-sm border-2 border-success">
@@ -191,7 +237,10 @@
                 <button class="btn btn-outline-secondary btn-sm mb-2 rounded-pill px-3 w-100 w-sm-auto" onclick="closeAllViews(); document.getElementById('dashboardView').style.display = 'block';"><i class="fas fa-arrow-left me-1"></i> กลับหน้าหลัก</button>
                 <h3 class="m-0 fw-bold" style="color: #495057;"><i class="fas fa-clipboard-list me-2"></i>ใบตรวจนับสต๊อก</h3>
             </div>
-            <button class="btn btn-success fw-bold px-4 py-2 shadow-sm w-100 w-md-auto" onclick="saveBulkAudit()"><i class="fas fa-save me-2"></i>บันทึกผลการนับทั้งหมด</button>
+            <div class="d-flex gap-2 w-100 w-md-auto">
+                <button class="btn btn-outline-dark fw-bold px-3 py-2 shadow-sm flex-fill" onclick="window.print()"><i class="fas fa-print me-1"></i> พิมพ์ใบตรวจนับ</button>
+                <button class="btn btn-success fw-bold px-4 py-2 shadow-sm flex-fill" onclick="saveBulkAudit()"><i class="fas fa-save me-2"></i>บันทึกทั้งหมด</button>
+            </div>
         </div>
         <div class="alert alert-warning border-warning shadow-sm" style="border-radius: 10px;">
             <i class="fas fa-info-circle me-2"></i> <b>วิธีใช้:</b> พิมพ์ตัวเลข <u>"ยอดที่นับได้จริง"</u> ลงในช่อง (กดเครื่องคิดเลขข้างๆเพื่อบวกเลขได้เลย)
@@ -230,7 +279,10 @@
                 <button class="btn btn-outline-secondary btn-sm mb-2 rounded-pill px-3 w-100 w-sm-auto" onclick="closeAllViews(); document.getElementById('dashboardView').style.display = 'block';"><i class="fas fa-arrow-left me-1"></i> กลับหน้าหลัก</button>
                 <h3 class="m-0 fw-bold text-success"><i class="fas fa-history me-2"></i>ประวัติการทำรายการ</h3>
             </div>
-            <button class="btn btn-outline-primary btn-sm rounded-pill px-3" onclick="renderHistoryList()"><i class="fas fa-sync-alt me-1"></i> รีเฟรช</button>
+            <div class="d-flex gap-2 w-100 w-md-auto">
+                <button class="btn btn-outline-dark fw-bold rounded-pill px-3 flex-fill" onclick="window.print()"><i class="fas fa-print me-1"></i> พิมพ์</button>
+                <button class="btn btn-outline-primary fw-bold rounded-pill px-3 flex-fill" onclick="renderHistoryList()"><i class="fas fa-sync-alt me-1"></i> รีเฟรช</button>
+            </div>
         </div>
 
         <div class="input-group shadow-sm mb-4" style="border-radius: 10px; overflow: hidden;">
@@ -251,13 +303,33 @@
                             <th class="text-center">หน่วย</th>
                             <th class="text-center">ยอดคงเหลือรวม</th>
                             <th>ผู้ทำรายการ</th>
-                            <th class="text-center">จัดการ</th>
+                            <th class="text-center print-hide">จัดการ</th>
                         </tr>
                     </thead>
                     <tbody id="historyListContainerTable">
                         <tr><td colspan="9" class="text-center py-5 text-muted">ไม่มีประวัติการทำรายการ</td></tr>
                     </tbody>
                 </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="visitView" class="main-content" style="display: none;">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+            <div>
+                <button class="btn btn-outline-secondary btn-sm mb-2 rounded-pill px-3 w-100 w-sm-auto" onclick="closeAllViews(); document.getElementById('dashboardView').style.display = 'block';"><i class="fas fa-arrow-left me-1"></i> กลับหน้าหลัก</button>
+                <h3 class="m-0 fw-bold text-primary"><i class="fas fa-bed me-2"></i>คิวผู้ป่วยฟอกไตวันนี้</h3>
+            </div>
+            <div class="d-flex gap-2 w-100 w-md-auto">
+                <button class="btn btn-outline-dark fw-bold rounded-pill px-3 shadow-sm flex-fill" onclick="window.print()"><i class="fas fa-print me-1"></i> พิมพ์</button>
+                <button class="btn btn-outline-primary fw-bold rounded-pill px-3 shadow-sm flex-fill" onclick="loadVisitsData()"><i class="fas fa-sync-alt me-1"></i> รีเฟรช</button>
+            </div>
+        </div>
+
+        <div class="card mb-4 bg-white p-3 p-md-4 border-2 border-primary shadow-sm">
+            <h5 class="fw-bold text-primary mb-3"><i class="fas fa-calendar-day me-2"></i>รายชื่อคิวประจำวันที่: <span id="visitDateDisplay" class="text-dark"></span></h5>
+            <div id="visitListContainer" class="row g-2">
+                <div class="col-12 text-center text-muted py-3"><i class="fas fa-spinner fa-spin me-2"></i>กำลังดึงข้อมูลคิวฟอกไต...</div>
             </div>
         </div>
     </div>
@@ -316,24 +388,7 @@
 
     <audio id="soundScan" src="https://www.soundjay.com/buttons/sounds/beep-07.mp3"></audio>
 
-    <div id="visitView" class="main-content" style="display: none;">
-        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
-            <div>
-                <button class="btn btn-outline-secondary btn-sm mb-2 rounded-pill px-3 w-100 w-sm-auto" onclick="closeAllViews(); document.getElementById('dashboardView').style.display = 'block';"><i class="fas fa-arrow-left me-1"></i> กลับหน้าหลัก</button>
-                <h3 class="m-0 fw-bold text-primary"><i class="fas fa-bed me-2"></i>คิวผู้ป่วยฟอกไตวันนี้</h3>
-            </div>
-            <button class="btn btn-outline-primary btn-sm rounded-pill px-3 shadow-sm" onclick="loadVisitsData()"><i class="fas fa-sync-alt me-1"></i> รีเฟรชข้อมูลคิว</button>
-        </div>
-
-        <div class="card mb-4 bg-white p-3 p-md-4 border-2 border-primary shadow-sm">
-            <h5 class="fw-bold text-primary mb-3"><i class="fas fa-calendar-day me-2"></i>รายชื่อคิวประจำวันที่: <span id="visitDateDisplay" class="text-dark"></span></h5>
-            <div id="visitListContainer" class="row g-2">
-                <div class="col-12 text-center text-muted py-3"><i class="fas fa-spinner fa-spin me-2"></i>กำลังดึงข้อมูลคิวฟอกไต...</div>
-            </div>
-        </div>
-    </div>
-    
-    <script src="app.js?v=10"></script>
+    <script src="app.js?v=11"></script>
 
     <script>
         window.history.pushState(null, "", window.location.href);

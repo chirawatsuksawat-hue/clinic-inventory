@@ -140,7 +140,7 @@ function updateTableUI() {
             <td class="text-center fs-6"><b class="${mainColor} fs-5">${main_s}</b> <small class="text-muted">${unit}</small></td>
             <td class="text-center fs-6"><b class="text-danger fs-5">${sub_s}</b> <small class="text-muted">${unit}</small></td>
             <td class="text-center fs-5 text-primary fw-bold">${total_s}</td>
-            <td class="text-center"><button class="btn btn-outline-primary btn-sm" onclick="editItem(${originalIndex})"><i class="fas fa-edit"></i></button></td>
+            <td class="text-center print-hide"><button class="btn btn-outline-primary btn-sm" onclick="editItem(${originalIndex})"><i class="fas fa-edit"></i></button></td>
         </tr>`;
         tbody.insertAdjacentHTML('beforeend', row);
     });
@@ -206,7 +206,7 @@ function renderQuickItems() {
                         </div>
                         <div class="fw-bold text-primary">ยอดรวม: <span class="fs-5">${total_s}</span></div>
                     </div>
-                    <div class="d-flex gap-1 mt-auto">
+                    <div class="d-flex gap-1 mt-auto print-hide">
                         <button class="btn btn-warning btn-sm flex-fill fw-bold shadow-sm" onclick="showStockDialog(${idx}, 'use')"><i class="fas fa-minus-circle"></i> เบิก</button>
                         <button class="btn btn-secondary btn-sm flex-fill fw-bold text-white shadow-sm" onclick="showStockDialog(${idx}, 'audit')"><i class="fas fa-clipboard-check"></i> นับ</button>
                     </div>
@@ -738,13 +738,13 @@ function renderAuditList() {
             <td class="text-center px-1">
                 <div class="input-group input-group-sm">
                     <input type="number" id="audit-main-${index}" class="form-control text-center audit-input border-secondary p-1" value="${m_stock}" onchange="updateAuditVal(${index}, 'main_stock', this.value)" onkeyup="updateAuditVal(${index}, 'main_stock', this.value)" onclick="this.select()">
-                    <button class="btn btn-secondary px-2" type="button" onclick="openCalculator(${index}, 'audit-main-${index}', document.getElementById('audit-main-${index}').value)"><i class="fas fa-calculator"></i></button>
+                    <button class="btn btn-secondary px-2 print-hide" type="button" onclick="openCalculator(${index}, 'audit-main-${index}', document.getElementById('audit-main-${index}').value)"><i class="fas fa-calculator"></i></button>
                 </div>
             </td>
             <td class="text-center px-1">
                 <div class="input-group input-group-sm">
                     <input type="number" id="audit-sub-${index}" class="form-control text-center audit-input border-danger text-danger p-1" value="${s_stock}" onchange="updateAuditVal(${index}, 'sub_stock', this.value)" onkeyup="updateAuditVal(${index}, 'sub_stock', this.value)" onclick="this.select()">
-                    <button class="btn btn-danger px-2" type="button" onclick="openCalculator(${index}, 'audit-sub-${index}', document.getElementById('audit-sub-${index}').value)"><i class="fas fa-calculator"></i></button>
+                    <button class="btn btn-danger px-2 print-hide" type="button" onclick="openCalculator(${index}, 'audit-sub-${index}', document.getElementById('audit-sub-${index}').value)"><i class="fas fa-calculator"></i></button>
                 </div>
             </td>
             <td class="text-center text-primary fw-bold fs-5" id="audit-total-${index}">${total_stock}</td>
@@ -936,7 +936,7 @@ function renderHistoryList() {
                 <td class="text-center text-muted">${logUnit}</td>
                 <td class="text-center fw-bold text-info fs-5">${totalBal}</td>
                 <td><span class="badge bg-secondary"><i class="fas fa-user me-1"></i>${logUser}</span></td>
-                <td class="text-center">${btnHtml}</td>
+                <td class="text-center print-hide">${btnHtml}</td>
             </tr>`;
             
             tbody.insertAdjacentHTML('beforeend', row);
@@ -1073,7 +1073,7 @@ function renderVisitsList() {
                     <div><b>ยาที่ใช้:</b> <span class="text-danger">${v.meds || '-'}</span></div>
                 </div>
                 
-                <button class="btn btn-warning w-100 fw-bold shadow-sm mt-auto" style="color: #495057;" onclick="dispenseToPatient('${v.hn}', '${v.name}')">
+                <button class="btn btn-warning w-100 fw-bold shadow-sm mt-auto print-hide" style="color: #495057;" onclick="dispenseToPatient('${v.hn}', '${v.name}')">
                     <i class="fas fa-box-open me-2"></i> จ่ายพัสดุให้รายนี้
                 </button>
             </div>
