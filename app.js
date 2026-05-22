@@ -8,12 +8,13 @@ let historyData = [];
 let auditData = []; 
 let currentMode = 'out';
 
-// ประกาศตัวแปรรองรับกล้อง (เพิ่มกล้องสำหรับหน้า Quick Items)
+// 🌟 ประกาศตัวแปรรองรับกล้องทั้งหมด 🌟
 let html5QrCode = null; 
 let auditHtml5QrCode = null;
 let manualHtml5QrCode = null; 
-let quickHtml5QrCode = null; // 🌟 เพิ่มตัวสแกนสำหรับหน้าพัสดุด่วน
-let popupScanner = null;
+let quickHtml5QrCode = null; 
+let dashboardHtml5QrCode = null; 
+let popupScanner = null; 
 
 let db = null;
 let currentCalcIndex = -1;
@@ -144,19 +145,19 @@ function updateTableUI() {
         tbody.insertAdjacentHTML('beforeend', row);
     });
 
-    // 🌟 ถ้าเปิดหน้าแท็บทำรายการพัสดุด่วนอยู่ ให้อัปเดตตารางหน้านั้นด้วย
     if(document.getElementById('quickItemsView') && document.getElementById('quickItemsView').style.display === 'block') {
         renderQuickItems();
     }
 }
 
-// 🌟 ฟังก์ชันจัดการแท็บใหม่ (หน้าทำรายการพัสดุด่วน) 🌟
+// ==========================================
+// 🌟 ฟังก์ชันจัดการแท็บ ทำรายการพัสดุด่วน 🌟
+// ==========================================
 function openQuickItemsView() {
     closeAllViews();
     document.getElementById('quickItemsView').style.display = 'block';
     if(window.innerWidth <= 768) toggleSidebar();
     
-    // เคลียร์ช่องค้นหาเมื่อเปิดใหม่ และดึงรายการมาโชว์
     document.getElementById('quickSearchInput').value = '';
     renderQuickItems();
 }
@@ -165,13 +166,10 @@ function renderQuickItems() {
     const container = document.getElementById('quickItemsContainer');
     if(!container) return;
 
-    // คำค้นหาจากช่องสแกน/พิมพ์
     const term = (document.getElementById('quickSearchInput') ? document.getElementById('quickSearchInput').value.toLowerCase() : '');
 
     let fluids = allItems.map((item, index) => ({item, index})).filter(x => {
         if (!x.item || !x.item.name) return false;
-        
-        // ถ้ามีการค้นหา ให้กรองเอาเฉพาะที่ตรง
         if (term) {
             let match = x.item.name.toLowerCase().includes(term) || 
                         (x.item.code || "").toLowerCase().includes(term) || 
@@ -235,11 +233,60 @@ function onQuickScanSuccess(t) {
     renderQuickItems(); 
 }
 
+// ==========================================
+// 🌟 ฟังก์ชันระบบสแกนหน้า Dashboard 🌟
+// ==========================================
+function toggleDashboardScan() {
+    const rDiv = document.getElementById('dashboardReader');
+    if (dashboardHtml5QrCode) { dashboardHtml5QrCode.stop().then(() => { dashboardHtml5QrCode.clear(); dashboardHtml5QrCode = null; rDiv.style.display = 'none'; }); return; }
+    rDiv.style.display = 'block'; dashboardHtml5QrCode = new Html5Qrcode("dashboardReader");
+    dashboardHtml5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } }, onDashboardScanSuccess, ()=>{})
+        .catch(() => { dashboardHtml5QrCode.start({ facingMode: "user" }, { fps: 10, qrbox: { width: 250, height: 250 } }, onDashboardScanSuccess, ()=>{})
+        .catch(() => { Swal.fire("ข้อผิดพลาด", "ไม่สามารถเปิดกล้องได้", "error"); rDiv.style.display = 'none'; dashboardHtml5QrCode = null; }); });
+}
+
+function onDashboardScanSuccess(t) { 
+    try{document.getElementById('soundScan').play()}catch(e){} 
+    if(dashboardHtml5QrCode) { dashboardHtml5QrCode.stop().then(() => { dashboardHtml5QrCode.clear(); dashboardHtml5QrCode = null; document.getElementById('dashboardReader').style.display = 'none'; }); } 
+    handleDashboardScan(t); 
+}
+
+function handleDashboardScan(code) {
+    code = code.trim(); if(!code) return;
+    document.getElementById('dashboardCodeInput').value = ''; 
+    const idx = allItems.findIndex(i => i && i.code === code);
+    
+    if (idx > -1) {
+        const item = allItems[idx];
+        Swal.fire({
+            title: '📌 เลือกลักษณะรายการที่ต้องการทำ',
+            html: `
+                <h5 class="text-primary fw-bold mt-2">${item.name}</h5>
+                <div class="p-2 bg-light mb-3 mt-2 rounded text-center" style="font-size: 1.1rem;">
+                    คลังหลัก: <b class="text-dark">${item.main_stock || 0}</b> | คลังย่อย: <b class="text-danger">${item.sub_stock || 0}</b>
+                </div>
+                <div class="d-grid gap-2">
+                    <button class="btn btn-success fw-bold py-2 shadow-sm" onclick="Swal.close(); setTimeout(()=>showStockDialog(${idx}, 'receive_main'), 300)"><i class="fas fa-download me-1"></i> รับของเข้าคลัง</button>
+                    <button class="btn btn-primary fw-bold py-2 shadow-sm" onclick="Swal.close(); setTimeout(()=>showStockDialog(${idx}, 'transfer'), 300)"><i class="fas fa-exchange-alt me-1"></i> โอนย้ายคลัง</button>
+                    <button class="btn btn-warning fw-bold py-2 shadow-sm" onclick="Swal.close(); setTimeout(()=>showStockDialog(${idx}, 'use'), 300)"><i class="fas fa-upload me-1"></i> เบิกจ่าย (หักออก)</button>
+                </div>
+            `,
+            showConfirmButton: false,
+            showCancelButton: true,
+            cancelButtonText: 'ยกเลิก'
+        });
+    } else {
+        Swal.fire({ title: 'ไม่พบรหัสนี้!', html: `รหัสบาร์โค้ด: <b class="text-danger fs-5">${code}</b><br><br>นำรหัสนี้ไปลงทะเบียนใหม่หรือไม่?`, icon: 'warning', showCancelButton: true, confirmButtonText: '➕ ลงทะเบียนใหม่'
+        }).then(res => { if (res.isConfirmed) { openManualView(); setTimeout(() => manualAction('add_item', code), 300); } });
+    }
+}
+
 function stopAllScanners() {
     if (html5QrCode) { html5QrCode.stop().then(() => { html5QrCode.clear(); html5QrCode = null; document.getElementById('reader').style.display = 'none'; }).catch(()=>{}); }
     if (auditHtml5QrCode) { auditHtml5QrCode.stop().then(() => { auditHtml5QrCode.clear(); auditHtml5QrCode = null; document.getElementById('auditReader').style.display = 'none'; }).catch(()=>{}); }
     if (manualHtml5QrCode) { manualHtml5QrCode.stop().then(() => { manualHtml5QrCode.clear(); manualHtml5QrCode = null; document.getElementById('manualReader').style.display = 'none'; }).catch(()=>{}); }
     if (quickHtml5QrCode) { quickHtml5QrCode.stop().then(() => { quickHtml5QrCode.clear(); quickHtml5QrCode = null; document.getElementById('quickReader').style.display = 'none'; }).catch(()=>{}); }
+    if (dashboardHtml5QrCode) { dashboardHtml5QrCode.stop().then(() => { dashboardHtml5QrCode.clear(); dashboardHtml5QrCode = null; document.getElementById('dashboardReader').style.display = 'none'; }).catch(()=>{}); }
 }
 
 function closeAllViews() {
@@ -267,7 +314,6 @@ function openAuditView() {
     renderAuditList();
 }
 
-// 🌟 ฟังก์ชันเปิดหน้าประวัติ 🌟
 function openHistoryView() {
     closeAllViews();
     document.getElementById('historyView').style.display = 'block';
@@ -296,7 +342,7 @@ function onManualScanSuccess(t) {
 
 function handleManualScan(code) {
     code = code.trim(); if(!code) return;
-    document.getElementById('manualCodeInput').value = ''; // เคลียร์ช่องพิมพ์
+    document.getElementById('manualCodeInput').value = ''; 
     const idx = allItems.findIndex(i => i && i.code === code);
     
     if (idx > -1) {
@@ -444,7 +490,6 @@ function showStockDialog(idx, mode) {
                         const currentParams = new URLSearchParams(window.location.search);
                         const savedUserName = currentParams.get('user') || "มือถือ-ไม่ระบุชื่อ";
                         
-                        // สร้าง ID เฉพาะสำหรับ History
                         let historyId = "HIST-" + new Date().getTime();
                         let log = { id: historyId, date: new Date().toLocaleDateString('en-GB')+" "+new Date().toLocaleTimeString('en-GB'), code: item.code, name: item.name, action: "ปรับยอด (Spot Audit)", qty: 0, unit: item.unit, main_bal: res.value.new_main, sub_bal: res.value.new_sub, user: savedUserName };
                         db.ref('history_data').once('value').then(s => { let arr = s.val() || []; arr.unshift(log); db.ref('history_data').set(arr); });
@@ -471,7 +516,6 @@ function processStockUpdate(item, idx, qty, action) {
             const currentParams = new URLSearchParams(window.location.search);
             const savedUserName = currentParams.get('user') || "มือถือ-ไม่ระบุชื่อ";
 
-            // จุดสำคัญ: ต้องเก็บ id และ raw_action เพื่อให้ระบบรู้ว่าต้องย้อนกลับยังไง
             let historyId = "HIST-" + new Date().getTime();
             let log = { id: historyId, date: new Date().toLocaleDateString('en-GB')+" "+new Date().toLocaleTimeString('en-GB'), code: item.code, name: item.name, action: actText, qty: qty, unit: item.unit, main_bal: n_main, sub_bal: n_sub, user: savedUserName, raw_action: action }; 
             
@@ -732,7 +776,6 @@ function saveBulkAudit() {
                 if(nMain !== oMain || nSub !== oSub) {
                     updates[`inventory_data/${idx}/main_stock`] = nMain; updates[`inventory_data/${idx}/sub_stock`] = nSub;
                     let historyId = "HIST-" + new Date().getTime() + "-" + idx; 
-                    // ระบุว่าเป็น raw_action: 'audit' (กันไม่ให้กดย้อนกลับมั่ว)
                     logs.push({ id: historyId, date: now, code: item.code, name: item.name, action: "ทำใบตรวจนับ (Audit) 📋", qty: 0, unit: item.unit, main_bal: nMain, sub_bal: nSub, user: savedUserName, raw_action: 'audit' }); 
                     changesCount++;
                 }
@@ -838,7 +881,6 @@ function renderHistoryList() {
     
     tbody.innerHTML = '';
     
-    // ตรวจสอบว่า historyData มีข้อมูลหรือไม่
     if (!historyData || !Array.isArray(historyData) || historyData.length === 0) {
         tbody.innerHTML = '<tr><td colspan="9" class="text-center py-5 text-muted">ไม่มีประวัติการทำรายการ</td></tr>';
         return;
@@ -846,13 +888,10 @@ function renderHistoryList() {
 
     let hasData = false;
 
-    // วนลูปสร้างตาราง
     historyData.forEach((log, index) => {
         try {
-            // ป้องกันโค้ดพังถ้าข้อมูลมาไม่ครบ
             if (!log || typeof log !== 'object') return;
             
-            // ดึงค่ามาใช้ พร้อมใส่ค่า Default เผื่อเป็น undefined หรือ null
             let logName = log.name || 'ไม่ทราบชื่อพัสดุ';
             let logCode = log.code || '-';
             let logAction = log.action || 'ไม่มีการกระทำ';
@@ -862,7 +901,6 @@ function renderHistoryList() {
             let logUnit = log.unit || 'ชิ้น';
             let totalBal = (parseInt(log.main_bal) || 0) + (parseInt(log.sub_bal) || 0);
 
-            // ระบบค้นหา
             if (term) {
                 let match = logName.toLowerCase().includes(term) || 
                             logCode.toLowerCase().includes(term) || 
@@ -871,16 +909,14 @@ function renderHistoryList() {
                 if (!match) return;
             }
 
-            hasData = true; // มีข้อมูลผ่านการค้นหามาได้
+            hasData = true; 
 
-            // กำหนดสีของข้อความ Action
             let actionColor = "text-secondary";
             if (logAction.includes("รับเข้า")) actionColor = "text-success";
             else if (logAction.includes("ใช้งาน") || logAction.includes("เบิกจ่าย")) actionColor = "text-warning";
             else if (logAction.includes("โอนย้าย") || logAction.includes("คืนเข้า")) actionColor = "text-primary";
             else if (logAction.includes("ปรับยอด") || logAction.includes("ตรวจนับ") || logAction.includes("Audit") || log.raw_action === 'audit') actionColor = "text-dark";
 
-            // ปุ่มจัดการ
             let btnHtml = '';
             if (log.raw_action && log.raw_action !== 'audit' && !logAction.includes("Audit")) {
                 btnHtml = `<button class="btn btn-outline-danger btn-sm fw-bold shadow-sm" onclick="undoTransaction('${log.id}', ${index})" title="ยกเลิกรายการนี้"><i class="fas fa-undo"></i> ย้อนกลับ</button>`;
@@ -890,7 +926,6 @@ function renderHistoryList() {
                 btnHtml = `<span class="badge bg-light text-muted border px-2 py-2" title="รายการนี้เก่าเกินไป ไม่สามารถย้อนกลับได้">รายการเก่า</span>`;
             }
 
-            // สร้างแถวตาราง
             let row = `
             <tr>
                 <td class="text-center text-secondary">${logDate}</td>
@@ -910,7 +945,6 @@ function renderHistoryList() {
         }
     });
 
-    // ถ้าวนลูปเสร็จแล้วแต่ไม่มีข้อมูลที่ตรงกับคำค้นหา
     if (!hasData) {
         tbody.innerHTML = `<tr><td colspan="9" class="text-center py-4 text-danger fw-bold">ไม่พบข้อมูล "${term}" ที่ค้นหา</td></tr>`;
     }
@@ -946,7 +980,6 @@ function undoTransaction(historyId, histIndex) {
             let qty = parseInt(logToUndo.qty || 0);
             let act = logToUndo.raw_action;
 
-            // คืนค่ายอดสต๊อกตามประเภทการกระทำ
             if (act === 'receive_main') n_main -= qty;
             else if (act === 'receive_sub') n_sub -= qty;
             else if (act === 'use') n_sub += qty;
@@ -982,7 +1015,6 @@ function openVisitView() {
     document.getElementById('visitView').style.display = 'block';
     if(window.innerWidth <= 768) toggleSidebar();
     
-    // ตั้งค่ายึดวันที่ปัจจุบัน (พ.ศ.)
     let today = new Date();
     let dd = String(today.getDate()).padStart(2, '0');
     let mm = String(today.getMonth() + 1).padStart(2, '0');
@@ -997,7 +1029,6 @@ function loadVisitsData() {
     
     document.getElementById('visitListContainer').innerHTML = '<div class="col-12 text-center text-muted py-4"><i class="fas fa-spinner fa-spin fa-2x mb-2"></i><br>กำลังดึงคิวจากฐานข้อมูลคลินิก...</div>';
     
-    // ดึงข้อมูล Visit จาก Firebase
     db.ref('patients_database/visits').once('value').then((snap) => {
         visitsData = snap.val() || [];
         renderVisitsList();
@@ -1010,7 +1041,6 @@ function renderVisitsList() {
     const container = document.getElementById('visitListContainer');
     let todayStr = document.getElementById('visitDateDisplay').innerText;
 
-    // กรองเอาเฉพาะคิวของ "วันนี้" เท่านั้น
     let todayVisits = visitsData.filter(v => v && v.date && v.date.split(" ")[0] === todayStr);
 
     if (todayVisits.length === 0) {
@@ -1026,7 +1056,6 @@ function renderVisitsList() {
         else if (statusText.includes("เสร็จแล้ว") || statusText.includes("ตรวจเสร็จ")) statusColor = "success";
         else if (statusText.includes("ยกเลิก")) statusColor = "danger";
 
-        // วาดการ์ดแสดงประวัติคนไข้แบบดูง่ายบนมือถือ
         let card = `
         <div class="col-12 col-md-6 col-lg-4 mb-3">
             <div class="border rounded p-3 shadow-sm bg-light h-100 d-flex flex-column">
@@ -1053,7 +1082,6 @@ function renderVisitsList() {
     });
 }
 
-// เมื่อกดจ่ายพัสดุให้คนไข้ จะกระโดดไปหน้า Manual และเปิดหน้าต่างเบิกพัสดุให้เลย
 function dispenseToPatient(hn, name) {
     Swal.fire({
         title: 'เตรียมเบิกพัสดุ',
