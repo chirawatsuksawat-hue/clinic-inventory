@@ -18,10 +18,45 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
-    <link rel="stylesheet" href="style.css?v=21">
+    <link rel="stylesheet" href="style.css?v=22">
     <style>
         #calcDisplay { white-space: nowrap; overflow-x: auto; scrollbar-width: none; }
         #calcDisplay::-webkit-scrollbar { display: none; }
+
+        /* ========================================== */
+        /* 🖨️ รูปแบบการพิมพ์ (Print CSS) บังคับเป็นตารางรายงาน A4 */
+        /* ========================================== */
+        @media print {
+            @page { size: A4 portrait; margin: 10mm; }
+            body { background: white !important; color: black !important; padding: 0 !important; }
+            
+            /* ซ่อนเมนูและการ์ดบนมือถือ */
+            .app-header, .bottom-nav, .fab-scan, .btn, .print-hide, .input-group, .alert, 
+            #dashboardCardContainer, #visitListContainer, #auditListContainer, #historyListContainer { 
+                display: none !important; 
+            }
+            
+            /* จัดการโครงสร้าง Content */
+            .main-content { display: none !important; margin: 0 !important; padding: 0 !important; }
+            .main-content.active { display: block !important; width: 100% !important; }
+            
+            /* แสดงตารางลับที่ซ่อนไว้เฉพาะตอนพิมพ์ */
+            .d-none.d-print-block { display: block !important; }
+            
+            /* ปลดล็อกสกอร์บาร์ */
+            .table-responsive { max-height: none !important; overflow: visible !important; }
+            
+            /* ตีเส้นตารางให้ชัดเจน */
+            table { width: 100% !important; border-collapse: collapse !important; margin-top: 10px !important; font-size: 11pt !important; }
+            tr { page-break-inside: avoid; page-break-after: auto; }
+            thead { display: table-header-group; }
+            th, td { border: 1px solid #000 !important; padding: 6px !important; color: #000 !important; vertical-align: middle !important; }
+            th { background-color: #f0f0f0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; text-align: center !important; }
+            
+            .header-title { font-size: 16pt !important; font-weight: bold; border-bottom: 2px solid #000 !important; padding-bottom: 5px !important; margin-bottom: 15px !important; }
+            .print-only-title { display: block !important; font-size: 18pt !important; text-align: center; margin-bottom: 10px; font-weight: bold; }
+        }
+        .print-only-title { display: none; }
     </style>
 </head>
 <body>
@@ -37,9 +72,7 @@
         </div>
     </header>
 
-    <div class="fab-scan" onclick="AppCore.toggleUniversalScanner()">
-        <i class="fas fa-qrcode"></i>
-    </div>
+    <div class="fab-scan" onclick="AppCore.toggleUniversalScanner()"><i class="fas fa-qrcode"></i></div>
 
     <div class="container mt-3" id="scannerContainer" style="display: none;">
         <div class="modern-card border-primary">
@@ -57,10 +90,8 @@
 
     <div id="view-dashboard" class="main-content active">
         <div class="d-flex justify-content-between align-items-center mb-3">
-            <h4 class="fw-bold m-0 text-secondary">📦 คลังพัสดุคงเหลือ</h4>
-            <button class="btn btn-outline-dark btn-sm fw-bold shadow-sm px-3" onclick="window.print()">
-                <i class="fas fa-print me-1"></i> พิมพ์
-            </button>
+            <h4 class="header-title m-0">📦 คลังพัสดุคงเหลือ</h4>
+            <button class="btn btn-outline-dark btn-sm fw-bold shadow-sm px-3 print-hide" onclick="window.print()"><i class="fas fa-print me-1"></i> พิมพ์</button>
         </div>
         
         <div class="input-group shadow-sm mb-3">
@@ -71,10 +102,11 @@
 
         <div id="dashboardCardContainer" class="row g-2 d-md-none"></div>
 
-        <div class="modern-card p-0 d-none d-md-block">
+        <div class="modern-card p-0 d-none d-md-block d-print-block">
+            <h5 class="print-only-title">รายงานคลังพัสดุคงเหลือประจำวัน</h5>
             <div class="table-responsive">
                 <table class="table table-hover mb-0">
-                    <thead><tr><th>รหัส</th><th>ชื่อรายการ</th><th class="text-center">คลังหลัก</th><th class="text-center">คลังย่อย</th><th class="text-center">ยอดรวม</th><th class="text-center">จัดการ</th></tr></thead>
+                    <thead><tr><th style="width: 100px;">รหัส</th><th>ชื่อรายการพัสดุ</th><th class="text-center" style="width: 100px;">คลังหลัก</th><th class="text-center" style="width: 100px;">คลังย่อย</th><th class="text-center" style="width: 100px;">ยอดรวม</th><th class="text-center print-hide" style="width: 120px;">จัดการ</th></tr></thead>
                     <tbody id="dashboardTableBody"></tbody>
                 </table>
             </div>
@@ -84,40 +116,56 @@
     <div id="view-visits" class="main-content">
         <div class="d-flex justify-content-between align-items-start mb-3">
             <div>
-                <h4 class="fw-bold m-0 text-secondary">🛏️ คิวฟอกไตวันนี้</h4>
-                <span id="visitDateBadge" class="badge bg-primary fs-6 mt-1"></span>
+                <h4 class="header-title m-0 border-0">🛏️ คิวฟอกไตวันนี้</h4>
+                <span id="visitDateBadge" class="badge bg-primary fs-6 mt-1 print-hide"></span>
             </div>
-            <button class="btn btn-outline-dark btn-sm fw-bold shadow-sm px-3" onclick="window.print()">
-                <i class="fas fa-print me-1"></i> พิมพ์
-            </button>
+            <button class="btn btn-outline-dark btn-sm fw-bold shadow-sm px-3 print-hide" onclick="window.print()"><i class="fas fa-print me-1"></i> พิมพ์</button>
         </div>
         <div id="visitListContainer" class="row g-2"></div>
+
+        <div class="table-responsive d-none d-print-block mt-3">
+            <h5 class="print-only-title">รายงานคิวผู้ป่วยฟอกไต</h5>
+            <table class="table">
+                <thead><tr><th class="text-center" style="width: 80px;">เวลา</th><th class="text-center" style="width: 80px;">HN</th><th>ชื่อ-นามสกุล</th><th class="text-center" style="width: 60px;">เตียง</th><th style="width: 100px;">สิทธิ</th><th>การรักษา (ยา/น้ำเกลือ)</th><th class="text-center" style="width: 100px;">สถานะ</th></tr></thead>
+                <tbody id="visitTableBodyPrint"></tbody>
+            </table>
+        </div>
     </div>
 
     <div id="view-audit" class="main-content">
         <div class="d-flex justify-content-between align-items-center mb-3">
-            <h4 class="fw-bold m-0 text-secondary">📋 ตรวจนับสต๊อก</h4>
+            <h4 class="header-title m-0 border-0">📋 ตรวจนับสต๊อก</h4>
             <div>
-                <button class="btn btn-outline-dark btn-sm fw-bold shadow-sm px-3 me-1" onclick="window.print()">
-                    <i class="fas fa-print"></i>
-                </button>
-                <button class="btn btn-success fw-bold btn-sm shadow-sm px-3" onclick="AppCore.saveBulkAudit()">
-                    <i class="fas fa-save me-1"></i> บันทึก
-                </button>
+                <button class="btn btn-outline-dark btn-sm fw-bold shadow-sm px-3 me-1 print-hide" onclick="window.print()"><i class="fas fa-print"></i></button>
+                <button class="btn btn-success fw-bold btn-sm shadow-sm px-3 print-hide" onclick="AppCore.saveBulkAudit()"><i class="fas fa-save me-1"></i> บันทึก</button>
             </div>
         </div>
         <div class="alert alert-warning py-2 mb-3" style="font-size: 0.85rem;"><i class="fas fa-info-circle"></i> ใส่ตัวเลขยอดจริงที่นับได้ หรือกดไอคอนเครื่องคิดเลข</div>
         <div id="auditListContainer" class="row g-2"></div>
+
+        <div class="table-responsive d-none d-print-block mt-3">
+            <h5 class="print-only-title">ใบตรวจนับพัสดุ (Spot Audit)</h5>
+            <table class="table">
+                <thead><tr><th class="text-center" style="width: 60px;">ลำดับ</th><th class="text-center" style="width: 100px;">รหัสพัสดุ</th><th>ชื่อรายการพัสดุ</th><th class="text-center" style="width: 100px;">ระบบ (รวม)</th><th class="text-center" style="width: 120px;">นับจริง (หลัก)</th><th class="text-center" style="width: 120px;">นับจริง (ย่อย)</th><th class="text-center" style="width: 120px;">หมายเหตุ</th></tr></thead>
+                <tbody id="auditTableBodyPrint"></tbody>
+            </table>
+        </div>
     </div>
 
     <div id="view-history" class="main-content">
         <div class="d-flex justify-content-between align-items-center mb-3">
-            <h4 class="fw-bold m-0 text-secondary">ประวัติการทำรายการ</h4>
-            <button class="btn btn-outline-dark btn-sm fw-bold shadow-sm px-3" onclick="window.print()">
-                <i class="fas fa-print me-1"></i> พิมพ์
-            </button>
+            <h4 class="header-title m-0 border-0">ประวัติทำรายการ</h4>
+            <button class="btn btn-outline-dark btn-sm fw-bold shadow-sm px-3 print-hide" onclick="window.print()"><i class="fas fa-print me-1"></i> พิมพ์</button>
         </div>
         <div id="historyListContainer" class="row g-2"></div>
+
+        <div class="table-responsive d-none d-print-block mt-3">
+            <h5 class="print-only-title">รายงานประวัติเบิกจ่ายพัสดุ-เวชภัณฑ์</h5>
+            <table class="table">
+                <thead><tr><th class="text-center" style="width: 130px;">วันที่-เวลา</th><th class="text-center" style="width: 90px;">รหัส</th><th>ชื่อพัสดุ</th><th class="text-center" style="width: 130px;">รายการ</th><th class="text-center" style="width: 80px;">จำนวน</th><th class="text-center" style="width: 100px;">เหลือรวม</th><th style="width: 130px;">ผู้ทำรายการ</th></tr></thead>
+                <tbody id="historyTableBodyPrint"></tbody>
+            </table>
+        </div>
     </div>
 
     <div class="modal fade" id="calculatorModal" tabindex="-1" aria-hidden="true" style="z-index: 10600;">
@@ -125,7 +173,7 @@
             <div class="modal-content border-0 shadow-lg">
                 <div class="modal-header bg-primary text-white border-0">
                     <h5 class="modal-title fw-bold"><i class="fas fa-calculator me-2"></i> เครื่องคิดเลข</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body bg-light">
                     <input type="text" id="calcDisplay" class="form-control mb-3 text-end fs-2 fw-bold text-primary shadow-sm" readonly style="background-color: #fff; height: 60px;">
@@ -134,22 +182,18 @@
                         <div class="col-3"><button class="btn btn-outline-dark w-100 fs-4 fw-bold py-2" onclick="AppCore.calcAppend('8')">8</button></div>
                         <div class="col-3"><button class="btn btn-outline-dark w-100 fs-4 fw-bold py-2" onclick="AppCore.calcAppend('9')">9</button></div>
                         <div class="col-3"><button class="btn btn-danger w-100 fs-4 fw-bold py-2" onclick="AppCore.calcBackspace()"><i class="fas fa-backspace"></i></button></div>
-                        
                         <div class="col-3"><button class="btn btn-outline-dark w-100 fs-4 fw-bold py-2" onclick="AppCore.calcAppend('4')">4</button></div>
                         <div class="col-3"><button class="btn btn-outline-dark w-100 fs-4 fw-bold py-2" onclick="AppCore.calcAppend('5')">5</button></div>
                         <div class="col-3"><button class="btn btn-outline-dark w-100 fs-4 fw-bold py-2" onclick="AppCore.calcAppend('6')">6</button></div>
                         <div class="col-3"><button class="btn btn-warning w-100 fs-4 fw-bold py-2" onclick="AppCore.calcAppend('+')">+</button></div>
-                        
                         <div class="col-3"><button class="btn btn-outline-dark w-100 fs-4 fw-bold py-2" onclick="AppCore.calcAppend('1')">1</button></div>
                         <div class="col-3"><button class="btn btn-outline-dark w-100 fs-4 fw-bold py-2" onclick="AppCore.calcAppend('2')">2</button></div>
                         <div class="col-3"><button class="btn btn-outline-dark w-100 fs-4 fw-bold py-2" onclick="AppCore.calcAppend('3')">3</button></div>
                         <div class="col-3"><button class="btn btn-warning w-100 fs-4 fw-bold py-2" onclick="AppCore.calcAppend('-')">-</button></div>
-                        
                         <div class="col-3"><button class="btn btn-danger w-100 fs-4 fw-bold py-2" onclick="AppCore.calcClear()">C</button></div>
                         <div class="col-3"><button class="btn btn-outline-dark w-100 fs-4 fw-bold py-2" onclick="AppCore.calcAppend('0')">0</button></div>
                         <div class="col-3"><button class="btn btn-warning w-100 fs-4 fw-bold py-2" onclick="AppCore.calcAppend('*')">×</button></div>
                         <div class="col-3"><button class="btn btn-warning w-100 fs-4 fw-bold py-2" onclick="AppCore.calcAppend('/')">÷</button></div>
-                        
                         <div class="col-12"><button class="btn btn-info w-100 fs-4 fw-bold py-2 text-white" onclick="AppCore.calcConfirm()">=</button></div>
                     </div>
                 </div>
@@ -160,11 +204,12 @@
     <nav class="bottom-nav">
         <a class="nav-link nav-item active" onclick="UI.switchTab('view-dashboard', this)"><i class="fas fa-boxes"></i>คลังหลัก</a>
         <a class="nav-link nav-item" onclick="UI.switchTab('view-visits', this)"><i class="fas fa-user-injured"></i>จ่ายยา/เคส</a>
-        <a class="nav-link nav-item" style="width: 50px;"></a> <a class="nav-link nav-item" onclick="UI.switchTab('view-audit', this)"><i class="fas fa-clipboard-check"></i>ตรวจนับ</a>
+        <a class="nav-link nav-item" style="width: 50px;"></a>
+        <a class="nav-link nav-item" onclick="UI.switchTab('view-audit', this)"><i class="fas fa-clipboard-check"></i>ตรวจนับ</a>
         <a class="nav-link nav-item" onclick="UI.switchTab('view-history', this)"><i class="fas fa-history"></i>ประวัติ</a>
     </nav>
 
     <audio id="soundScan" src="https://www.soundjay.com/buttons/sounds/beep-07.mp3"></audio>
-    <script src="app.js?v=21"></script>
+    <script src="app.js?v=22"></script>
 </body>
 </html>
