@@ -14,7 +14,8 @@ const AppCore = {
     init: function() {
         const params = new URLSearchParams(window.location.search);
         this.currentUser = params.get('user') || "ไม่ระบุ";
-        document.getElementById("activeUserDisplay").innerText = "👤 " + this.currentUser;
+        const userDisplay = document.getElementById("activeUserDisplay");
+        if (userDisplay) userDisplay.innerText = "👤 " + this.currentUser;
 
         window.history.pushState(null, null, window.location.href);
         window.onpopstate = function(event) {
@@ -38,7 +39,8 @@ const AppCore = {
         } catch (e) { UI.setSyncStatus("ออฟไลน์", "secondary", "database"); this.loadLocalData(); }
 
         setInterval(() => {
-            if (!this.db || document.getElementById('syncStatus').innerText.includes('ออฟไลน์')) this.loadLocalData();
+            const statusEl = document.getElementById('syncStatus');
+            if (!this.db || (statusEl && statusEl.innerText.includes('ออฟไลน์'))) this.loadLocalData();
         }, 3000);
     },
 
@@ -50,24 +52,41 @@ const AppCore = {
     },
 
     loadOnlineData: function() {
-        this.db.ref('inventory_data').on('value', (snap) => { let data = snap.val() || []; this.allItems = Array.isArray(data) ? data : Object.keys(data).map(k => data[k]); UI.renderCurrentView(); });
-        this.db.ref('history_data').on('value', (snap) => { let data = snap.val() || []; this.historyData = (Array.isArray(data) ? data : Object.keys(data).map(k => data[k])).filter(i => i !== null); UI.renderCurrentView(); });
-        this.db.ref('patients_database/visits').on('value', (snap) => { this.visitsData = snap.val() || []; UI.renderCurrentView(); });
+        this.db.ref('inventory_data').on('value', (snap) => { 
+            let data = snap.val();
+            this.allItems = data ? (Array.isArray(data) ? data : Object.keys(data).map(k => data[k])) : []; 
+            UI.renderCurrentView(); 
+        });
+        this.db.ref('history_data').on('value', (snap) => { 
+            let data = snap.val(); 
+            this.historyData = data ? (Array.isArray(data) ? data : Object.keys(data).map(k => data[k])).filter(i => i !== null) : []; 
+            UI.renderCurrentView(); 
+        });
+        this.db.ref('patients_database/visits').on('value', (snap) => { 
+            let data = snap.val();
+            this.visitsData = data ? data : []; 
+            UI.renderCurrentView(); 
+        });
     },
 
     loadLocalData: function() {
         let t = new Date().getTime();
-        fetch('inventory_db.json?t=' + t).then(r => r.json()).then(data => { this.allItems = data; UI.renderCurrentView(); }).catch(()=>{});
-        fetch('inventory_history.json?t=' + t).then(r => r.json()).then(data => { this.historyData = data.filter(i => i !== null); UI.renderCurrentView(); }).catch(()=>{});
+        fetch('inventory_db.json?t=' + t).then(r => r.json()).then(data => { this.allItems = data || []; UI.renderCurrentView(); }).catch(()=>{});
+        fetch('inventory_history.json?t=' + t).then(r => r.json()).then(data => { this.historyData = (data || []).filter(i => i !== null); UI.renderCurrentView(); }).catch(()=>{});
     },
 
     toggleUniversalScanner: function() {
         const rDiv = document.getElementById('scannerContainer');
+        if (!rDiv) return;
+        
         if (this.html5QrCode) {
             this.html5QrCode.stop().then(() => { this.html5QrCode.clear(); this.html5QrCode = null; rDiv.style.display = 'none'; }).catch(()=>{});
             return;
         }
-        rDiv.style.display = 'block'; document.getElementById('manualBarcode').value = '';
+        rDiv.style.display = 'block'; 
+        const manInput = document.getElementById('manualBarcode');
+        if (manInput) manInput.value = '';
+        
         this.html5QrCode = new Html5Qrcode("universalReader");
         const config = { fps: 10, qrbox: { width: 250, height: 250 } };
         this.html5QrCode.start({ facingMode: "environment" }, config, this.onScanSuccess.bind(this), ()=>{})
@@ -85,7 +104,9 @@ const AppCore = {
 
     handleScanResult: function(code) {
         code = code.trim(); if (!code) return;
-        document.getElementById('manualBarcode').value = '';
+        const manInput = document.getElementById('manualBarcode');
+        if (manInput) manInput.value = '';
+        
         const idx = this.allItems.findIndex(i => i && i.code === code);
         if (idx > -1) { UI.showActionMenu(idx); } 
         else {
@@ -98,28 +119,34 @@ const AppCore = {
 
     getCategoryOptionsHTML: function() {
         let cats = new Set(["เวชภัณฑ์ทางการแพทย์", "อุปกรณ์สำนักงาน", "น้ำยา/อุปกรณ์ทำความสะอาด", "น้ำยาไต (ทั่วไป)", "อื่นๆ"]);
-        this.allItems.forEach(item => { if(item && item.category && item.category.length < 40) cats.add(item.category); });
+        (this.allItems || []).forEach(item => { if(item && item.category && item.category.length < 40) cats.add(item.category); });
         return Array.from(cats).map(cat => `<option value="${cat}">`).join('');
     },
 
     generateRandomCodePopup: function(inputId) {
-        document.getElementById(inputId).value = "ITM-" + Math.floor(1000 + Math.random() * 9000);
+        const prefix = "ITM-"; 
+        const randomNum = Math.floor(1000 + Math.random() * 9000); 
+        const inputElem = document.getElementById(inputId);
+        if (inputElem) inputElem.value = prefix + randomNum;
     },
 
     startPopupScanner: function(readerId, inputId) {
         const readerDiv = document.getElementById(readerId);
+        if (!readerDiv) return;
+        
         readerDiv.style.display = 'block';
         if (this.popupScannerInst) this.popupScannerInst.clear();
         this.popupScannerInst = new Html5QrcodeScanner(readerId, { fps: 10, qrbox: { width: 220, height: 220 } }, false);
         this.popupScannerInst.render((decodedText) => {
-            document.getElementById(inputId).value = decodedText;
+            const inputElem = document.getElementById(inputId);
+            if (inputElem) inputElem.value = decodedText;
             this.popupScannerInst.clear(); readerDiv.style.display = 'none';
             try { document.getElementById('soundScan').play(); } catch(e) {}
         }, (error) => {});
     },
 
     showAddItemForm: function(scannedCode = "") {
-        let defaultSeq = this.allItems.length + 1;
+        let defaultSeq = (this.allItems || []).length + 1;
         Swal.fire({
             title: '➕ ลงทะเบียนพัสดุใหม่', width: '600px',
             html: `
@@ -138,7 +165,7 @@ const AppCore = {
                             </div>
                             <div id="readerPopup" style="display: none; width: 100%; margin-top: 8px; border-radius: 8px; overflow: hidden; border: 2px solid #17a2b8;"></div>
                         </div>
-                        <div class="col-md-6 mb-2"><label class="form-label fw-bold">ชื่อพัสดุ</label><input id="swal-name" class="form-control" placeholder="ระบุชื่อพัสดุ"></div>
+                        <div class="col-md-6 mb-2"><label class="form-label fw-bold">ชื่อพัสดุ / อุปกรณ์</label><input id="swal-name" class="form-control" placeholder="ระบุชื่อพัสดุ"></div>
                     </div>
                     <div class="row">
                         <div class="col-4 mb-2"><label class="form-label fw-bold">หน่วยนับ</label><input id="swal-unit" class="form-control" placeholder="ชิ้น"></div>
@@ -155,19 +182,28 @@ const AppCore = {
             showCancelButton: true, confirmButtonText: '<i class="fas fa-save"></i> บันทึกข้อมูล', confirmButtonColor: '#2ecc71', cancelButtonText: 'ยกเลิก',
             preConfirm: () => { 
                 return { 
-                    seq_num: document.getElementById('swal-seq').value.trim() || defaultSeq, code: document.getElementById('swal-code').value.trim(), name: document.getElementById('swal-name').value.trim(), 
-                    category: document.getElementById('swal-cat').value || "อื่นๆ", unit: document.getElementById('swal-unit').value.trim() || 'ชิ้น', qty_per_box: document.getElementById('swal-per-box').value || "1", 
-                    price: parseFloat(document.getElementById('swal-price').value) || 0, monthly_usage: parseFloat(document.getElementById('swal-usage').value) || 0, target_stock: parseInt(document.getElementById('swal-target').value) || 0, min_alert: parseInt(document.getElementById('swal-min').value) || 10 
+                    seq_num: document.getElementById('swal-seq').value.trim() || defaultSeq, 
+                    code: document.getElementById('swal-code').value.trim(), 
+                    name: document.getElementById('swal-name').value.trim(), 
+                    category: document.getElementById('swal-cat').value || "อื่นๆ", 
+                    unit: document.getElementById('swal-unit').value.trim() || 'ชิ้น', 
+                    qty_per_box: document.getElementById('swal-per-box').value || "1", 
+                    price: parseFloat(document.getElementById('swal-price').value) || 0, 
+                    monthly_usage: parseFloat(document.getElementById('swal-usage').value) || 0, 
+                    target_stock: parseInt(document.getElementById('swal-target').value) || 0, 
+                    min_alert: parseInt(document.getElementById('swal-min').value) || 10 
                 } 
             }
         }).then(res => {
             if (res.isConfirmed) {
                 if(!res.value.name || !res.value.code) return Swal.fire('ผิดพลาด', 'กรุณากรอกรหัสและชื่อให้ครบ', 'warning');
-                if (this.allItems.some(i => i && i.code === res.value.code)) return Swal.fire('ผิดพลาด', 'รหัสบาร์โค้ดนี้มีในระบบแล้ว!', 'error');
+                if ((this.allItems || []).some(i => i && i.code === res.value.code)) return Swal.fire('ผิดพลาด', 'รหัสบาร์โค้ดนี้มีในระบบแล้ว!', 'error');
                 
                 let newItem = { id: "ITM" + new Date().getTime(), ...res.value, main_stock: 0, sub_stock: 0, req_qty: "", req_note: "" };
-                let nextIdx = this.allItems.length;
-                if (this.db && document.getElementById('syncStatus').innerText.includes('ออนไลน์')) {
+                let nextIdx = (this.allItems || []).length;
+                
+                const syncStatus = document.getElementById('syncStatus');
+                if (this.db && syncStatus && syncStatus.innerText.includes('ออนไลน์')) {
                     this.db.ref(`inventory_data/${nextIdx}`).set(newItem).then(() => Swal.fire('สำเร็จ', 'เพิ่มพัสดุใหม่เรียบร้อย', 'success'));
                 } else { Swal.fire('ข้อผิดพลาด', 'ต้องต่ออินเทอร์เน็ตเพื่อเพิ่มพัสดุใหม่', 'error'); }
             }
@@ -176,6 +212,8 @@ const AppCore = {
 
     editItemForm: function(idx) {
         const item = this.allItems[idx];
+        if (!item) return;
+
         Swal.fire({
             title: '📝 แก้ไขข้อมูลพัสดุ', width: '600px',
             html: `
@@ -211,15 +249,23 @@ const AppCore = {
             showCancelButton: true, confirmButtonText: '<i class="fas fa-save"></i> บันทึกการแก้ไข', confirmButtonColor: '#3498db', cancelButtonText: 'ยกเลิก',
             preConfirm: () => { 
                 return { 
-                    seq_num: document.getElementById('edit-seq').value.trim(), code: document.getElementById('edit-code').value.trim(), name: document.getElementById('edit-name').value.trim(), 
-                    category: document.getElementById('edit-cat').value || "อื่นๆ", unit: document.getElementById('edit-unit').value.trim() || 'ชิ้น', qty_per_box: document.getElementById('edit-per-box').value || "1", 
-                    price: parseFloat(document.getElementById('edit-price').value) || 0, monthly_usage: parseFloat(document.getElementById('edit-usage').value) || 0, target_stock: parseInt(document.getElementById('edit-target').value) || 0, min_alert: parseInt(document.getElementById('edit-min').value) || 10 
+                    seq_num: document.getElementById('edit-seq').value.trim(), 
+                    code: document.getElementById('edit-code').value.trim(), 
+                    name: document.getElementById('edit-name').value.trim(), 
+                    category: document.getElementById('edit-cat').value || "อื่นๆ", 
+                    unit: document.getElementById('edit-unit').value.trim() || 'ชิ้น', 
+                    qty_per_box: document.getElementById('edit-per-box').value || "1", 
+                    price: parseFloat(document.getElementById('edit-price').value) || 0, 
+                    monthly_usage: parseFloat(document.getElementById('edit-usage').value) || 0, 
+                    target_stock: parseInt(document.getElementById('edit-target').value) || 0, 
+                    min_alert: parseInt(document.getElementById('edit-min').value) || 10 
                 } 
             }
         }).then(res => {
             if (res.isConfirmed) {
                 if(!res.value.name || !res.value.code) return Swal.fire('ผิดพลาด', 'กรุณากรอกรหัสและชื่อให้ครบ', 'warning');
-                if (this.db && document.getElementById('syncStatus').innerText.includes('ออนไลน์')) {
+                const syncStatus = document.getElementById('syncStatus');
+                if (this.db && syncStatus && syncStatus.innerText.includes('ออนไลน์')) {
                     this.db.ref(`inventory_data/${idx}`).update(res.value).then(() => Swal.fire('สำเร็จ', 'แก้ไขข้อมูลเรียบร้อย', 'success'));
                 }
             }
@@ -228,15 +274,18 @@ const AppCore = {
 
     openCalculator: function(targetId, currentValue) {
         this.currentCalcTargetId = targetId;
-        document.getElementById('calcDisplay').value = currentValue || '';
-        new bootstrap.Modal(document.getElementById('calculatorModal')).show();
+        const disp = document.getElementById('calcDisplay');
+        if (disp) disp.value = currentValue || '';
+        const modalEl = document.getElementById('calculatorModal');
+        if (modalEl) new bootstrap.Modal(modalEl).show();
     },
-    calcAppend: function(val) { const d = document.getElementById('calcDisplay'); d.value += val; d.scrollLeft = d.scrollWidth; },
-    calcBackspace: function() { let d = document.getElementById('calcDisplay'); d.value = d.value.slice(0, -1); d.scrollLeft = d.scrollWidth; },
-    calcClear: function() { document.getElementById('calcDisplay').value = ''; },
+    calcAppend: function(val) { const d = document.getElementById('calcDisplay'); if (d) { d.value += val; d.scrollLeft = d.scrollWidth; } },
+    calcBackspace: function() { let d = document.getElementById('calcDisplay'); if (d) { d.value = d.value.slice(0, -1); d.scrollLeft = d.scrollWidth; } },
+    calcClear: function() { const d = document.getElementById('calcDisplay'); if (d) d.value = ''; },
     calcConfirm: function() {
-        let expr = document.getElementById('calcDisplay').value;
-        let finalVal = 0;
+        const disp = document.getElementById('calcDisplay');
+        if (!disp) return;
+        let expr = disp.value; let finalVal = 0;
         if(/^[0-9+\-*/.\s]+$/.test(expr)) { try { let res = eval(expr); if(isFinite(res)) finalVal = Math.floor(res); } catch(e) {} }
         if(isNaN(finalVal) || finalVal < 0) finalVal = 0;
 
@@ -245,17 +294,22 @@ const AppCore = {
             el.value = finalVal;
             if (this.currentCalcTargetId.includes("audit-")) {
                 let idxStr = this.currentCalcTargetId.split('-').pop();
-                let m = parseInt(document.getElementById(`audit-m-${idxStr}`).value) || 0;
-                let s = parseInt(document.getElementById(`audit-s-${idxStr}`).value) || 0;
+                let mElem = document.getElementById(`audit-m-${idxStr}`);
+                let sElem = document.getElementById(`audit-s-${idxStr}`);
+                let m = mElem ? (parseInt(mElem.value) || 0) : 0;
+                let s = sElem ? (parseInt(sElem.value) || 0) : 0;
                 let badge = document.getElementById(`audit-badge-${idxStr}`);
                 if(badge) badge.innerText = "รวมนับได้: " + (m + s);
             }
         }
-        bootstrap.Modal.getInstance(document.getElementById('calculatorModal')).hide();
+        const modalEl = document.getElementById('calculatorModal');
+        if (modalEl) { const modalInst = bootstrap.Modal.getInstance(modalEl); if (modalInst) modalInst.hide(); }
     },
 
     processTransaction: function(idx, action, qty, fromModule = "ทั่วไป") {
         let item = this.allItems[idx];
+        if (!item) return;
+        
         let nMain = parseInt(item.main_stock || 0), nSub = parseInt(item.sub_stock || 0), actText = "";
 
         if (action === 'receive_main') { nMain += qty; actText = "รับเข้าคลังหลัก 📥"; }
@@ -272,7 +326,8 @@ const AppCore = {
             nSub -= qty; nMain += qty; actText = "คืนเข้าคลังหลัก 🔄";
         }
 
-        if (this.db && document.getElementById('syncStatus').innerText.includes('ออนไลน์')) {
+        const syncStatus = document.getElementById('syncStatus');
+        if (this.db && syncStatus && syncStatus.innerText.includes('ออนไลน์')) {
             Swal.fire({title: 'กำลังบันทึก...', didOpen: () => Swal.showLoading()});
             this.db.ref(`inventory_data/${idx}`).update({ main_stock: nMain, sub_stock: nSub }).then(() => {
                 let logId = "HIST-" + new Date().getTime();
@@ -297,7 +352,7 @@ const AppCore = {
                 let updates = {}; let logs = []; let count = 0;
                 let now = new Date().toLocaleDateString('en-GB') + " " + new Date().toLocaleTimeString('en-GB');
 
-                this.allItems.forEach((item, idx) => {
+                (this.allItems || []).forEach((item, idx) => {
                     if (!item) return;
                     let mInput = document.getElementById(`audit-m-${idx}`);
                     let sInput = document.getElementById(`audit-s-${idx}`);
@@ -325,7 +380,9 @@ const AppCore = {
                             let arr = s.val() || []; arr = logs.concat(arr);
                             this.db.ref('history_data').set(arr);
                             Swal.fire('สำเร็จ!', `ปรับยอดใหม่ ${count} รายการ`, 'success');
-                            UI.switchTab('view-dashboard', document.querySelector('.bottom-nav a:first-child'));
+                            
+                            // ลบคำสั่ง UI.switchTab ออก เพื่อให้ยังคงอยู่ในหน้า Audit เหมือนเดิม
+                            UI.renderAudit(); 
                         });
                     });
                 }
@@ -335,7 +392,7 @@ const AppCore = {
 };
 
 // ==========================================
-// 🎨 UI Rendering Logic (วาดตารางแบบกันกระสุน + เติมข้อมูลให้กระดาษพิมพ์)
+// 🎨 UI Rendering Logic
 // ==========================================
 const UI = {
     currentTabId: 'view-dashboard',
@@ -376,11 +433,9 @@ const UI = {
             const tableCont = document.getElementById('dashboardTableBody');
             const printCont = document.getElementById('dashboardTableBodyPrint');
             
-            let cardHtml = '';
-            let tableHtml = '';
-            let printHtml = '';
+            let cardHtml = ''; let tableHtml = ''; let printHtml = '';
 
-            let items = AppCore.allItems.map((item, index) => ({item, index})).filter(x => x.item && x.item.name);
+            let items = (AppCore.allItems || []).map((item, index) => ({item, index})).filter(x => x.item && x.item.name);
             items.sort((a, b) => (parseFloat(a.item.seq_num) || 9999) - (parseFloat(b.item.seq_num) || 9999));
 
             let hasData = false;
@@ -440,9 +495,7 @@ const UI = {
             if (cardCont) cardCont.innerHTML = cardHtml;
             if (tableCont) tableCont.innerHTML = tableHtml;
             if (printCont) printCont.innerHTML = printHtml;
-        } catch (e) {
-            console.error("Dashboard Rendering Error: ", e);
-        }
+        } catch (e) { console.error("Dashboard Error: ", e); }
     },
 
     // 🛏️ 2. คิวคนไข้ (Visits)
@@ -457,10 +510,9 @@ const UI = {
             const badgeElem = document.getElementById('visitDateBadge');
             if (badgeElem) badgeElem.innerText = todayStr;
 
-            let todayVisits = AppCore.visitsData.filter(v => v && v.date && String(v.date).split(" ")[0] === todayStr);
+            let todayVisits = (AppCore.visitsData || []).filter(v => v && v.date && String(v.date).split(" ")[0] === todayStr);
 
-            let cardHtml = '';
-            let printHtml = '';
+            let cardHtml = ''; let printHtml = '';
 
             if (todayVisits.length === 0) {
                 if (cont) cont.innerHTML = '<div class="text-center text-muted py-5 w-100"><i class="fas fa-bed fa-3x mb-3"></i><br>ไม่มีคิวฟอกไตสำหรับวันนี้</div>';
@@ -505,9 +557,7 @@ const UI = {
 
             if (cont) cont.innerHTML = cardHtml;
             if (printTable) printTable.innerHTML = printHtml;
-        } catch(e) {
-            console.error("Visits Rendering Error: ", e);
-        }
+        } catch(e) { console.error("Visits Error: ", e); }
     },
 
     openDispenseModal: function(hn, name) {
@@ -528,13 +578,14 @@ const UI = {
             const cont = document.getElementById('auditListContainer');
             const printTable = document.getElementById('auditTableBodyPrint');
             
-            let cardHtml = '';
-            let printHtml = '';
+            let cardHtml = ''; let printHtml = '';
             
-            let items = AppCore.allItems.map((item, index) => ({item, index})).filter(x => x.item && x.item.name);
+            let items = (AppCore.allItems || []).map((item, index) => ({item, index})).filter(x => x.item && x.item.name);
             items.forEach(f => {
                 let i = f.item, idx = f.index;
-                let totalSystem = (parseInt(i.main_stock)||0) + (parseInt(i.sub_stock)||0);
+                let mStock = parseInt(i.main_stock)||0;
+                let sStock = parseInt(i.sub_stock)||0;
+                let totalSystem = mStock + sStock;
                 
                 cardHtml += `
                 <div class="col-12 col-md-6">
@@ -547,14 +598,14 @@ const UI = {
                             <div class="flex-fill">
                                 <label class="text-muted" style="font-size:0.8rem;">หลัก</label>
                                 <div class="input-group input-group-sm">
-                                    <input type="number" id="audit-m-${idx}" class="form-control text-center fw-bold" value="${i.main_stock||0}" onclick="this.select()" onchange="UI.updateAuditTotal(${idx})" onkeyup="UI.updateAuditTotal(${idx})">
+                                    <input type="number" id="audit-m-${idx}" class="form-control text-center fw-bold" value="${mStock}" onclick="this.select()" onchange="UI.updateAuditTotal(${idx})" onkeyup="UI.updateAuditTotal(${idx})">
                                     <button class="btn btn-secondary px-2 print-hide" onclick="AppCore.openCalculator('audit-m-${idx}', document.getElementById('audit-m-${idx}').value)"><i class="fas fa-calculator"></i></button>
                                 </div>
                             </div>
                             <div class="flex-fill">
                                 <label class="text-danger" style="font-size:0.8rem;">ย่อย</label>
                                 <div class="input-group input-group-sm">
-                                    <input type="number" id="audit-s-${idx}" class="form-control text-center text-danger fw-bold border-danger" value="${i.sub_stock||0}" onclick="this.select()" onchange="UI.updateAuditTotal(${idx})" onkeyup="UI.updateAuditTotal(${idx})">
+                                    <input type="number" id="audit-s-${idx}" class="form-control text-center text-danger fw-bold border-danger" value="${sStock}" onclick="this.select()" onchange="UI.updateAuditTotal(${idx})" onkeyup="UI.updateAuditTotal(${idx})">
                                     <button class="btn btn-danger px-2 print-hide" onclick="AppCore.openCalculator('audit-s-${idx}', document.getElementById('audit-s-${idx}').value)"><i class="fas fa-calculator"></i></button>
                                 </div>
                             </div>
@@ -568,23 +619,20 @@ const UI = {
                     <td class="text-center">${i.code || '-'}</td>
                     <td class="fw-bold">${i.name || '-'}</td>
                     <td class="text-center text-primary fw-bold fs-5">${totalSystem}</td>
-                    <td></td>
-                    <td></td>
+                    <td class="text-center fw-bold">${mStock}</td>
+                    <td class="text-center fw-bold text-danger">${sStock}</td>
                     <td></td>
                 </tr>`;
             });
 
             if (cont) cont.innerHTML = cardHtml;
             if (printTable) printTable.innerHTML = printHtml;
-        } catch(e) {
-            console.error("Audit Rendering Error: ", e);
-        }
+        } catch(e) { console.error("Audit Error: ", e); }
     },
 
     updateAuditTotal: function(idx) {
         let mElem = document.getElementById(`audit-m-${idx}`);
         let sElem = document.getElementById(`audit-s-${idx}`);
-        
         let m = mElem ? (parseInt(mElem.value) || 0) : 0;
         let s = sElem ? (parseInt(sElem.value) || 0) : 0;
         
@@ -597,9 +645,7 @@ const UI = {
         try {
             const cont = document.getElementById('historyListContainer');
             const printTable = document.getElementById('historyTableBodyPrint');
-            
-            let cardHtml = '';
-            let printHtml = '';
+            let cardHtml = ''; let printHtml = '';
             
             if (!AppCore.historyData || AppCore.historyData.length === 0) {
                 if (cont) cont.innerHTML = '<div class="text-center text-muted py-4 w-100">ไม่มีประวัติทำรายการ</div>';
@@ -645,14 +691,14 @@ const UI = {
 
             if (cont) cont.innerHTML = cardHtml;
             if (printTable) printTable.innerHTML = printHtml;
-        } catch(e) {
-            console.error("History Rendering Error: ", e);
-        }
+        } catch(e) { console.error("History Error: ", e); }
     },
 
     // 🧰 เมนูจัดการเมื่อคลิกพัสดุ
     showActionMenu: function(idx) {
         const item = AppCore.allItems[idx];
+        if (!item) return;
+
         Swal.fire({
             html: `
                 <div class="text-start">
