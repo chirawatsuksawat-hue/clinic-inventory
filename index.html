@@ -18,7 +18,11 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
-    <link rel="stylesheet" href="style.css?v=20">
+    <link rel="stylesheet" href="style.css?v=21">
+    <style>
+        #calcDisplay { white-space: nowrap; overflow-x: auto; scrollbar-width: none; }
+        #calcDisplay::-webkit-scrollbar { display: none; }
+    </style>
 </head>
 <body>
 
@@ -27,6 +31,9 @@
         <div class="d-flex align-items-center">
             <span id="syncStatus" class="badge bg-secondary me-2"><i class="fas fa-sync fa-spin"></i></span>
             <div class="user-badge" id="activeUserDisplay">👤 โหลด...</div>
+            <button class="btn btn-sm btn-danger rounded-circle ms-2 shadow-sm" style="width: 32px; height: 32px;" onclick="AppCore.logoutApp()">
+                <i class="fas fa-power-off"></i>
+            </button>
         </div>
     </header>
 
@@ -54,6 +61,7 @@
         <div class="input-group shadow-sm mb-3">
             <span class="input-group-text bg-white border-0"><i class="fas fa-search text-muted"></i></span>
             <input type="text" id="searchDashboard" class="form-control border-0 py-2" placeholder="ค้นหาชื่อพัสดุ, หมวดหมู่..." onkeyup="UI.renderDashboard()">
+            <button class="btn btn-success px-3 fw-bold border-0" onclick="AppCore.showAddItemForm()"><i class="fas fa-plus"></i> เพิ่มใหม่</button>
         </div>
 
         <div id="dashboardCardContainer" class="row g-2 d-md-none"></div>
@@ -79,15 +87,52 @@
     <div id="view-audit" class="main-content">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h4 class="fw-bold m-0 text-secondary">📋 ตรวจนับสต๊อกจริง</h4>
-            <button class="btn btn-success fw-bold btn-sm shadow-sm" onclick="AppCore.saveBulkAudit()">บันทึกทั้งหมด</button>
+            <button class="btn btn-success fw-bold btn-sm shadow-sm" onclick="AppCore.saveBulkAudit()"><i class="fas fa-save me-1"></i> บันทึกทั้งหมด</button>
         </div>
-        <div class="alert alert-warning py-2 mb-3" style="font-size: 0.85rem;"><i class="fas fa-info-circle"></i> ใส่ตัวเลขยอดจริงที่นับได้ ระบบจะปรับสต๊อกให้ตรง</div>
+        <div class="alert alert-warning py-2 mb-3" style="font-size: 0.85rem;"><i class="fas fa-info-circle"></i> ใส่ตัวเลขยอดจริงที่นับได้ หรือกดไอคอนเครื่องคิดเลข</div>
         <div id="auditListContainer" class="row g-2"></div>
     </div>
 
     <div id="view-history" class="main-content">
         <h4 class="fw-bold mb-3 text-secondary">ประวัติการทำรายการ</h4>
         <div id="historyListContainer" class="row g-2"></div>
+    </div>
+
+    <div class="modal fade" id="calculatorModal" tabindex="-1" aria-hidden="true" style="z-index: 10600;">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-primary text-white border-0">
+                    <h5 class="modal-title fw-bold"><i class="fas fa-calculator me-2"></i> เครื่องคิดเลข</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body bg-light">
+                    <input type="text" id="calcDisplay" class="form-control mb-3 text-end fs-2 fw-bold text-primary shadow-sm" readonly style="background-color: #fff; height: 60px;">
+                    <div class="row g-2">
+                        <div class="col-3"><button class="btn btn-outline-dark w-100 fs-4 fw-bold py-2" onclick="AppCore.calcAppend('7')">7</button></div>
+                        <div class="col-3"><button class="btn btn-outline-dark w-100 fs-4 fw-bold py-2" onclick="AppCore.calcAppend('8')">8</button></div>
+                        <div class="col-3"><button class="btn btn-outline-dark w-100 fs-4 fw-bold py-2" onclick="AppCore.calcAppend('9')">9</button></div>
+                        <div class="col-3"><button class="btn btn-danger w-100 fs-4 fw-bold py-2" onclick="AppCore.calcBackspace()"><i class="fas fa-backspace"></i></button></div>
+                        
+                        <div class="col-3"><button class="btn btn-outline-dark w-100 fs-4 fw-bold py-2" onclick="AppCore.calcAppend('4')">4</button></div>
+                        <div class="col-3"><button class="btn btn-outline-dark w-100 fs-4 fw-bold py-2" onclick="AppCore.calcAppend('5')">5</button></div>
+                        <div class="col-3"><button class="btn btn-outline-dark w-100 fs-4 fw-bold py-2" onclick="AppCore.calcAppend('6')">6</button></div>
+                        <div class="col-3"><button class="btn btn-warning w-100 fs-4 fw-bold py-2" onclick="AppCore.calcAppend('+')">+</button></div>
+                        
+                        <div class="col-3"><button class="btn btn-outline-dark w-100 fs-4 fw-bold py-2" onclick="AppCore.calcAppend('1')">1</button></div>
+                        <div class="col-3"><button class="btn btn-outline-dark w-100 fs-4 fw-bold py-2" onclick="AppCore.calcAppend('2')">2</button></div>
+                        <div class="col-3"><button class="btn btn-outline-dark w-100 fs-4 fw-bold py-2" onclick="AppCore.calcAppend('3')">3</button></div>
+                        <div class="col-3"><button class="btn btn-warning w-100 fs-4 fw-bold py-2" onclick="AppCore.calcAppend('-')">-</button></div>
+                        
+                        <div class="col-3"><button class="btn btn-danger w-100 fs-4 fw-bold py-2" onclick="AppCore.calcClear()">C</button></div>
+                        <div class="col-3"><button class="btn btn-outline-dark w-100 fs-4 fw-bold py-2" onclick="AppCore.calcAppend('0')">0</button></div>
+                        <div class="col-3"><button class="btn btn-warning w-100 fs-4 fw-bold py-2" onclick="AppCore.calcAppend('*')">×</button></div>
+                        <div class="col-3"><button class="btn btn-warning w-100 fs-4 fw-bold py-2" onclick="AppCore.calcAppend('/')">÷</button></div>
+                        
+                        <div class="col-12"><button class="btn btn-info w-100 fs-4 fw-bold py-2 text-white" onclick="AppCore.calcConfirm()">=</button></div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <nav class="bottom-nav">
@@ -98,6 +143,6 @@
     </nav>
 
     <audio id="soundScan" src="https://www.soundjay.com/buttons/sounds/beep-07.mp3"></audio>
-    <script src="app.js?v=20"></script>
+    <script src="app.js?v=21"></script>
 </body>
 </html>

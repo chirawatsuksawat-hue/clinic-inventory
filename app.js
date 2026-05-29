@@ -8,6 +8,7 @@ const AppCore = {
     visitsData: [],
     html5QrCode: null,
     currentUser: "ไม่ระบุ",
+    currentCalcTargetId: "",
 
     init: function() {
         const params = new URLSearchParams(window.location.search);
@@ -40,6 +41,23 @@ const AppCore = {
                 this.loadLocalData();
             }
         }, 3000);
+    },
+
+    // 🚪 ระบบออกจากระบบ
+    logoutApp: function() {
+        Swal.fire({
+            title: 'ออกจากระบบ?',
+            text: "คุณต้องการออกจากระบบคลังพัสดุใช่หรือไม่?",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'ออกจากระบบ',
+            cancelButtonText: 'ยกเลิก',
+            confirmButtonColor: '#e74c3c'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.replace("scanner_login.html?v=" + new Date().getTime());
+            }
+        });
     },
 
     loadOnlineData: function() {
@@ -118,12 +136,101 @@ const AppCore = {
                 confirmButtonText: 'ลงทะเบียนใหม่',
                 cancelButtonText: 'ยกเลิก'
             }).then(res => {
-                if(res.isConfirmed) UI.showAddItemForm(code);
+                if(res.isConfirmed) this.showAddItemForm(code);
             });
         }
     },
 
-    // 🌟 ระบบคำนวณและบันทึก 🌟
+    // ➕ ระบบเพิ่มพัสดุใหม่
+    showAddItemForm: function(scannedCode = "") {
+        let cats = new Set(["เวชภัณฑ์ทางการแพทย์", "อุปกรณ์สำนักงาน", "น้ำยา/อุปกรณ์ทำความสะอาด", "อื่นๆ"]);
+        this.allItems.forEach(item => { if(item && item.category) cats.add(item.category); });
+        let catHtml = Array.from(cats).map(c => `<option value="${c}">`).join('');
+
+        Swal.fire({
+            title: '➕ ลงทะเบียนพัสดุ',
+            html: `
+                <div class="text-start" style="font-size:0.9rem;">
+                    <label class="fw-bold">รหัสบาร์โค้ด</label>
+                    <input id="newCode" class="form-control mb-2" value="${scannedCode}">
+                    <label class="fw-bold">ชื่อพัสดุ</label>
+                    <input id="newName" class="form-control mb-2" placeholder="ระบุชื่อ...">
+                    <label class="fw-bold text-primary">หมวดหมู่</label>
+                    <input type="text" id="newCat" list="catList" class="form-control mb-2" placeholder="เลือกหรือพิมพ์ใหม่">
+                    <datalist id="catList">${catHtml}</datalist>
+                    <div class="row">
+                        <div class="col-6"><label class="fw-bold">หน่วยนับ</label><input id="newUnit" class="form-control mb-2" placeholder="ชิ้น"></div>
+                        <div class="col-6"><label class="fw-bold">บรรจุ/กล่อง</label><input type="number" id="newPerBox" class="form-control mb-2" value="1"></div>
+                    </div>
+                </div>
+            `,
+            confirmButtonText: '<i class="fas fa-save"></i> บันทึก', 
+            confirmButtonColor: '#2ecc71',
+            showCancelButton: true,
+            cancelButtonText: 'ยกเลิก',
+            preConfirm: () => {
+                let code = document.getElementById('newCode').value.trim();
+                let name = document.getElementById('newName').value.trim();
+                if(!code || !name) return Swal.showValidationMessage('กรุณากรอกรหัสและชื่อให้ครบ');
+                if(this.allItems.some(i => i && i.code === code)) return Swal.showValidationMessage('รหัสนี้มีอยู่ในระบบแล้ว!');
+                
+                let newItem = {
+                    id: "ITM" + new Date().getTime(),
+                    seq_num: this.allItems.length + 1, 
+                    code: code, 
+                    name: name,
+                    category: document.getElementById('newCat').value || "อื่นๆ", 
+                    unit: document.getElementById('newUnit').value || "ชิ้น",
+                    qty_per_box: document.getElementById('newPerBox').value || "1",
+                    main_stock: 0, sub_stock: 0, target_stock: 0, min_alert: 10, price: 0
+                };
+
+                let nextIdx = this.allItems.length;
+                if (this.db && document.getElementById('syncStatus').innerText.includes('ออนไลน์')) {
+                    this.db.ref(`inventory_data/${nextIdx}`).set(newItem).then(() => {
+                        Swal.fire('สำเร็จ', 'เพิ่มพัสดุใหม่เรียบร้อย', 'success');
+                    });
+                } else {
+                    Swal.fire('ข้อผิดพลาด', 'ต้องออนไลน์เพื่อเพิ่มพัสดุใหม่', 'error');
+                }
+            }
+        });
+    },
+
+    // 🧮 ระบบเครื่องคิดเลข
+    openCalculator: function(targetId, currentValue) {
+        this.currentCalcTargetId = targetId;
+        document.getElementById('calcDisplay').value = currentValue || '';
+        new bootstrap.Modal(document.getElementById('calculatorModal')).show();
+    },
+    calcAppend: function(val) { 
+        const display = document.getElementById('calcDisplay');
+        display.value += val; 
+        display.scrollLeft = display.scrollWidth;
+    },
+    calcBackspace: function() {
+        let display = document.getElementById('calcDisplay');
+        display.value = display.value.slice(0, -1);
+        display.scrollLeft = display.scrollWidth;
+    },
+    calcClear: function() { document.getElementById('calcDisplay').value = ''; },
+    calcConfirm: function() {
+        let expr = document.getElementById('calcDisplay').value;
+        let finalVal = 0;
+        if(/^[0-9+\-*/.\s]+$/.test(expr)) { 
+            try { 
+                let res = eval(expr); 
+                if(isFinite(res)) finalVal = Math.floor(res); 
+            } catch(e) {} 
+        }
+        if(isNaN(finalVal) || finalVal < 0) finalVal = 0;
+
+        let el = document.getElementById(this.currentCalcTargetId);
+        if(el) el.value = finalVal;
+        bootstrap.Modal.getInstance(document.getElementById('calculatorModal')).hide();
+    },
+
+    // 🌟 ระบบบันทึก 🌟
     processTransaction: function(idx, action, qty, fromModule = "ทั่วไป") {
         let item = this.allItems[idx];
         let nMain = parseInt(item.main_stock || 0);
@@ -342,7 +449,7 @@ const UI = {
         });
     },
 
-    // 📋 3. ตรวจนับสต๊อก (Audit)
+    // 📋 3. ตรวจนับสต๊อก (Audit) - เพิ่มปุ่มเครื่องคิดเลข
     renderAudit: function() {
         const cont = document.getElementById('auditListContainer');
         cont.innerHTML = '';
@@ -360,11 +467,17 @@ const UI = {
                     <div class="d-flex w-100 gap-2">
                         <div class="flex-fill">
                             <label class="text-muted" style="font-size:0.8rem;">หลัก</label>
-                            <input type="number" id="audit-m-${idx}" class="form-control text-center fw-bold" value="${i.main_stock||0}" onclick="this.select()">
+                            <div class="input-group input-group-sm">
+                                <input type="number" id="audit-m-${idx}" class="form-control text-center fw-bold" value="${i.main_stock||0}" onclick="this.select()">
+                                <button class="btn btn-secondary px-2" onclick="AppCore.openCalculator('audit-m-${idx}', document.getElementById('audit-m-${idx}').value)"><i class="fas fa-calculator"></i></button>
+                            </div>
                         </div>
                         <div class="flex-fill">
                             <label class="text-danger" style="font-size:0.8rem;">ย่อย</label>
-                            <input type="number" id="audit-s-${idx}" class="form-control text-center text-danger fw-bold border-danger" value="${i.sub_stock||0}" onclick="this.select()">
+                            <div class="input-group input-group-sm">
+                                <input type="number" id="audit-s-${idx}" class="form-control text-center text-danger fw-bold border-danger" value="${i.sub_stock||0}" onclick="this.select()">
+                                <button class="btn btn-danger px-2" onclick="AppCore.openCalculator('audit-s-${idx}', document.getElementById('audit-s-${idx}').value)"><i class="fas fa-calculator"></i></button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -404,7 +517,7 @@ const UI = {
         });
     },
 
-    // 🧰 เมนูจัดการเมื่อคลิกพัสดุ
+    // 🧰 เมนูจัดการเมื่อคลิกพัสดุ (เพิ่มปุ่มเครื่องคิดเลขตรงช่องกรอกจำนวน)
     showActionMenu: function(idx) {
         const item = AppCore.allItems[idx];
         Swal.fire({
@@ -418,7 +531,10 @@ const UI = {
                     </div>
                     
                     <label class="fw-bold mb-1">ระบุจำนวน:</label>
-                    <input type="number" id="quickQty" class="form-control form-control-lg text-center fw-bold text-primary mb-3" value="1" onclick="this.select()">
+                    <div class="input-group mb-3">
+                        <input type="number" id="quickQty" class="form-control form-control-lg text-center fw-bold text-primary border-primary" value="1" onclick="this.select()">
+                        <button class="btn btn-primary px-3" onclick="AppCore.openCalculator('quickQty', document.getElementById('quickQty').value)"><i class="fas fa-calculator"></i></button>
+                    </div>
                     
                     <div class="d-grid gap-2">
                         <button class="btn btn-warning py-3 fw-bold" onclick="UI.executeAction(${idx}, 'use')"><i class="fas fa-upload me-2"></i> ตัดสต๊อก (ใช้งาน)</button>
@@ -436,42 +552,6 @@ const UI = {
         if(!qty || qty <= 0) return Swal.showValidationMessage('ใส่จำนวนที่ถูกต้อง');
         Swal.close();
         AppCore.processTransaction(idx, action, qty);
-    },
-
-    showAddItemForm: function(scannedCode = "") {
-        Swal.fire({
-            title: '➕ ลงทะเบียนพัสดุ',
-            html: `
-                <div class="text-start" style="font-size:0.9rem;">
-                    <label>รหัสบาร์โค้ด</label>
-                    <input id="newCode" class="form-control mb-2" value="${scannedCode}">
-                    <label>ชื่อพัสดุ</label>
-                    <input id="newName" class="form-control mb-2" placeholder="ระบุชื่อ...">
-                    <div class="row">
-                        <div class="col-6"><label>หน่วยนับ</label><input id="newUnit" class="form-control mb-2" placeholder="ชิ้น"></div>
-                        <div class="col-6"><label>หมวดหมู่</label><input id="newCat" class="form-control mb-2" placeholder="อื่นๆ"></div>
-                    </div>
-                </div>
-            `,
-            confirmButtonText: 'บันทึก', showCancelButton: true,
-            preConfirm: () => {
-                let code = document.getElementById('newCode').value;
-                let name = document.getElementById('newName').value;
-                if(!code || !name) return Swal.showValidationMessage('กรอกรหัสและชื่อให้ครบ');
-                
-                let newItem = {
-                    id: "ITM" + new Date().getTime(),
-                    seq_num: AppCore.allItems.length + 1, code: code, name: name,
-                    category: document.getElementById('newCat').value || "อื่นๆ", unit: document.getElementById('newUnit').value || "ชิ้น",
-                    main_stock: 0, sub_stock: 0, target_stock: 0, min_alert: 10, price: 0
-                };
-
-                let nextIdx = AppCore.allItems.length;
-                AppCore.db.ref(`inventory_data/${nextIdx}`).set(newItem).then(() => {
-                    Swal.fire('สำเร็จ', 'เพิ่มพัสดุเรียบร้อย', 'success');
-                });
-            }
-        });
     }
 };
 
