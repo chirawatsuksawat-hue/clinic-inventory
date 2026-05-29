@@ -18,7 +18,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
-    <link rel="stylesheet" href="style.css?v=22">
+    <link rel="stylesheet" href="style.css?v=25">
     <style>
         #calcDisplay { white-space: nowrap; overflow-x: auto; scrollbar-width: none; }
         #calcDisplay::-webkit-scrollbar { display: none; }
@@ -89,80 +89,93 @@
     </div>
 
     <div id="view-dashboard" class="main-content active">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h4 class="header-title m-0">📦 คลังพัสดุคงเหลือ</h4>
-            <button class="btn btn-outline-dark btn-sm fw-bold shadow-sm px-3 print-hide" onclick="window.print()"><i class="fas fa-print me-1"></i> พิมพ์</button>
+        <div class="screen-only">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="header-title m-0">📦 คลังพัสดุคงเหลือ</h4>
+                <button class="btn btn-outline-dark btn-sm fw-bold shadow-sm px-3 print-hide" onclick="window.print()"><i class="fas fa-print me-1"></i> พิมพ์</button>
+            </div>
+            
+            <div class="input-group shadow-sm mb-3">
+                <span class="input-group-text bg-white border-0"><i class="fas fa-search text-muted"></i></span>
+                <input type="text" id="searchDashboard" class="form-control border-0 py-2" placeholder="ค้นหาชื่อพัสดุ, หมวดหมู่..." onkeyup="UI.renderDashboard()">
+                <button class="btn btn-success px-3 fw-bold border-0" onclick="AppCore.showAddItemForm()"><i class="fas fa-plus"></i> เพิ่มใหม่</button>
+            </div>
+            <div id="dashboardCardContainer" class="row g-2 d-md-none"></div>
+            <div class="modern-card p-0 d-none d-md-block">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead><tr><th>รหัส</th><th>ชื่อรายการ</th><th class="text-center">คลังหลัก</th><th class="text-center">คลังย่อย</th><th class="text-center">ยอดรวม</th><th class="text-center print-hide">จัดการ</th></tr></thead>
+                        <tbody id="dashboardTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
         </div>
         
-        <div class="input-group shadow-sm mb-3">
-            <span class="input-group-text bg-white border-0"><i class="fas fa-search text-muted"></i></span>
-            <input type="text" id="searchDashboard" class="form-control border-0 py-2" placeholder="ค้นหาชื่อพัสดุ, หมวดหมู่..." onkeyup="UI.renderDashboard()">
-            <button class="btn btn-success px-3 fw-bold border-0" onclick="AppCore.showAddItemForm()"><i class="fas fa-plus"></i> เพิ่มใหม่</button>
-        </div>
-
-        <div id="dashboardCardContainer" class="row g-2 d-md-none"></div>
-
-        <div class="modern-card p-0 d-none d-md-block d-print-block">
-            <h5 class="print-only-title">รายงานคลังพัสดุคงเหลือประจำวัน</h5>
-            <div class="table-responsive">
-                <table class="table table-hover mb-0">
-                    <thead><tr><th style="width: 100px;">รหัส</th><th>ชื่อรายการพัสดุ</th><th class="text-center" style="width: 100px;">คลังหลัก</th><th class="text-center" style="width: 100px;">คลังย่อย</th><th class="text-center" style="width: 100px;">ยอดรวม</th><th class="text-center print-hide" style="width: 120px;">จัดการ</th></tr></thead>
-                    <tbody id="dashboardTableBody"></tbody>
-                </table>
-            </div>
+        <div class="d-none d-print-block">
+            <h4 class="print-only-title">รายงานคลังพัสดุคงเหลือประจำวัน</h4>
+            <table>
+                <thead><tr><th style="width: 100px;">รหัส</th><th>ชื่อรายการพัสดุ</th><th style="width: 100px;">คลังหลัก</th><th style="width: 100px;">คลังย่อย</th><th style="width: 100px;">ยอดรวม</th></tr></thead>
+                <tbody id="dashboardTableBodyPrint"></tbody>
+            </table>
         </div>
     </div>
 
     <div id="view-visits" class="main-content">
-        <div class="d-flex justify-content-between align-items-start mb-3">
-            <div>
-                <h4 class="header-title m-0 border-0">🛏️ คิวฟอกไตวันนี้</h4>
-                <span id="visitDateBadge" class="badge bg-primary fs-6 mt-1 print-hide"></span>
+        <div class="screen-only">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+                <div>
+                    <h4 class="header-title m-0 border-0">🛏️ คิวฟอกไตวันนี้</h4>
+                    <span id="visitDateBadge" class="badge bg-primary fs-6 mt-1 print-hide"></span>
+                </div>
+                <button class="btn btn-outline-dark btn-sm fw-bold shadow-sm px-3 print-hide" onclick="window.print()"><i class="fas fa-print me-1"></i> พิมพ์</button>
             </div>
-            <button class="btn btn-outline-dark btn-sm fw-bold shadow-sm px-3 print-hide" onclick="window.print()"><i class="fas fa-print me-1"></i> พิมพ์</button>
+            <div id="visitListContainer" class="row g-2"></div>
         </div>
-        <div id="visitListContainer" class="row g-2"></div>
 
-        <div class="table-responsive d-none d-print-block mt-3">
-            <h5 class="print-only-title">รายงานคิวผู้ป่วยฟอกไต</h5>
-            <table class="table">
-                <thead><tr><th class="text-center" style="width: 80px;">เวลา</th><th class="text-center" style="width: 80px;">HN</th><th>ชื่อ-นามสกุล</th><th class="text-center" style="width: 60px;">เตียง</th><th style="width: 100px;">สิทธิ</th><th>การรักษา (ยา/น้ำเกลือ)</th><th class="text-center" style="width: 100px;">สถานะ</th></tr></thead>
+        <div class="d-none d-print-block">
+            <h4 class="print-only-title">รายงานคิวผู้ป่วยฟอกไตประจำวัน</h4>
+            <table>
+                <thead><tr><th style="width: 80px;">เวลา</th><th style="width: 80px;">HN</th><th>ชื่อ-นามสกุล</th><th style="width: 60px;">เตียง</th><th style="width: 120px;">สิทธิ</th><th>การรักษา (ยา/น้ำเกลือ)</th><th style="width: 100px;">สถานะ</th></tr></thead>
                 <tbody id="visitTableBodyPrint"></tbody>
             </table>
         </div>
     </div>
 
     <div id="view-audit" class="main-content">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h4 class="header-title m-0 border-0">📋 ตรวจนับสต๊อก</h4>
-            <div>
-                <button class="btn btn-outline-dark btn-sm fw-bold shadow-sm px-3 me-1 print-hide" onclick="window.print()"><i class="fas fa-print"></i></button>
-                <button class="btn btn-success fw-bold btn-sm shadow-sm px-3 print-hide" onclick="AppCore.saveBulkAudit()"><i class="fas fa-save me-1"></i> บันทึก</button>
+        <div class="screen-only">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="header-title m-0 border-0">📋 ตรวจนับสต๊อก</h4>
+                <div>
+                    <button class="btn btn-outline-dark btn-sm fw-bold shadow-sm px-3 me-1 print-hide" onclick="window.print()"><i class="fas fa-print me-1"></i> พิมพ์</button>
+                    <button class="btn btn-success fw-bold btn-sm shadow-sm px-3 print-hide" onclick="AppCore.saveBulkAudit()"><i class="fas fa-save me-1"></i> บันทึก</button>
+                </div>
             </div>
+            <div class="alert alert-warning py-2 mb-3" style="font-size: 0.85rem;"><i class="fas fa-info-circle"></i> ใส่ตัวเลขยอดจริงที่นับได้ หรือกดไอคอนเครื่องคิดเลข</div>
+            <div id="auditListContainer" class="row g-2"></div>
         </div>
-        <div class="alert alert-warning py-2 mb-3" style="font-size: 0.85rem;"><i class="fas fa-info-circle"></i> ใส่ตัวเลขยอดจริงที่นับได้ หรือกดไอคอนเครื่องคิดเลข</div>
-        <div id="auditListContainer" class="row g-2"></div>
 
-        <div class="table-responsive d-none d-print-block mt-3">
-            <h5 class="print-only-title">ใบตรวจนับพัสดุ (Spot Audit)</h5>
-            <table class="table">
-                <thead><tr><th class="text-center" style="width: 60px;">ลำดับ</th><th class="text-center" style="width: 100px;">รหัสพัสดุ</th><th>ชื่อรายการพัสดุ</th><th class="text-center" style="width: 100px;">ระบบ (รวม)</th><th class="text-center" style="width: 120px;">นับจริง (หลัก)</th><th class="text-center" style="width: 120px;">นับจริง (ย่อย)</th><th class="text-center" style="width: 120px;">หมายเหตุ</th></tr></thead>
+        <div class="d-none d-print-block">
+            <h4 class="print-only-title">ใบจดบันทึกการตรวจนับพัสดุ (Spot Audit)</h4>
+            <table>
+                <thead><tr><th style="width: 60px;">ลำดับ</th><th style="width: 100px;">รหัสพัสดุ</th><th>ชื่อรายการพัสดุ</th><th style="width: 100px;">ระบบ (รวม)</th><th style="width: 120px;">นับจริง (หลัก)</th><th style="width: 120px;">นับจริง (ย่อย)</th><th style="width: 120px;">หมายเหตุ</th></tr></thead>
                 <tbody id="auditTableBodyPrint"></tbody>
             </table>
         </div>
     </div>
 
     <div id="view-history" class="main-content">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h4 class="header-title m-0 border-0">ประวัติทำรายการ</h4>
-            <button class="btn btn-outline-dark btn-sm fw-bold shadow-sm px-3 print-hide" onclick="window.print()"><i class="fas fa-print me-1"></i> พิมพ์</button>
+        <div class="screen-only">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="header-title m-0 border-0">ประวัติทำรายการ</h4>
+                <button class="btn btn-outline-dark btn-sm fw-bold shadow-sm px-3 print-hide" onclick="window.print()"><i class="fas fa-print me-1"></i> พิมพ์</button>
+            </div>
+            <div id="historyListContainer" class="row g-2"></div>
         </div>
-        <div id="historyListContainer" class="row g-2"></div>
 
-        <div class="table-responsive d-none d-print-block mt-3">
-            <h5 class="print-only-title">รายงานประวัติเบิกจ่ายพัสดุ-เวชภัณฑ์</h5>
-            <table class="table">
-                <thead><tr><th class="text-center" style="width: 130px;">วันที่-เวลา</th><th class="text-center" style="width: 90px;">รหัส</th><th>ชื่อพัสดุ</th><th class="text-center" style="width: 130px;">รายการ</th><th class="text-center" style="width: 80px;">จำนวน</th><th class="text-center" style="width: 100px;">เหลือรวม</th><th style="width: 130px;">ผู้ทำรายการ</th></tr></thead>
+        <div class="d-none d-print-block">
+            <h4 class="print-only-title">รายงานประวัติเบิกจ่ายพัสดุและเวชภัณฑ์</h4>
+            <table>
+                <thead><tr><th style="width: 130px;">วันที่-เวลา</th><th style="width: 90px;">รหัส</th><th>ชื่อพัสดุ</th><th style="width: 130px;">รายการ</th><th style="width: 80px;">จำนวน</th><th style="width: 100px;">เหลือรวม</th><th style="width: 130px;">ผู้ทำรายการ</th></tr></thead>
                 <tbody id="historyTableBodyPrint"></tbody>
             </table>
         </div>
@@ -210,6 +223,6 @@
     </nav>
 
     <audio id="soundScan" src="https://www.soundjay.com/buttons/sounds/beep-07.mp3"></audio>
-    <script src="app.js?v=22"></script>
+    <script src="app.js?v=25"></script>
 </body>
 </html>
