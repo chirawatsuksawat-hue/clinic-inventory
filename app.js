@@ -21,18 +21,22 @@ const AppCore = {
         // ==========================================
         window.history.pushState(null, null, window.location.href);
         window.onpopstate = function(event) {
+            // ดัน State กลับเข้าไปใหม่ทันทีเพื่อไม่ให้หลุดหน้าเว็บ
             window.history.pushState(null, null, window.location.href);
             
+            // 1. ถ้ากล้องสแกนเปิดอยู่ -> ให้ปิดกล้อง
             if (document.getElementById('scannerContainer') && document.getElementById('scannerContainer').style.display === 'block') {
                 AppCore.toggleUniversalScanner();
                 return;
             }
             
+            // 2. ถ้ามีหน้าต่าง SweetAlert (Popup) เปิดอยู่ -> ให้ปิด Popup
             if (Swal.isVisible()) {
                 Swal.close();
                 return;
             }
 
+            // 3. ถ้าอยู่หน้าปกติ -> แจ้งเตือนเบาๆ
             Swal.fire({
                 toast: true, 
                 position: 'top', 
@@ -181,14 +185,12 @@ const AppCore = {
         return Array.from(cats).map(cat => `<option value="${cat}">`).join('');
     },
 
-    // 🎲 ฟังก์ชันสร้างรหัสสุ่มใน Popup
     generateRandomCodePopup: function(inputId) {
         const prefix = "ITM-"; 
         const randomNum = Math.floor(1000 + Math.random() * 9000); 
         document.getElementById(inputId).value = prefix + randomNum;
     },
 
-    // 📷 ฟังก์ชันเปิดกล้องใน Popup
     startPopupScanner: function(readerId, inputId) {
         const readerDiv = document.getElementById(readerId);
         readerDiv.style.display = 'block';
@@ -277,7 +279,7 @@ const AppCore = {
 
     editItemForm: function(idx) {
         const item = this.allItems[idx];
-
+        
         Swal.fire({
             title: '📝 แก้ไขข้อมูลพัสดุ', width: '600px',
             html: `
@@ -398,7 +400,6 @@ const AppCore = {
             if(qty > nMain) return Swal.fire('ผิดพลาด', 'คลังหลักมีไม่พอโอน!', 'error');
             nMain -= qty; nSub += qty; actText = "โอนไปคลังย่อย 🔄"; 
         }
-        // 🌟 เพิ่มเงื่อนไขสำหรับการคืนของเข้าคลังหลัก
         else if (action === 'transfer_back') {
             if(qty > nSub) return Swal.fire('ผิดพลาด', 'คลังย่อยมีของไม่พอคืน!', 'error');
             nSub -= qty; nMain += qty; actText = "คืนเข้าคลังหลัก 🔄";
@@ -658,7 +659,7 @@ const UI = {
             let aColor = "secondary";
             if (log.action.includes("รับเข้า")) aColor = "success";
             else if (log.action.includes("ใช้งาน")) aColor = "warning";
-            else if (log.action.includes("โอน")) aColor = "primary";
+            else if (log.action.includes("โอน") || log.action.includes("คืนเข้า")) aColor = "primary";
 
             cont.innerHTML += `
             <div class="col-12">
@@ -685,24 +686,26 @@ const UI = {
                 <div class="text-start">
                     <span class="badge bg-secondary mb-2">${item.code}</span>
                     <h5 class="fw-bold text-primary mb-3">${item.name}</h5>
-                    <div class="d-flex justify-content-around p-2 bg-light rounded mb-3">
-                        <div class="text-center">สต๊อกหลัก<br><b class="fs-4">${item.main_stock||0}</b></div>
-                        <div class="text-center text-danger">สต๊อกย่อย<br><b class="fs-4">${item.sub_stock||0}</b></div>
+                    <div class="d-flex justify-content-around p-2 bg-light rounded mb-3 border">
+                        <div class="text-center">สต๊อกหลัก<br><b class="fs-3 text-dark">${item.main_stock||0}</b></div>
+                        <div class="text-center">สต๊อกย่อย<br><b class="fs-3 text-danger">${item.sub_stock||0}</b></div>
                     </div>
                     
-                    <label class="fw-bold mb-1">ระบุจำนวน:</label>
-                    <div class="input-group mb-3">
+                    <label class="fw-bold mb-1 text-secondary">ระบุจำนวนที่ต้องการทำรายการ:</label>
+                    <div class="input-group mb-4 shadow-sm">
                         <input type="number" id="quickQty" class="form-control form-control-lg text-center fw-bold text-primary border-primary" value="1" onclick="this.select()">
                         <button class="btn btn-primary px-3" onclick="AppCore.openCalculator('quickQty', document.getElementById('quickQty').value)"><i class="fas fa-calculator"></i></button>
                     </div>
                     
                     <div class="d-grid gap-2">
-                        <button class="btn btn-warning py-3 fw-bold" onclick="UI.executeAction(${idx}, 'use')"><i class="fas fa-upload me-2"></i> ตัดสต๊อก (ใช้งาน)</button>
+                        <button class="btn btn-warning py-3 fw-bold shadow-sm" onclick="UI.executeAction(${idx}, 'use')"><i class="fas fa-upload me-2"></i> ตัดสต๊อก (เบิกใช้งาน)</button>
+                        
                         <div class="d-flex gap-2">
-                            <button class="btn btn-primary py-3 fw-bold text-white w-50" onclick="UI.executeAction(${idx}, 'transfer')"><i class="fas fa-arrow-right me-1"></i> โอนย่อย</button>
-                            <button class="btn btn-info py-3 fw-bold text-white w-50" onclick="UI.executeAction(${idx}, 'transfer_back')"><i class="fas fa-undo me-1"></i> คืนหลัก</button>
+                            <button class="btn btn-primary py-3 fw-bold text-white shadow-sm w-50" onclick="UI.executeAction(${idx}, 'transfer')"><i class="fas fa-arrow-right me-1"></i> โอนไปย่อย</button>
+                            <button class="btn btn-info py-3 fw-bold text-white shadow-sm w-50" onclick="UI.executeAction(${idx}, 'transfer_back')"><i class="fas fa-undo me-1"></i> คืนเข้าหลัก</button>
                         </div>
-                        <button class="btn btn-success py-3 fw-bold" onclick="UI.executeAction(${idx}, 'receive_main')"><i class="fas fa-download me-2"></i> รับของเข้า (คลังหลัก)</button>
+                        
+                        <button class="btn btn-success py-3 fw-bold shadow-sm" onclick="UI.executeAction(${idx}, 'receive_main')"><i class="fas fa-download me-2"></i> รับของเข้า (คลังหลัก)</button>
                         <button class="btn btn-outline-secondary py-2 mt-2 fw-bold" onclick="AppCore.editItemForm(${idx})"><i class="fas fa-edit me-2"></i> แก้ไขรายละเอียดพัสดุ</button>
                     </div>
                 </div>
