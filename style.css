@@ -1,59 +1,132 @@
-body { font-family: 'Sarabun', sans-serif; background-color: #f4f6f9; overflow-x: hidden; }
-.mobile-header { display: none; background-color: #2c3e50; color: white; padding: 15px 20px; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 1020; box-shadow: 0 2px 5px rgba(0,0,0,0.1);}
-.mobile-header h5 { margin: 0; font-weight: bold; }
-.hamburger-btn { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; }
+@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap');
 
-.sidebar { height: 100vh; width: 250px; position: fixed; top: 0; left: 0; background-color: #2c3e50; color: white; padding-top: 20px; z-index: 1050; transition: transform 0.3s ease-in-out; box-shadow: 2px 0 10px rgba(0,0,0,0.2); }
-.sidebar .nav-link { color: #ecf0f1; margin: 10px 15px; border-radius: 8px; transition: all 0.3s; font-size: 1.1rem; cursor: pointer; }
-.sidebar .nav-link:hover, .sidebar .nav-link.active { background-color: #34495e; color: #3498db; transform: translateX(5px); }
-
-.sidebar-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1040; transition: opacity 0.3s; }
-
-.main-content { margin-left: 250px; padding: 30px; transition: margin 0.3s; }
-.header-title { color: #2c3e50; font-weight: bold; border-bottom: 3px solid #3498db; padding-bottom: 10px; margin-bottom: 25px; }
-
-.card { border-radius: 12px; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
-.table-responsive { max-height: 500px; overflow-y: auto; }
-
-.table thead th { background-color: #34495E; color: white; position: sticky; top: 0; z-index: 10; white-space: nowrap;}
-.table td { vertical-align: middle; font-size: 1.05rem; white-space: nowrap; }
-
-.action-btn { font-weight: bold; border-radius: 8px; padding: 10px 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.2s; flex: 1; min-width: 140px; text-align: center;}
-.action-btn:hover { transform: scale(1.05); }
-.btn-scan { border-radius: 12px; padding: 15px; font-weight: bold; background: #263238; color: white; font-size: 1.2rem; }
-.btn-scan:hover { background: #1a2529; color: white; }
-#reader, #auditReader, #manualReader { width: 100%; border-radius: 15px; overflow: hidden; display: none; border: 4px dashed #00bfa5; margin-bottom: 15px; background: #fff; }
-
-.audit-input { font-size: 1.1rem; font-weight: bold; }
-
-.table-audit th { 
-    background-color: #f8f9fa; 
-    color: #333; 
-    position: sticky; 
-    top: 0; 
-    z-index: 50;  
-    border-bottom: 2px solid #dee2e6;
+:root {
+    --primary: #3498db;
+    --secondary: #2c3e50;
+    --success: #2ecc71;
+    --warning: #f1c40f;
+    --danger: #e74c3c;
+    --bg-color: #f4f7f6;
+    --card-bg: #ffffff;
 }
 
-#calcDisplay {
-    white-space: nowrap;     
-    overflow-x: auto;         
-    scrollbar-width: none;    
+body {
+    font-family: 'Sarabun', sans-serif;
+    background-color: var(--bg-color);
+    margin: 0;
+    padding-bottom: 80px; /* เผื่อพื้นที่ให้เมนูด้านล่าง */
+    overflow-x: hidden;
+    -webkit-tap-highlight-color: transparent;
 }
 
-#calcDisplay::-webkit-scrollbar {
-    display: none;
+/* 🌟 Header ด้านบน */
+.app-header {
+    background-color: var(--secondary);
+    color: white;
+    padding: 15px 20px;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
 }
 
-@media (max-width: 768px) { 
-    .mobile-header { display: flex; }
-    .sidebar { transform: translateX(-100%); }
-    .sidebar.open { transform: translateX(0); }
-    .sidebar-overlay.open { display: block; }
-    .main-content { margin-left: 0; padding: 15px; }
-    .header-title { font-size: 1.5rem; }
-    .action-btn { width: 100%; margin-bottom: 5px; flex: unset; }
-    .d-flex.flex-wrap.gap-2 { flex-direction: column; }
-    .card { padding: 15px !important; }
-    h5, h2 { font-size: 1.25rem; }
+.app-header h5 { margin: 0; font-weight: 700; font-size: 1.2rem; }
+.user-badge { background: rgba(255,255,255,0.2); padding: 5px 10px; border-radius: 20px; font-size: 0.85rem; }
+
+/* 🌟 เมนูด้านล่าง (Bottom Navigation) */
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background-color: white;
+    box-shadow: 0 -2px 15px rgba(0,0,0,0.05);
+    display: flex;
+    justify-content: space-around;
+    padding: 10px 0;
+    z-index: 1000;
+    border-top-left-radius: 20px;
+    border-top-right-radius: 20px;
+}
+
+.nav-item {
+    text-align: center;
+    color: #95a5a6;
+    text-decoration: none;
+    font-size: 0.75rem;
+    font-weight: 600;
+    flex: 1;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.nav-item i { display: block; font-size: 1.3rem; margin-bottom: 3px; }
+.nav-item.active { color: var(--primary); transform: translateY(-3px); }
+
+/* 🌟 ปุ่มสแกนแบบลอยตัว (Floating Action Button) */
+.fab-scan {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, var(--primary), #2980b9);
+    color: white;
+    width: 65px;
+    height: 65px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.8rem;
+    box-shadow: 0 5px 20px rgba(52, 152, 219, 0.4);
+    z-index: 1010;
+    cursor: pointer;
+    border: 4px solid var(--bg-color);
+    transition: all 0.3s;
+}
+.fab-scan:hover { transform: translateX(-50%) scale(1.1); }
+
+/* 🌟 คอนเทนต์หลัก */
+.main-content { padding: 20px; animation: fadeIn 0.3s ease-in-out; display: none; }
+.main-content.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+/* 🌟 รูปแบบการ์ด */
+.modern-card {
+    background: var(--card-bg);
+    border-radius: 15px;
+    padding: 20px;
+    margin-bottom: 15px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+    border: 1px solid rgba(0,0,0,0.05);
+}
+
+.item-card {
+    border-left: 5px solid var(--primary);
+    padding: 15px;
+    background: white;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* 🌟 กล้องสแกน */
+#universalReader { width: 100%; border-radius: 15px; overflow: hidden; border: 3px dashed var(--primary); margin-top: 15px; }
+
+/* 🌟 ปรับตารางซ่อนในมือถือ */
+.table-responsive { border-radius: 10px; overflow: hidden; }
+.table th { background-color: var(--secondary); color: white; border: none; }
+.table td { vertical-align: middle; }
+
+/* การพิมพ์ */
+@media print {
+    .app-header, .bottom-nav, .fab-scan, .btn, .print-hide { display: none !important; }
+    body { padding: 0; background: white; }
+    .main-content { display: block !important; padding: 0; }
 }
