@@ -36,6 +36,18 @@ body {
 .app-header h5 { margin: 0; font-weight: 700; font-size: 1.2rem; }
 .user-badge { background: rgba(255,255,255,0.2); padding: 5px 10px; border-radius: 20px; font-size: 0.85rem; }
 
+/* 🌟 แถบเครื่องมือล็อคติดจอด้านบน (Sticky Toolbar) 🌟 */
+.sticky-toolbar {
+    position: sticky;
+    top: 55px; /* ล็อคให้อยู่ใต้ Header หลัก */
+    background-color: var(--bg-color); /* ใช้สีเดียวกับพื้นหลังเพื่อให้เนียน */
+    z-index: 900;
+    padding-top: 15px;
+    padding-bottom: 5px;
+    margin-bottom: 15px;
+    border-bottom: 2px dashed #ddd; /* เส้นประบางๆ แบ่งสัดส่วน */
+}
+
 /* 🌟 เมนูด้านล่าง (Bottom Navigation) */
 .bottom-nav {
     position: fixed;
@@ -90,7 +102,7 @@ body {
 .fab-scan:hover { transform: translateX(-50%) scale(1.1); }
 
 /* 🌟 คอนเทนต์หลัก */
-.main-content { padding: 20px; animation: fadeIn 0.3s ease-in-out; display: none; }
+.main-content { padding: 0 20px 20px 20px; animation: fadeIn 0.3s ease-in-out; display: none; }
 .main-content.active { display: block; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
@@ -137,23 +149,17 @@ body {
     @page { size: A4 portrait; margin: 10mm; }
     body { background: white !important; color: black !important; padding: 0 !important; }
     
-    /* 1. ซ่อนทุกอย่างที่เป็นของหน้าจอทิ้งให้หมด */
     .app-header, .bottom-nav, .fab-scan, .btn, .print-hide, .input-group, .alert, 
-    .screen-only { 
+    .screen-only, .sticky-toolbar { 
         display: none !important; 
     }
     
-    /* 2. จัดการโครงสร้าง Content ให้หน้าไม่ขาวโพลน */
     .main-content { display: none !important; margin: 0 !important; padding: 0 !important; }
     .main-content.active { display: block !important; width: 100% !important; border: none !important; box-shadow: none !important; }
     
-    /* 3. เปิดเผยตารางรายงานลับที่เราซ่อนไว้ */
     .print-only-container { display: block !important; }
-    
-    /* ปลดล็อกสกอร์บาร์ */
     .table-responsive { max-height: none !important; overflow: visible !important; }
     
-    /* 4. ตีเส้นตารางให้ชัดเจน */
     table { width: 100% !important; border-collapse: collapse !important; margin-top: 10px !important; font-size: 11pt !important; }
     tr { page-break-inside: avoid; page-break-after: auto; }
     thead { display: table-header-group; }
