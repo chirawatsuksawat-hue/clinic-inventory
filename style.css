@@ -18,11 +18,11 @@ body {
     -webkit-tap-highlight-color: transparent;
 }
 
-/* 🌟 Header ด้านบน (ตอกหมุดยึดเพดานจอ) */
+/* 🌟 Header ด้านบน (ตอกหมุดยึดเพดานจอ) 🌟 */
 .app-header {
     background-color: var(--secondary);
     color: white;
-    padding: 0 20px;
+    padding: 0 10px; /* ลดขอบซ้ายขวาลงให้มีพื้นที่เพิ่มบนมือถือ */
     height: 60px;
     position: fixed; 
     top: 0;
@@ -35,8 +35,47 @@ body {
     box-shadow: 0 2px 10px rgba(0,0,0,0.15);
 }
 
-.app-header h5 { margin: 0; font-weight: 700; font-size: 1.2rem; }
-.user-badge { background: rgba(255,255,255,0.2); padding: 5px 10px; border-radius: 20px; font-size: 0.85rem; }
+/* โลโก้แอป: ยอมให้โดนบีบและขึ้น ... ถ้ายาวเกินไป */
+.app-header h5 { 
+    margin: 0; 
+    font-weight: 700; 
+    font-size: 1.1rem; 
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 0 1 auto; 
+    padding-right: 10px;
+}
+
+/* จัดกลุ่มฝั่งขวา (สถานะ, ชื่อ, ปุ่มออก): ไม่ยอมให้โดนบีบเด็ดขาด */
+.app-header .d-flex {
+    flex: 1 0 auto; 
+    justify-content: flex-end;
+    align-items: center;
+}
+
+/* ป้ายชื่อผู้ใช้ (ให้แสดงเต็ม ไม่ตัดคำ) */
+.user-badge { 
+    background: rgba(255,255,255,0.2); 
+    padding: 5px 10px; 
+    border-radius: 20px; 
+    font-size: 0.85rem; 
+    white-space: nowrap;
+    display: inline-block;
+}
+
+/* ป้องกันปุ่มปิดหดตัว */
+.app-header button {
+    flex-shrink: 0;
+}
+
+/* 📱 ปรับแต่งสำหรับมือถือจอเล็กจิ๋ว */
+@media (max-width: 400px) {
+    .app-header h5 { font-size: 0.95rem; }
+    .app-header h5 i { display: none; } /* ซ่อนไอคอนกล่องพยาบาลเพื่อประหยัดที่ */
+    .user-badge { font-size: 0.75rem; padding: 4px 8px; }
+    #syncStatus { font-size: 0.7rem; padding: 4px 6px; margin-right: 4px !important; }
+}
 
 /* 🌟 แถบเครื่องมือ (ตอกหมุดยึดใต้ Header) 🌟 */
 .sticky-toolbar {
@@ -51,7 +90,7 @@ body {
     box-shadow: 0 4px 10px rgba(0,0,0,0.05); /* เพิ่มเงาให้ดูมีมิติว่าลอยอยู่ */
 }
 
-/* 🌟 คอนเทนต์หลัก ดันลงมาหลบส่วนที่ตอกหมุดไว้ด้านบน */
+/* 🌟 คอนเทนต์หลัก ดันลงมาหลบส่วนที่ตอกหมุดไว้ด้านบน 🌟 */
 .main-content { 
     padding: 190px 20px 20px 20px; /* ดันเนื้อหาลงมา 190px เพื่อไม่ให้โดนแถบเครื่องมือบัง */
     animation: fadeIn 0.3s ease-in-out; 
@@ -140,6 +179,9 @@ body {
 #calcDisplay { white-space: nowrap; overflow-x: auto; scrollbar-width: none; }
 #calcDisplay::-webkit-scrollbar { display: none; }
 
+/* ========================================== */
+/* 🖨️ รูปแบบการพิมพ์ (Print CSS) แบบรายงาน A4 */
+/* ========================================== */
 .print-only-container { display: none; }
 @media print {
     @page { size: A4 portrait; margin: 10mm; }
