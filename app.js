@@ -10,7 +10,7 @@ const AppCore = {
     popupScannerInst: null,
     currentUser: "ไม่ระบุ",
     currentCalcTargetId: "",
-    scanContext: null, // ตัวแปรเก็บสถานะว่ากำลังสแกนเพื่อทำอะไร
+    scanContext: null,
 
     init: function() {
         const params = new URLSearchParams(window.location.search);
@@ -113,7 +113,7 @@ const AppCore = {
         this.handleScanResult(decodedText);
     },
 
-    // 🌟 ฟังก์ชันหลัก: ตัดสินใจว่าจะทำอะไรเมื่อสแกนเจอบาร์โค้ด 🌟
+    // 🌟 ระบบตัดสินใจการสแกน (Context-Aware Scanner) 🌟
     handleScanResult: function(code) {
         code = code.trim(); if (!code) return;
         const manInput = document.getElementById('manualBarcode');
@@ -121,33 +121,36 @@ const AppCore = {
         
         const idx = this.allItems.findIndex(i => i && i.code === code);
         
-        // 1. ถ้าสแกนจากปุ่ม "จ่ายยาให้คนไข้"
+        // 🔥 ตรวจสอบหน้าจอที่กำลังเปิดอยู่จริงๆ จาก HTML DOM 🔥
+        let activeTab = 'view-dashboard';
+        if (document.getElementById('view-audit') && document.getElementById('view-audit').classList.contains('active')) activeTab = 'view-audit';
+        else if (document.getElementById('view-history') && document.getElementById('view-history').classList.contains('active')) activeTab = 'view-history';
+        else if (document.getElementById('view-visits') && document.getElementById('view-visits').classList.contains('active')) activeTab = 'view-visits';
+
+        // 1. โหมดจ่ายยาให้คนไข้
         if (this.scanContext && this.scanContext.mode === 'dispense') {
             if (idx > -1) {
                 UI.showActionMenu(idx, `เบิกจ่ายให้: ${this.scanContext.name}`);
             } else {
                 Swal.fire('ไม่พบพัสดุ', `ไม่พบรหัสบาร์โค้ด ${code} ในระบบคลัง`, 'error');
             }
-            this.scanContext = null; // คืนค่า
+            this.scanContext = null; 
         } 
-        // 2. ถ้าสแกนจากปุ่มลอย (Floating Action Button) ให้ทำงานตามหน้าปัจจุบัน
+        // 2. โหมดสแกนทั่วไป
         else {
             if (idx > -1) { 
-                if (UI.currentTabId === 'view-audit') {
-                    // 👉 ถ้าอยู่หน้าตรวจนับ: ให้เปิดป๊อปอัปกรอกตัวเลขตรวจนับของสินค้านั้น
+                if (activeTab === 'view-audit') {
+                    // 👉 ถ้าสแกนในหน้าตรวจนับ: ให้เปิดป๊อปอัปกรอกยอด
                     UI.showAuditQuickInput(idx);
                 } 
-                else if (UI.currentTabId === 'view-history') {
-                    // 👉 ถ้าอยู่หน้าประวัติ: ให้ค้นหาประวัติของสินค้านี้
+                else if (activeTab === 'view-history') {
+                    // 👉 ถ้าสแกนในหน้าประวัติ: ค้นหาประวัตินั้น
                     const searchInput = document.getElementById('searchHistory');
-                    if (searchInput) { 
-                        searchInput.value = code; 
-                        UI.renderHistory(); 
-                    }
+                    if (searchInput) { searchInput.value = code; UI.renderHistory(); }
                     Swal.fire({toast: true, position: 'top', icon: 'success', title: `ค้นหาประวัติ: ${code}`, showConfirmButton: false, timer: 1500});
                 } 
                 else {
-                    // 👉 หน้าอื่นๆ (คลังหลัก): เปิดเมนูจัดการปกติ
+                    // 👉 หน้าคลังหลัก: เปิดเมนูจัดการปกติ
                     UI.showActionMenu(idx); 
                 }
             } 
@@ -244,7 +247,6 @@ const AppCore = {
                 
                 let newItem = { id: "ITM" + new Date().getTime(), ...res.value, main_stock: res.value.target_stock, sub_stock: 0, req_qty: "", req_note: "" };
                 let nextIdx = 0;
-                // หา Index ที่ว่างที่สุดเพื่อป้องกันข้อมูลทับกัน
                 while(this.allItems[nextIdx] !== undefined) nextIdx++;
                 
                 const syncStatus = document.getElementById('syncStatus');
@@ -307,7 +309,6 @@ const AppCore = {
                 if(!res.value.name) return Swal.fire('ผิดพลาด', 'กรุณากรอกชื่อให้ครบ', 'warning');
                 const syncStatus = document.getElementById('syncStatus');
                 if (this.db && syncStatus && syncStatus.innerText.includes('ออนไลน์')) {
-                    // ใช้ชื่อ Key เดิมของ Firebase ในการอัปเดต
                     this.db.ref('inventory_data').orderByChild('code').equalTo(item.code).once('value', snapshot => {
                         if(snapshot.exists()){
                             let fbKey = Object.keys(snapshot.val())[0];
@@ -377,7 +378,6 @@ const AppCore = {
         if (this.db && syncStatus && syncStatus.innerText.includes('ออนไลน์')) {
             Swal.fire({title: 'กำลังบันทึก...', didOpen: () => Swal.showLoading()});
             
-            // ค้นหา Key ที่แท้จริงใน Firebase ก่อนอัปเดต
             this.db.ref('inventory_data').orderByChild('code').equalTo(item.code).once('value', snapshot => {
                 if(snapshot.exists()){
                     let fbKey = Object.keys(snapshot.val())[0];
@@ -386,7 +386,6 @@ const AppCore = {
                         let now = new Date().toLocaleDateString('en-GB') + " " + new Date().toLocaleTimeString('en-GB');
                         let log = { id: logId, date: now, code: item.code, name: item.name, action: actText, qty: qty, unit: item.unit, main_bal: nMain, sub_bal: nSub, user: this.currentUser, raw_action: action, module: fromModule };
                         
-                        // 🌟 แก้ไข: ยิง Push ข้อมูลใหม่เข้าประวัติแบบปลอดภัย 100% ป้องกันข้อมูลทับกัน
                         this.db.ref(`history_data/${logId}`).set(log).then(() => {
                             Swal.fire({title: 'บันทึกสำเร็จ!', icon: 'success', timer: 1500, showConfirmButton: false});
                         });
@@ -407,7 +406,6 @@ const AppCore = {
                 
                 Swal.fire({title: 'กำลังตรวจสอบและบันทึก...', didOpen: () => Swal.showLoading()});
 
-                // ตรวจสอบทีละรายการผ่าน Firebase ทีละตัวเพื่อความชัวร์ที่สุด
                 this.db.ref('inventory_data').once('value', snapshot => {
                     let dbItems = snapshot.val() || {};
                     let updates = {};
@@ -425,7 +423,6 @@ const AppCore = {
                         let oSub = parseInt(item.sub_stock || 0);
 
                         if (nMain !== oMain || nSub !== oSub) {
-                            // หา Key ที่ตรงกันในฐานข้อมูล
                             let fbKey = Object.keys(dbItems).find(k => dbItems[k] && dbItems[k].code === item.code);
                             if(fbKey) {
                                 updates[`inventory_data/${fbKey}/main_stock`] = nMain;
@@ -440,7 +437,6 @@ const AppCore = {
 
                     if (count === 0) return Swal.fire('ไม่มีการเปลี่ยนแปลง', 'ยอดตรงกับระบบอยู่แล้ว', 'info');
 
-                    // อัปเดตตู้มเดียวรวด
                     this.db.ref().update({...updates, ...logs}).then(() => {
                         Swal.fire('สำเร็จ!', `ปรับยอดใหม่ ${count} รายการ`, 'success');
                     });
@@ -493,10 +489,9 @@ const UI = {
             const printCont = document.getElementById('dashboardTableBodyPrint');
             
             let cardHtml = ''; let tableHtml = ''; let printHtml = '';
-
             let items = AppCore.allItems;
-
             let hasData = false;
+
             items.forEach((i, idx) => {
                 let itemName = String(i.name || "");
                 let itemCode = String(i.code || "");
@@ -646,7 +641,6 @@ const UI = {
             const printTable = document.getElementById('auditTableBodyPrint');
             
             let cardHtml = ''; let printHtml = ''; let hasData = false;
-            
             let items = AppCore.allItems;
 
             items.forEach((i, idx) => {
@@ -698,9 +692,7 @@ const UI = {
                 </tr>`;
             });
 
-            if(!hasData){
-                cardHtml = `<div class="text-center py-4 text-muted w-100">ไม่พบพัสดุที่ค้นหา</div>`;
-            }
+            if(!hasData){ cardHtml = `<div class="text-center py-4 text-muted w-100">ไม่พบพัสดุที่ค้นหา</div>`; }
 
             if (cont) cont.innerHTML = cardHtml;
             if (printTable) printTable.innerHTML = printHtml;
@@ -716,11 +708,11 @@ const UI = {
         let badge = document.getElementById(`audit-badge-${idx}`);
         if(badge) {
             badge.innerText = "กำลังนับ... (" + (m + s) + ")";
-            badge.className = "badge bg-warning text-dark"; // เปลี่ยนสีเวลาโดนพิมพ์เปลี่ยนค่า
+            badge.className = "badge bg-warning text-dark"; 
         }
     },
 
-    // 🌟 3.1 ฟังก์ชันใหม่: ป๊อปอัปให้พิมพ์เลขตรวจนับทันทีหลังสแกน 🌟
+    // 🌟 หน้าต่างป๊อปอัปให้พิมพ์เลขตรวจนับทันทีหลังสแกน 🌟
     showAuditQuickInput: function(idx) {
         const item = AppCore.allItems[idx];
         if(!item) return;
@@ -767,19 +759,16 @@ const UI = {
             }
         }).then((result) => {
             if (result.isConfirmed) {
-                // เอาตัวเลขไปยัดใส่กล่องในตาราง
                 if(mElem) mElem.value = result.value.m;
                 if(sElem) sElem.value = result.value.s;
                 UI.updateAuditTotal(idx);
                 
-                // ไฮไลต์บอกผู้ใช้ว่าอัปเดตช่องนี้แล้วนะ
                 let cardDiv = document.getElementById(`audit-card-${idx}`);
                 if(cardDiv) {
-                    // เลื่อนหน้าจอให้เห็นการ์ดนี้แบบสมูท
                     cardDiv.scrollIntoView({behavior: 'smooth', block: 'center'});
                     let innerCard = cardDiv.querySelector('.item-card');
                     if (innerCard) {
-                        innerCard.style.backgroundColor = '#d4edda'; // สีเขียวอ่อน
+                        innerCard.style.backgroundColor = '#d4edda'; 
                         innerCard.style.border = '2px solid #28a745';
                         setTimeout(() => { 
                             innerCard.style.backgroundColor = 'white'; 
@@ -817,7 +806,7 @@ const UI = {
                 let itemName = String(log.name || "").toLowerCase();
                 let user = String(log.user || "").toLowerCase();
                 let action = String(log.action || "").toLowerCase();
-                let code = String(log.code || "").toLowerCase(); // ให้ค้นหาด้วยบาร์โค้ดได้ด้วย
+                let code = String(log.code || "").toLowerCase(); 
 
                 if (term && !itemName.includes(term) && !user.includes(term) && !action.includes(term) && !code.includes(term)) return;
                 hasData = true;
@@ -857,16 +846,14 @@ const UI = {
                 </tr>`;
             });
 
-            if(!hasData) {
-                cardHtml = `<div class="text-center py-4 text-muted w-100">ไม่พบประวัติที่ค้นหา</div>`;
-            }
+            if(!hasData) { cardHtml = `<div class="text-center py-4 text-muted w-100">ไม่พบประวัติที่ค้นหา</div>`; }
 
             if (cont) cont.innerHTML = cardHtml;
             if (printTable) printTable.innerHTML = printHtml;
         } catch(e) { console.error("History Error: ", e); }
     },
 
-    // 🧰 เมนูจัดการเมื่อคลิกพัสดุ (ของหน้าคลังหลัก)
+    // 🧰 เมนูจัดการเมื่อคลิกพัสดุ
     showActionMenu: function(idx, customTitle = null) {
         const item = AppCore.allItems[idx];
         if (!item) return;
