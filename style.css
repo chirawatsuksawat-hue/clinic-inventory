@@ -15,17 +15,16 @@ body {
     background-color: var(--bg-color);
     margin: 0;
     padding-bottom: 80px; 
-    /* ห้ามใส่ overflow-x: hidden เด็ดขาด ไม่งั้น Sticky จะพัง */
     -webkit-tap-highlight-color: transparent;
 }
 
-/* 🌟 Header ด้านบน (เปลี่ยนเป็น Fixed ยึดติดเพดานจอถาวร) */
+/* 🌟 Header ด้านบน (ตอกหมุดยึดเพดานจอ) */
 .app-header {
     background-color: var(--secondary);
     color: white;
     padding: 0 20px;
-    height: 65px;
-    position: fixed; /* ยึดถาวร */
+    height: 60px;
+    position: fixed; 
     top: 0;
     left: 0;
     width: 100%;
@@ -39,27 +38,27 @@ body {
 .app-header h5 { margin: 0; font-weight: 700; font-size: 1.2rem; }
 .user-badge { background: rgba(255,255,255,0.2); padding: 5px 10px; border-radius: 20px; font-size: 0.85rem; }
 
-/* 🌟 คอนเทนต์หลัก ดันลงมาหลบ Header */
+/* 🌟 แถบเครื่องมือ (ตอกหมุดยึดใต้ Header) 🌟 */
+.sticky-toolbar {
+    position: fixed;
+    top: 60px; 
+    left: 0;
+    width: 100%;
+    background-color: var(--bg-color); 
+    z-index: 1000;
+    padding: 15px 20px 10px 20px;
+    border-bottom: 2px dashed #ccc;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05); /* เพิ่มเงาให้ดูมีมิติว่าลอยอยู่ */
+}
+
+/* 🌟 คอนเทนต์หลัก ดันลงมาหลบส่วนที่ตอกหมุดไว้ด้านบน */
 .main-content { 
-    padding: 75px 20px 20px 20px; /* ดันพื้นที่ด้านบนลงมา 75px หลบ Header */
+    padding: 190px 20px 20px 20px; /* ดันเนื้อหาลงมา 190px เพื่อไม่ให้โดนแถบเครื่องมือบัง */
     animation: fadeIn 0.3s ease-in-out; 
     display: none; 
 }
 .main-content.active { display: block; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
-/* 🌟 แถบเครื่องมือล็อคติดจอด้านบน (Sticky Toolbar) 🌟 */
-.sticky-toolbar {
-    position: -webkit-sticky;
-    position: sticky;
-    top: 65px; /* เกาะอยู่ใต้ Header พอดีเป๊ะ */
-    background-color: var(--bg-color); 
-    z-index: 900;
-    padding-top: 10px;
-    padding-bottom: 15px;
-    margin-bottom: 10px;
-    border-bottom: 2px dashed #ccc;
-}
 
 /* 🌟 เมนูด้านล่าง (Bottom Navigation) */
 .bottom-nav {
@@ -91,7 +90,6 @@ body {
 .nav-item i { display: block; font-size: 1.3rem; margin-bottom: 3px; }
 .nav-item.active { color: var(--primary); transform: translateY(-3px); }
 
-/* 🌟 ปุ่มสแกนแบบลอยตัว */
 .fab-scan {
     position: fixed;
     bottom: 30px;
@@ -114,7 +112,6 @@ body {
 }
 .fab-scan:hover { transform: translateX(-50%) scale(1.1); }
 
-/* 🌟 รูปแบบการ์ด */
 .modern-card {
     background: var(--card-bg);
     border-radius: 15px;
@@ -136,43 +133,26 @@ body {
     align-items: center;
 }
 
-/* 🌟 กล้องสแกน */
 #universalReader { width: 100%; border-radius: 15px; overflow: hidden; border: 3px dashed var(--primary); margin-top: 15px; }
-
-/* 🌟 ปรับตารางซ่อนในมือถือ */
 .table-responsive { border-radius: 10px; overflow: hidden; }
 .table th { background-color: var(--secondary); color: white; border: none; }
 .table td { vertical-align: middle; }
-
-/* เครื่องคิดเลขแนวนอน */
 #calcDisplay { white-space: nowrap; overflow-x: auto; scrollbar-width: none; }
 #calcDisplay::-webkit-scrollbar { display: none; }
 
-/* ========================================== */
-/* 🖨️ รูปแบบการพิมพ์ (Print CSS) แบบรายงาน A4 */
-/* ========================================== */
 .print-only-container { display: none; }
-
 @media print {
     @page { size: A4 portrait; margin: 10mm; }
     body { background: white !important; color: black !important; padding: 0 !important; }
-    
-    .app-header, .bottom-nav, .fab-scan, .btn, .print-hide, .input-group, .alert, 
-    .screen-only, .sticky-toolbar { 
-        display: none !important; 
-    }
-    
+    .app-header, .bottom-nav, .fab-scan, .btn, .print-hide, .input-group, .alert, .screen-only, .sticky-toolbar { display: none !important; }
     .main-content { display: none !important; margin: 0 !important; padding: 0 !important; }
     .main-content.active { display: block !important; width: 100% !important; border: none !important; box-shadow: none !important; }
-    
     .print-only-container { display: block !important; }
     .table-responsive { max-height: none !important; overflow: visible !important; }
-    
     table { width: 100% !important; border-collapse: collapse !important; margin-top: 10px !important; font-size: 11pt !important; }
     tr { page-break-inside: avoid; page-break-after: auto; }
     thead { display: table-header-group; }
     th, td { border: 1px solid #000 !important; padding: 6px !important; color: #000 !important; vertical-align: middle !important; }
     th { background-color: #f0f0f0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; text-align: center !important; font-weight: bold !important; }
-    
     h4 { font-size: 18pt !important; font-weight: bold !important; text-align: center; margin-bottom: 15px !important; color: black !important; border-bottom: none !important;}
 }
