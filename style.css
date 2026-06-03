@@ -15,39 +15,50 @@ body {
     background-color: var(--bg-color);
     margin: 0;
     padding-bottom: 80px; 
-    /* 🌟 ถอด overflow-x ทิ้ง เพื่อปลดล็อกให้ระบบ Sticky ทำงานบนมือถือได้ 🌟 */
+    /* ห้ามใส่ overflow-x: hidden เด็ดขาด ไม่งั้น Sticky จะพัง */
     -webkit-tap-highlight-color: transparent;
 }
 
-/* 🌟 Header ด้านบน */
+/* 🌟 Header ด้านบน (เปลี่ยนเป็น Fixed ยึดติดเพดานจอถาวร) */
 .app-header {
     background-color: var(--secondary);
     color: white;
     padding: 0 20px;
-    height: 60px; /* ฟิกซ์ความสูงให้ชัดเจน เพื่อให้ตัวข้างล่างเกาะได้เป๊ะ */
-    position: sticky;
+    height: 65px;
+    position: fixed; /* ยึดถาวร */
     top: 0;
-    z-index: 1000;
+    left: 0;
+    width: 100%;
+    z-index: 1050;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.15);
 }
 
 .app-header h5 { margin: 0; font-weight: 700; font-size: 1.2rem; }
 .user-badge { background: rgba(255,255,255,0.2); padding: 5px 10px; border-radius: 20px; font-size: 0.85rem; }
 
+/* 🌟 คอนเทนต์หลัก ดันลงมาหลบ Header */
+.main-content { 
+    padding: 75px 20px 20px 20px; /* ดันพื้นที่ด้านบนลงมา 75px หลบ Header */
+    animation: fadeIn 0.3s ease-in-out; 
+    display: none; 
+}
+.main-content.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
 /* 🌟 แถบเครื่องมือล็อคติดจอด้านบน (Sticky Toolbar) 🌟 */
 .sticky-toolbar {
-    position: -webkit-sticky; /* บังคับให้รองรับบน iOS / iPhone */
+    position: -webkit-sticky;
     position: sticky;
-    top: 60px; /* เกาะอยู่ใต้ Header (ซึ่งสูง 60px) พอดีเป๊ะ */
+    top: 65px; /* เกาะอยู่ใต้ Header พอดีเป๊ะ */
     background-color: var(--bg-color); 
     z-index: 900;
-    padding-top: 15px;
-    padding-bottom: 5px;
-    margin-bottom: 15px;
-    border-bottom: 2px dashed #ddd;
+    padding-top: 10px;
+    padding-bottom: 15px;
+    margin-bottom: 10px;
+    border-bottom: 2px dashed #ccc;
 }
 
 /* 🌟 เมนูด้านล่าง (Bottom Navigation) */
@@ -102,20 +113,6 @@ body {
     transition: all 0.3s;
 }
 .fab-scan:hover { transform: translateX(-50%) scale(1.1); }
-
-/* 🌟 คอนเทนต์หลัก */
-.main-content { 
-    padding: 0 20px 20px 20px; 
-    animation: fadeIn 0.4s ease-in-out; 
-    display: none; 
-}
-.main-content.active { display: block; }
-
-/* 🌟 แก้ไข: ถอด transform ทิ้งไป เพื่อไม่ให้เบราว์เซอร์บั๊กเวลาทำ Sticky 🌟 */
-@keyframes fadeIn { 
-    from { opacity: 0; } 
-    to { opacity: 1; } 
-}
 
 /* 🌟 รูปแบบการ์ด */
 .modern-card {
