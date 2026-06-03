@@ -1,5 +1,5 @@
 // ==========================================
-// 🚀 Core Application Logic (Updated for Stability)
+// 🚀 Core Application Logic
 // ==========================================
 const AppCore = {
     db: null,
@@ -10,7 +10,7 @@ const AppCore = {
     popupScannerInst: null,
     currentUser: "ไม่ระบุ",
     currentCalcTargetId: "",
-    scanContext: null, // ตัวแปรเก็บสถานะว่ากำลังสแกนเพื่ออะไร
+    scanContext: null, // ตัวแปรเก็บสถานะว่ากำลังสแกนเพื่อทำอะไร
 
     init: function() {
         const params = new URLSearchParams(window.location.search);
@@ -51,16 +51,13 @@ const AppCore = {
         this.db.ref('inventory_data').on('value', (snap) => { 
             let data = snap.val();
             let rawItems = data ? (Array.isArray(data) ? data : Object.keys(data).map(k => data[k])) : []; 
-            // กรองเอา null ออก และจัดเรียงตามลำดับ (seq_num)
             this.allItems = rawItems.filter(i => i !== null).sort((a, b) => (parseFloat(a.seq_num) || 9999) - (parseFloat(b.seq_num) || 9999));
-            // ป้องกันการรีเฟรชหน้าตรวจนับขณะที่ผู้ใช้กำลังพิมพ์
             if(UI.currentTabId !== 'view-audit') UI.renderCurrentView(); 
         });
 
         this.db.ref('history_data').limitToLast(150).on('value', (snap) => { 
             let data = snap.val(); 
             let rawHistory = data ? (Array.isArray(data) ? data : Object.keys(data).map(k => data[k])) : []; 
-            // เรียงประวัติจากใหม่ไปเก่า
             this.historyData = rawHistory.filter(i => i !== null).sort((a, b) => {
                 let idA = a.id ? a.id.replace("HIST-", "") : "0";
                 let idB = b.id ? b.id.replace("HIST-", "") : "0";
@@ -116,6 +113,7 @@ const AppCore = {
         this.handleScanResult(decodedText);
     },
 
+    // 🌟 ฟังก์ชันหลัก: ตัดสินใจว่าจะทำอะไรเมื่อสแกนเจอบาร์โค้ด 🌟
     handleScanResult: function(code) {
         code = code.trim(); if (!code) return;
         const manInput = document.getElementById('manualBarcode');
@@ -123,17 +121,36 @@ const AppCore = {
         
         const idx = this.allItems.findIndex(i => i && i.code === code);
         
+        // 1. ถ้าสแกนจากปุ่ม "จ่ายยาให้คนไข้"
         if (this.scanContext && this.scanContext.mode === 'dispense') {
-            // โหมดสแกนจากหน้าจ่ายยาคนไข้
             if (idx > -1) {
                 UI.showActionMenu(idx, `เบิกจ่ายให้: ${this.scanContext.name}`);
             } else {
                 Swal.fire('ไม่พบพัสดุ', `ไม่พบรหัสบาร์โค้ด ${code} ในระบบคลัง`, 'error');
             }
             this.scanContext = null; // คืนค่า
-        } else {
-            // โหมดสแกนทั่วไป
-            if (idx > -1) { UI.showActionMenu(idx); } 
+        } 
+        // 2. ถ้าสแกนจากปุ่มลอย (Floating Action Button) ให้ทำงานตามหน้าปัจจุบัน
+        else {
+            if (idx > -1) { 
+                if (UI.currentTabId === 'view-audit') {
+                    // 👉 ถ้าอยู่หน้าตรวจนับ: ให้เปิดป๊อปอัปกรอกตัวเลขตรวจนับของสินค้านั้น
+                    UI.showAuditQuickInput(idx);
+                } 
+                else if (UI.currentTabId === 'view-history') {
+                    // 👉 ถ้าอยู่หน้าประวัติ: ให้ค้นหาประวัติของสินค้านี้
+                    const searchInput = document.getElementById('searchHistory');
+                    if (searchInput) { 
+                        searchInput.value = code; 
+                        UI.renderHistory(); 
+                    }
+                    Swal.fire({toast: true, position: 'top', icon: 'success', title: `ค้นหาประวัติ: ${code}`, showConfirmButton: false, timer: 1500});
+                } 
+                else {
+                    // 👉 หน้าอื่นๆ (คลังหลัก): เปิดเมนูจัดการปกติ
+                    UI.showActionMenu(idx); 
+                }
+            } 
             else {
                 Swal.fire({
                     title: 'ไม่พบรหัสพัสดุนี้!', html: `รหัส: <b class="text-danger">${code}</b><br><br>ระบบยังไม่มีข้อมูลนี้ ลงทะเบียนพัสดุใหม่หรือไม่?`,
@@ -614,7 +631,6 @@ const UI = {
             html: `ระบบพร้อมสแกนจ่ายพัสดุให้คนไข้:<br><b class="text-primary fs-4">${name}</b>`,
             icon: 'info', timer: 1500, showConfirmButton: false
         }).then(() => {
-            // ไม่ต้องเปลี่ยนหน้าไปไหน ให้อยู่หน้าเดิม
             AppCore.scanContext = { mode: 'dispense', hn: hn, name: name };
             setTimeout(() => AppCore.toggleUniversalScanner(), 300);
         });
@@ -645,8 +661,8 @@ const UI = {
                 let totalSystem = mStock + sStock;
                 
                 cardHtml += `
-                <div class="col-12 col-md-6">
-                    <div class="item-card flex-column align-items-start border-secondary">
+                <div class="col-12 col-md-6" id="audit-card-${idx}">
+                    <div class="item-card flex-column align-items-start border-secondary" style="transition: all 0.3s ease;">
                         <div class="fw-bold mb-2 text-dark w-100 d-flex justify-content-between">
                             <span>${i.seq_num||'-'}. ${i.name || '-'}</span>
                             <span class="badge bg-info" id="audit-badge-${idx}">ในระบบ: ${totalSystem}</span>
@@ -698,7 +714,87 @@ const UI = {
         let s = sElem ? (parseInt(sElem.value) || 0) : 0;
         
         let badge = document.getElementById(`audit-badge-${idx}`);
-        if(badge) badge.innerText = "รวมนับได้: " + (m + s);
+        if(badge) {
+            badge.innerText = "กำลังนับ... (" + (m + s) + ")";
+            badge.className = "badge bg-warning text-dark"; // เปลี่ยนสีเวลาโดนพิมพ์เปลี่ยนค่า
+        }
+    },
+
+    // 🌟 3.1 ฟังก์ชันใหม่: ป๊อปอัปให้พิมพ์เลขตรวจนับทันทีหลังสแกน 🌟
+    showAuditQuickInput: function(idx) {
+        const item = AppCore.allItems[idx];
+        if(!item) return;
+        
+        let mElem = document.getElementById(`audit-m-${idx}`);
+        let sElem = document.getElementById(`audit-s-${idx}`);
+        let currentM = mElem ? mElem.value : (item.main_stock || 0);
+        let currentS = sElem ? sElem.value : (item.sub_stock || 0);
+
+        Swal.fire({
+            title: '📋 ตรวจนับสต๊อก (ด่วน)',
+            html: `
+                <div class="text-start">
+                    <span class="badge bg-secondary mb-2">${item.code || '-'}</span>
+                    <h5 class="fw-bold text-primary mb-3">${item.name}</h5>
+                    <div class="d-flex w-100 gap-2 mb-3">
+                        <div class="flex-fill">
+                            <label class="text-muted fw-bold" style="font-size: 0.85rem;">คลังหลัก (ระบบมี: ${item.main_stock||0})</label>
+                            <div class="input-group">
+                                <input type="number" id="quick-audit-m" class="form-control form-control-lg text-center fw-bold border-secondary" value="${currentM}" onclick="this.select()">
+                                <button class="btn btn-secondary px-3" onclick="AppCore.openCalculator('quick-audit-m', document.getElementById('quick-audit-m').value)"><i class="fas fa-calculator"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="d-flex w-100 gap-2 mb-2">
+                        <div class="flex-fill">
+                            <label class="text-danger fw-bold" style="font-size: 0.85rem;">คลังย่อย (ระบบมี: ${item.sub_stock||0})</label>
+                            <div class="input-group">
+                                <input type="number" id="quick-audit-s" class="form-control form-control-lg text-center text-danger border-danger fw-bold" value="${currentS}" onclick="this.select()">
+                                <button class="btn btn-danger px-3" onclick="AppCore.openCalculator('quick-audit-s', document.getElementById('quick-audit-s').value)"><i class="fas fa-calculator"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `,
+            showCancelButton: true,
+            confirmButtonText: '<i class="fas fa-check"></i> อัปเดตลงตาราง',
+            cancelButtonText: 'ปิดหน้าต่าง',
+            confirmButtonColor: '#2ecc71',
+            preConfirm: () => {
+                let newM = document.getElementById('quick-audit-m').value;
+                let newS = document.getElementById('quick-audit-s').value;
+                return { m: parseInt(newM)||0, s: parseInt(newS)||0 };
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // เอาตัวเลขไปยัดใส่กล่องในตาราง
+                if(mElem) mElem.value = result.value.m;
+                if(sElem) sElem.value = result.value.s;
+                UI.updateAuditTotal(idx);
+                
+                // ไฮไลต์บอกผู้ใช้ว่าอัปเดตช่องนี้แล้วนะ
+                let cardDiv = document.getElementById(`audit-card-${idx}`);
+                if(cardDiv) {
+                    // เลื่อนหน้าจอให้เห็นการ์ดนี้แบบสมูท
+                    cardDiv.scrollIntoView({behavior: 'smooth', block: 'center'});
+                    let innerCard = cardDiv.querySelector('.item-card');
+                    if (innerCard) {
+                        innerCard.style.backgroundColor = '#d4edda'; // สีเขียวอ่อน
+                        innerCard.style.border = '2px solid #28a745';
+                        setTimeout(() => { 
+                            innerCard.style.backgroundColor = 'white'; 
+                            innerCard.style.border = '';
+                        }, 2000);
+                    }
+                }
+                
+                Swal.fire({
+                    toast: true, position: 'top', icon: 'success', 
+                    title: 'อัปเดตยอดลงในตาราง (อย่าลืมกดปุ่มบันทึกทั้งหมดเมื่อนับเสร็จ!)', 
+                    showConfirmButton: false, timer: 3000
+                });
+            }
+        });
     },
 
     // 📜 4. ประวัติ (History)
@@ -721,8 +817,9 @@ const UI = {
                 let itemName = String(log.name || "").toLowerCase();
                 let user = String(log.user || "").toLowerCase();
                 let action = String(log.action || "").toLowerCase();
+                let code = String(log.code || "").toLowerCase(); // ให้ค้นหาด้วยบาร์โค้ดได้ด้วย
 
-                if (term && !itemName.includes(term) && !user.includes(term) && !action.includes(term)) return;
+                if (term && !itemName.includes(term) && !user.includes(term) && !action.includes(term) && !code.includes(term)) return;
                 hasData = true;
 
                 let actionStr = String(log.action || "");
@@ -769,7 +866,7 @@ const UI = {
         } catch(e) { console.error("History Error: ", e); }
     },
 
-    // 🧰 เมนูจัดการเมื่อคลิกพัสดุ
+    // 🧰 เมนูจัดการเมื่อคลิกพัสดุ (ของหน้าคลังหลัก)
     showActionMenu: function(idx, customTitle = null) {
         const item = AppCore.allItems[idx];
         if (!item) return;
