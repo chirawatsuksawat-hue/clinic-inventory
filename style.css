@@ -14,15 +14,18 @@ body {
     font-family: 'Sarabun', sans-serif;
     background-color: var(--bg-color);
     margin: 0;
-    padding-bottom: 80px; 
+    /* 🛡️ [PRO FIX]: เผื่อพื้นที่ให้ Bottom Nav ด้านล่าง */
+    padding-bottom: 90px; 
     -webkit-tap-highlight-color: transparent;
+    /* 🛡️ ป้องกัน iOS ซูมจอเองเวลาเคาะช่อง input (เฉพาะถ้าไม่ได้ตั้ง meta viewport scale=1) */
+    text-size-adjust: 100%;
 }
 
 /* 🌟 Header ด้านบน (ตอกหมุดยึดเพดานจอ) 🌟 */
 .app-header {
     background-color: var(--secondary);
     color: white;
-    padding: 0 10px; /* ลดขอบซ้ายขวาลงให้มีพื้นที่เพิ่มบนมือถือ */
+    padding: 0 10px; 
     height: 60px;
     position: fixed; 
     top: 0;
@@ -35,7 +38,6 @@ body {
     box-shadow: 0 2px 10px rgba(0,0,0,0.15);
 }
 
-/* โลโก้แอป: ยอมให้โดนบีบและขึ้น ... ถ้ายาวเกินไป */
 .app-header h5 { 
     margin: 0; 
     font-weight: 700; 
@@ -47,14 +49,12 @@ body {
     padding-right: 10px;
 }
 
-/* จัดกลุ่มฝั่งขวา (สถานะ, ชื่อ, ปุ่มออก): ไม่ยอมให้โดนบีบเด็ดขาด */
 .app-header .d-flex {
     flex: 1 0 auto; 
     justify-content: flex-end;
     align-items: center;
 }
 
-/* ป้ายชื่อผู้ใช้ (ให้แสดงเต็ม ไม่ตัดคำ) */
 .user-badge { 
     background: rgba(255,255,255,0.2); 
     padding: 5px 10px; 
@@ -64,7 +64,6 @@ body {
     display: inline-block;
 }
 
-/* ป้องกันปุ่มปิดหดตัว */
 .app-header button {
     flex-shrink: 0;
 }
@@ -72,32 +71,29 @@ body {
 /* 📱 ปรับแต่งสำหรับมือถือจอเล็กจิ๋ว */
 @media (max-width: 400px) {
     .app-header h5 { font-size: 0.95rem; }
-    .app-header h5 i { display: none; } /* ซ่อนไอคอนกล่องพยาบาลเพื่อประหยัดที่ */
+    .app-header h5 i { display: none; } 
     .user-badge { font-size: 0.75rem; padding: 4px 8px; }
     #syncStatus { font-size: 0.7rem; padding: 4px 6px; margin-right: 4px !important; }
 }
 
-/* 🌟 แถบเครื่องมือ (ตอกหมุดยึดใต้ Header) 🌟 */
-.sticky-toolbar {
-    position: fixed;
-    top: 60px; 
-    left: 0;
-    width: 100%;
-    background-color: var(--bg-color); 
-    z-index: 1000;
-    padding: 15px 20px 10px 20px;
-    border-bottom: 2px dashed #ccc;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.05); /* เพิ่มเงาให้ดูมีมิติว่าลอยอยู่ */
-}
-
-/* 🌟 คอนเทนต์หลัก ดันลงมาหลบส่วนที่ตอกหมุดไว้ด้านบน 🌟 */
+/* 🌟 คอนเทนต์หลัก ดันลงมาหลบ Header (ลบ Sticky Toolbar ที่ไม่มีจริงทิ้ง) 🌟 */
 .main-content { 
-    padding: 190px 20px 20px 20px; /* ดันเนื้อหาลงมา 190px เพื่อไม่ให้โดนแถบเครื่องมือบัง */
+    /* 🛡️ [PRO FIX]: เปลี่ยนเป็น 80px (60px Header + 20px เว้นวรรค) ได้พื้นที่คืนมา 110px! */
+    padding: 80px 15px 20px 15px; 
     animation: fadeIn 0.3s ease-in-out; 
     display: none; 
 }
 .main-content.active { display: block; }
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+/* 🌟 เครื่องมือค้นหาที่ถูกตรึงไว้กับแต่ละหน้าจอ (เผื่อใช้งานในอนาคต) */
+.sticky-toolbar {
+    position: sticky; /* 🛡️ ใช้ sticky แทน fixed เพื่อให้อยู่ใน flow และไม่ทับคอนเทนต์ */
+    top: 60px; /* เกาะอยู่ใต้ Header */
+    background-color: var(--bg-color); 
+    z-index: 1040;
+    padding: 10px 0;
+}
 
 /* 🌟 เมนูด้านล่าง (Bottom Navigation) */
 .bottom-nav {
@@ -106,10 +102,12 @@ body {
     left: 0;
     width: 100%;
     background-color: white;
-    box-shadow: 0 -2px 15px rgba(0,0,0,0.05);
+    box-shadow: 0 -2px 15px rgba(0,0,0,0.08);
     display: flex;
     justify-content: space-around;
     padding: 10px 0;
+    /* 🛡️ [PRO FIX]: รองรับแถบโฮม (Home Bar) ของ iPhone X ขึ้นไป */
+    padding-bottom: env(safe-area-inset-bottom, 10px); 
     z-index: 1000;
     border-top-left-radius: 20px;
     border-top-right-radius: 20px;
@@ -124,14 +122,17 @@ body {
     flex: 1;
     cursor: pointer;
     transition: all 0.3s;
+    -webkit-tap-highlight-color: transparent;
 }
 
-.nav-item i { display: block; font-size: 1.3rem; margin-bottom: 3px; }
+.nav-item i { display: block; font-size: 1.4rem; margin-bottom: 4px; }
 .nav-item.active { color: var(--primary); transform: translateY(-3px); }
 
+/* 🌟 ปุ่มสแกนกลาง (FAB) */
 .fab-scan {
     position: fixed;
-    bottom: 30px;
+    /* 🛡️ [PRO FIX]: ดันให้หลบ Home Bar ของ iPhone */
+    bottom: calc(35px + env(safe-area-inset-bottom, 0px));
     left: 50%;
     transform: translateX(-50%);
     background: linear-gradient(135deg, var(--primary), #2980b9);
@@ -147,10 +148,11 @@ body {
     z-index: 1010;
     cursor: pointer;
     border: 4px solid var(--bg-color);
-    transition: all 0.3s;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
-.fab-scan:hover { transform: translateX(-50%) scale(1.1); }
+.fab-scan:hover, .fab-scan:active { transform: translateX(-50%) scale(1.05); }
 
+/* 🌟 การ์ดแบบโมเดิร์น */
 .modern-card {
     background: var(--card-bg);
     border-radius: 15px;
@@ -172,11 +174,25 @@ body {
     align-items: center;
 }
 
+/* 🛡️ [PRO FIX]: แก้ปัญหาปุ่ม/ช่องกรอก บนมือถือ iOS */
+input, button, select {
+    appearance: none;
+    -webkit-appearance: none;
+}
+
 #universalReader { width: 100%; border-radius: 15px; overflow: hidden; border: 3px dashed var(--primary); margin-top: 15px; }
 .table-responsive { border-radius: 10px; overflow: hidden; }
-.table th { background-color: var(--secondary); color: white; border: none; }
+.table th { background-color: var(--secondary); color: white; border: none; white-space: nowrap; }
 .table td { vertical-align: middle; }
-#calcDisplay { white-space: nowrap; overflow-x: auto; scrollbar-width: none; }
+
+/* 🌟 สไตล์เครื่องคิดเลข */
+#calcDisplay { 
+    white-space: nowrap; 
+    overflow-x: auto; 
+    scrollbar-width: none; 
+    text-align: right;
+    padding: 0 15px;
+}
 #calcDisplay::-webkit-scrollbar { display: none; }
 
 /* ========================================== */

@@ -113,7 +113,6 @@ const AppCore = {
         this.handleScanResult(decodedText);
     },
 
-    // 🌟 ระบบตัดสินใจการสแกน (Context-Aware Scanner) 🌟
     handleScanResult: function(code) {
         code = code.trim(); if (!code) return;
         const manInput = document.getElementById('manualBarcode');
@@ -121,13 +120,11 @@ const AppCore = {
         
         const idx = this.allItems.findIndex(i => i && i.code === code);
         
-        // 🔥 ตรวจสอบหน้าจอที่กำลังเปิดอยู่จริงๆ จาก HTML DOM 🔥
         let activeTab = 'view-dashboard';
         if (document.getElementById('view-audit') && document.getElementById('view-audit').classList.contains('active')) activeTab = 'view-audit';
         else if (document.getElementById('view-history') && document.getElementById('view-history').classList.contains('active')) activeTab = 'view-history';
         else if (document.getElementById('view-visits') && document.getElementById('view-visits').classList.contains('active')) activeTab = 'view-visits';
 
-        // 1. โหมดจ่ายยาให้คนไข้
         if (this.scanContext && this.scanContext.mode === 'dispense') {
             if (idx > -1) {
                 UI.showActionMenu(idx, `เบิกจ่ายให้: ${this.scanContext.name}`);
@@ -136,21 +133,17 @@ const AppCore = {
             }
             this.scanContext = null; 
         } 
-        // 2. โหมดสแกนทั่วไป
         else {
             if (idx > -1) { 
                 if (activeTab === 'view-audit') {
-                    // 👉 ถ้าสแกนในหน้าตรวจนับ: ให้เปิดป๊อปอัปกรอกยอด
                     UI.showAuditQuickInput(idx);
                 } 
                 else if (activeTab === 'view-history') {
-                    // 👉 ถ้าสแกนในหน้าประวัติ: ค้นหาประวัตินั้น
                     const searchInput = document.getElementById('searchHistory');
                     if (searchInput) { searchInput.value = code; UI.renderHistory(); }
                     Swal.fire({toast: true, position: 'top', icon: 'success', title: `ค้นหาประวัติ: ${code}`, showConfirmButton: false, timer: 1500});
                 } 
                 else {
-                    // 👉 หน้าคลังหลัก: เปิดเมนูจัดการปกติ
                     UI.showActionMenu(idx); 
                 }
             } 
@@ -333,8 +326,16 @@ const AppCore = {
     calcConfirm: function() {
         const disp = document.getElementById('calcDisplay');
         if (!disp) return;
-        let expr = disp.value; let finalVal = 0;
-        if(/^[0-9+\-*/.\s]+$/.test(expr)) { try { let res = eval(expr); if(isFinite(res)) finalVal = Math.floor(res); } catch(e) {} }
+        let expr = disp.value; 
+        let finalVal = 0;
+        
+        // 🚀 [PRO FIX]: เลิกใช้ eval() ที่อันตราย และใช้ Safe Math Evaluator แทน
+        if(/^[0-9+\-*/.\s]+$/.test(expr)) { 
+            try { 
+                let res = new Function('return ' + expr)(); 
+                if(isFinite(res)) finalVal = Math.floor(res); 
+            } catch(e) {} 
+        }
         if(isNaN(finalVal) || finalVal < 0) finalVal = 0;
 
         let el = document.getElementById(this.currentCalcTargetId);
@@ -447,7 +448,7 @@ const AppCore = {
 };
 
 // ==========================================
-// 🎨 UI Rendering Logic
+// 🎨 UI Rendering Logic (Functional Approach)
 // ==========================================
 const UI = {
     currentTabId: 'view-dashboard',
@@ -478,84 +479,91 @@ const UI = {
         else if (this.currentTabId === 'view-history') this.renderHistory();
     },
 
-    // 📦 1. Dashboard (คลังหลัก)
+    // 📦 1. Dashboard (คลังหลัก) - 🚀 Refactored
     renderDashboard: function() {
         try {
-            const searchInput = document.getElementById('searchDashboard');
-            const term = searchInput ? String(searchInput.value).toLowerCase() : '';
+            const term = (document.getElementById('searchDashboard')?.value || '').toLowerCase();
             
+            // 🚀 1. สายพานคัดกรองข้อมูล (เก็บ original index ไว้เพื่อใช้กดปุ่มแก้ไข)
+            const filteredItems = (AppCore.allItems || [])
+                .map((item, originalIdx) => ({ item, originalIdx }))
+                .filter(({ item }) => {
+                    if (!term) return true;
+                    return String(item.name || "").toLowerCase().includes(term) || 
+                           String(item.code || "").toLowerCase().includes(term) || 
+                           String(item.category || "").toLowerCase().includes(term);
+                });
+
             const cardCont = document.getElementById('dashboardCardContainer');
             const tableCont = document.getElementById('dashboardTableBody');
             const printCont = document.getElementById('dashboardTableBodyPrint');
-            
-            let cardHtml = ''; let tableHtml = ''; let printHtml = '';
-            let items = AppCore.allItems;
-            let hasData = false;
 
-            items.forEach((i, idx) => {
-                let itemName = String(i.name || "");
-                let itemCode = String(i.code || "");
-                let itemCat = String(i.category || "");
-
-                if (term && !itemName.toLowerCase().includes(term) && !itemCode.toLowerCase().includes(term) && !itemCat.toLowerCase().includes(term)) return;
-                hasData = true;
-
-                let main = parseInt(i.main_stock || 0), sub = parseInt(i.sub_stock || 0), total = main + sub;
-                let mColor = main > 10 ? 'success' : (main > 0 ? 'warning' : 'danger');
-
-                cardHtml += `
-                <div class="col-12 col-sm-6">
-                    <div class="item-card" onclick="UI.showActionMenu(${idx})">
-                        <div style="flex:1;">
-                            <span class="badge bg-secondary mb-1">${i.seq_num||'-'} | ${itemCode || '-'}</span>
-                            <div class="fw-bold text-dark lh-sm mb-1">${itemName}</div>
-                            <div class="text-muted" style="font-size:0.8rem;">${itemCat || '-'}</div>
-                        </div>
-                        <div class="text-end ms-2">
-                            <div class="fs-4 fw-bold text-${mColor}">${main} <span class="fs-6 text-muted">${i.unit || 'ชิ้น'}</span></div>
-                            <div style="font-size:0.8rem; color:#e74c3c;">ย่อย: ${sub}</div>
-                        </div>
-                    </div>
-                </div>`;
-
-                tableHtml += `
-                <tr style="cursor:pointer;" onclick="UI.showActionMenu(${idx})">
-                    <td class="text-center text-secondary">${itemCode || '-'}</td>
-                    <td><b class="text-dark">${itemName}</b><br><small class="text-muted">${itemCat || '-'}</small></td>
-                    <td class="text-center text-${mColor} fw-bold fs-5">${main}</td>
-                    <td class="text-center text-danger fw-bold fs-5">${sub}</td>
-                    <td class="text-center text-primary fw-bold fs-5">${total}</td>
-                    <td class="text-center print-hide"><button class="btn btn-sm btn-outline-primary"><i class="fas fa-bolt"></i> จัดการ</button></td>
-                </tr>`;
-
-                printHtml += `
-                <tr>
-                    <td class="text-center">${itemCode || '-'}</td>
-                    <td><b>${itemName}</b><br><small>${itemCat || '-'}</small></td>
-                    <td class="text-center fw-bold">${main}</td>
-                    <td class="text-center fw-bold">${sub}</td>
-                    <td class="text-center fw-bold">${total}</td>
-                </tr>`;
-            });
-
-            if(!hasData) {
-                cardHtml = `<div class="text-center py-4 text-muted w-100">ไม่พบข้อมูลพัสดุ</div>`;
-                tableHtml = `<tr><td colspan="6" class="text-center py-4 text-muted">ไม่พบข้อมูลพัสดุ</td></tr>`;
-                printHtml = `<tr><td colspan="5" class="text-center py-4 text-muted">ไม่พบข้อมูลพัสดุ</td></tr>`;
+            // 🚀 2. จัดการกรณีไม่พบข้อมูล (Early Exit)
+            if (filteredItems.length === 0) {
+                if (cardCont) cardCont.innerHTML = `<div class="text-center py-4 text-muted w-100">ไม่พบข้อมูลพัสดุ</div>`;
+                if (tableCont) tableCont.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">ไม่พบข้อมูลพัสดุ</td></tr>`;
+                if (printCont) printCont.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-muted">ไม่พบข้อมูลพัสดุ</td></tr>`;
+                return;
             }
 
-            if (cardCont) cardCont.innerHTML = cardHtml;
-            if (tableCont) tableCont.innerHTML = tableHtml;
-            if (printCont) printCont.innerHTML = printHtml;
+            // 🚀 3. สายพานแปลงข้อมูลเป็น HTML (Map -> Join)
+            if (cardCont) {
+                cardCont.innerHTML = filteredItems.map(({ item: i, originalIdx: idx }) => {
+                    let main = parseInt(i.main_stock || 0), sub = parseInt(i.sub_stock || 0);
+                    let mColor = main > 10 ? 'success' : (main > 0 ? 'warning' : 'danger');
+                    return `
+                    <div class="col-12 col-sm-6">
+                        <div class="item-card" onclick="UI.showActionMenu(${idx})">
+                            <div style="flex:1;">
+                                <span class="badge bg-secondary mb-1">${i.seq_num||'-'} | ${i.code || '-'}</span>
+                                <div class="fw-bold text-dark lh-sm mb-1">${i.name || ''}</div>
+                                <div class="text-muted" style="font-size:0.8rem;">${i.category || '-'}</div>
+                            </div>
+                            <div class="text-end ms-2">
+                                <div class="fs-4 fw-bold text-${mColor}">${main} <span class="fs-6 text-muted">${i.unit || 'ชิ้น'}</span></div>
+                                <div style="font-size:0.8rem; color:#e74c3c;">ย่อย: ${sub}</div>
+                            </div>
+                        </div>
+                    </div>`;
+                }).join('');
+            }
+
+            if (tableCont) {
+                tableCont.innerHTML = filteredItems.map(({ item: i, originalIdx: idx }) => {
+                    let main = parseInt(i.main_stock || 0), sub = parseInt(i.sub_stock || 0);
+                    let mColor = main > 10 ? 'success' : (main > 0 ? 'warning' : 'danger');
+                    return `
+                    <tr style="cursor:pointer;" onclick="UI.showActionMenu(${idx})">
+                        <td class="text-center text-secondary">${i.code || '-'}</td>
+                        <td><b class="text-dark">${i.name || ''}</b><br><small class="text-muted">${i.category || '-'}</small></td>
+                        <td class="text-center text-${mColor} fw-bold fs-5">${main}</td>
+                        <td class="text-center text-danger fw-bold fs-5">${sub}</td>
+                        <td class="text-center text-primary fw-bold fs-5">${main + sub}</td>
+                        <td class="text-center print-hide"><button class="btn btn-sm btn-outline-primary"><i class="fas fa-bolt"></i> จัดการ</button></td>
+                    </tr>`;
+                }).join('');
+            }
+
+            if (printCont) {
+                printCont.innerHTML = filteredItems.map(({ item: i }) => {
+                    let main = parseInt(i.main_stock || 0), sub = parseInt(i.sub_stock || 0);
+                    return `
+                    <tr>
+                        <td class="text-center">${i.code || '-'}</td>
+                        <td><b>${i.name || ''}</b><br><small>${i.category || '-'}</small></td>
+                        <td class="text-center fw-bold">${main}</td>
+                        <td class="text-center fw-bold">${sub}</td>
+                        <td class="text-center fw-bold">${main + sub}</td>
+                    </tr>`;
+                }).join('');
+            }
         } catch (e) { console.error("Dashboard Error: ", e); }
     },
 
-    // 🛏️ 2. คิวคนไข้ (Visits)
+    // 🛏️ 2. คิวคนไข้ (Visits) - 🚀 Refactored
     renderVisits: function() {
         try {
-            const searchInput = document.getElementById('searchVisits');
-            const term = searchInput ? String(searchInput.value).toLowerCase() : '';
-
+            const term = (document.getElementById('searchVisits')?.value || '').toLowerCase();
             const cont = document.getElementById('visitListContainer');
             const printTable = document.getElementById('visitTableBodyPrint');
             
@@ -565,57 +573,60 @@ const UI = {
             const badgeElem = document.getElementById('visitDateBadge');
             if (badgeElem) badgeElem.innerText = todayStr;
 
-            let todayVisits = (AppCore.visitsData || []).filter(v => v && v.date && String(v.date).split(" ")[0] === todayStr);
+            const filteredVisits = (AppCore.visitsData || [])
+                .filter(v => v && String(v.date || '').split(" ")[0] === todayStr)
+                .filter(v => {
+                    if (!term) return true;
+                    return String(v.name || '').toLowerCase().includes(term) || 
+                           String(v.hn || '').toLowerCase().includes(term);
+                });
 
-            let cardHtml = ''; let printHtml = ''; let hasData = false;
-
-            todayVisits.forEach((v) => {
-                let vName = String(v.name || "").toLowerCase();
-                let vHn = String(v.hn || "").toLowerCase();
-                
-                if (term && !vName.includes(term) && !vHn.includes(term)) return;
-                hasData = true;
-
-                let statusStr = String(v.status || "รอตรวจ");
-                let sColor = statusStr.includes("กำลังฟอก") ? "primary" : (statusStr.includes("เสร็จ") ? "success" : "warning");
-                
-                cardHtml += `
-                <div class="col-12 col-md-6 col-lg-4">
-                    <div class="modern-card border-top border-${sColor} border-4">
-                        <div class="d-flex justify-content-between mb-2">
-                            <span class="badge bg-${sColor}">${statusStr}</span>
-                            <span class="text-muted fw-bold"><i class="fas fa-clock"></i> ${v.time || '-'}</span>
-                        </div>
-                        <h5 class="fw-bold mb-1">${v.name || '-'}</h5>
-                        <div class="text-muted fs-6 mb-3">HN: ${v.hn || '-'} | เตียง: ${v.bed || '-'}</div>
-                        <div class="bg-light p-2 rounded mb-3" style="font-size:0.85rem;">
-                            <div><b>ยาที่ใช้:</b> <span class="text-danger">${v.meds || '-'}</span></div>
-                            <div><b>น้ำเกลือ:</b> <span class="text-info">${v.saline || '-'}</span></div>
-                        </div>
-                        <button class="btn btn-outline-primary w-100 fw-bold print-hide" onclick="UI.openDispenseModal('${v.hn}', '${v.name}')">
-                            <i class="fas fa-box-open me-2"></i> สแกนจ่ายยา / เวชภัณฑ์
-                        </button>
-                    </div>
-                </div>`;
-                
-                printHtml += `
-                <tr>
-                    <td class="text-center">${v.time || '-'}</td>
-                    <td class="text-center fw-bold">${v.hn || '-'}</td>
-                    <td class="fw-bold">${v.name || '-'}</td>
-                    <td class="text-center text-primary fw-bold">${v.bed || '-'}</td>
-                    <td class="text-center">${v.right || '-'}</td>
-                    <td><small>ยา: ${v.meds || '-'}<br>น้ำเกลือ: ${v.saline || '-'}</small></td>
-                    <td class="text-center fw-bold text-${sColor}">${statusStr}</td>
-                </tr>`;
-            });
-
-            if (!hasData) {
+            if (filteredVisits.length === 0) {
                 if (cont) cont.innerHTML = '<div class="text-center text-muted py-5 w-100"><i class="fas fa-search fa-3x mb-3"></i><br>ไม่พบข้อมูลคิว หรือไม่มีคิววันนี้</div>';
                 if (printTable) printTable.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted">ไม่มีคิวฟอกไตสำหรับวันนี้</td></tr>';
-            } else {
-                if (cont) cont.innerHTML = cardHtml;
-                if (printTable) printTable.innerHTML = printHtml;
+                return;
+            }
+
+            if (cont) {
+                cont.innerHTML = filteredVisits.map(v => {
+                    let statusStr = String(v.status || "รอตรวจ");
+                    let sColor = statusStr.includes("กำลังฟอก") ? "primary" : (statusStr.includes("เสร็จ") ? "success" : "warning");
+                    return `
+                    <div class="col-12 col-md-6 col-lg-4">
+                        <div class="modern-card border-top border-${sColor} border-4">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="badge bg-${sColor}">${statusStr}</span>
+                                <span class="text-muted fw-bold"><i class="fas fa-clock"></i> ${v.time || '-'}</span>
+                            </div>
+                            <h5 class="fw-bold mb-1">${v.name || '-'}</h5>
+                            <div class="text-muted fs-6 mb-3">HN: ${v.hn || '-'} | เตียง: ${v.bed || '-'}</div>
+                            <div class="bg-light p-2 rounded mb-3" style="font-size:0.85rem;">
+                                <div><b>ยาที่ใช้:</b> <span class="text-danger">${v.meds || '-'}</span></div>
+                                <div><b>น้ำเกลือ:</b> <span class="text-info">${v.saline || '-'}</span></div>
+                            </div>
+                            <button class="btn btn-outline-primary w-100 fw-bold print-hide" onclick="UI.openDispenseModal('${v.hn}', '${v.name}')">
+                                <i class="fas fa-box-open me-2"></i> สแกนจ่ายยา / เวชภัณฑ์
+                            </button>
+                        </div>
+                    </div>`;
+                }).join('');
+            }
+
+            if (printTable) {
+                printTable.innerHTML = filteredVisits.map(v => {
+                    let statusStr = String(v.status || "รอตรวจ");
+                    let sColor = statusStr.includes("กำลังฟอก") ? "primary" : (statusStr.includes("เสร็จ") ? "success" : "warning");
+                    return `
+                    <tr>
+                        <td class="text-center">${v.time || '-'}</td>
+                        <td class="text-center fw-bold">${v.hn || '-'}</td>
+                        <td class="fw-bold">${v.name || '-'}</td>
+                        <td class="text-center text-primary fw-bold">${v.bed || '-'}</td>
+                        <td class="text-center">${v.right || '-'}</td>
+                        <td><small>ยา: ${v.meds || '-'}<br>น้ำเกลือ: ${v.saline || '-'}</small></td>
+                        <td class="text-center fw-bold text-${sColor}">${statusStr}</td>
+                    </tr>`;
+                }).join('');
             }
         } catch(e) { console.error("Visits Error: ", e); }
     },
@@ -631,71 +642,75 @@ const UI = {
         });
     },
 
-    // 📋 3. ตรวจนับสต๊อก (Audit)
+    // 📋 3. ตรวจนับสต๊อก (Audit) - 🚀 Refactored
     renderAudit: function() {
         try {
-            const searchInput = document.getElementById('searchAudit');
-            const term = searchInput ? String(searchInput.value).toLowerCase() : '';
-
+            const term = (document.getElementById('searchAudit')?.value || '').toLowerCase();
             const cont = document.getElementById('auditListContainer');
             const printTable = document.getElementById('auditTableBodyPrint');
             
-            let cardHtml = ''; let printHtml = ''; let hasData = false;
-            let items = AppCore.allItems;
+            const filteredItems = (AppCore.allItems || [])
+                .map((item, originalIdx) => ({ item, originalIdx }))
+                .filter(({ item }) => {
+                    if (!term) return true;
+                    return String(item.name || "").toLowerCase().includes(term) || 
+                           String(item.code || "").toLowerCase().includes(term);
+                });
 
-            items.forEach((i, idx) => {
-                let itemName = String(i.name || "");
-                let itemCode = String(i.code || "");
+            if (filteredItems.length === 0) {
+                if (cont) cont.innerHTML = `<div class="text-center py-4 text-muted w-100">ไม่พบพัสดุที่ค้นหา</div>`;
+                if (printTable) printTable.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-muted">ไม่พบข้อมูล</td></tr>`;
+                return;
+            }
 
-                if (term && !itemName.toLowerCase().includes(term) && !itemCode.toLowerCase().includes(term)) return;
-                hasData = true;
-
-                let mStock = parseInt(i.main_stock)||0;
-                let sStock = parseInt(i.sub_stock)||0;
-                let totalSystem = mStock + sStock;
-                
-                cardHtml += `
-                <div class="col-12 col-md-6" id="audit-card-${idx}">
-                    <div class="item-card flex-column align-items-start border-secondary" style="transition: all 0.3s ease;">
-                        <div class="fw-bold mb-2 text-dark w-100 d-flex justify-content-between">
-                            <span>${i.seq_num||'-'}. ${i.name || '-'}</span>
-                            <span class="badge bg-info" id="audit-badge-${idx}">ในระบบ: ${totalSystem}</span>
-                        </div>
-                        <div class="d-flex w-100 gap-2">
-                            <div class="flex-fill">
-                                <label class="text-muted" style="font-size:0.8rem;">หลัก</label>
-                                <div class="input-group input-group-sm">
-                                    <input type="number" id="audit-m-${idx}" class="form-control text-center fw-bold" value="${mStock}" onclick="this.select()" onchange="UI.updateAuditTotal(${idx})" onkeyup="UI.updateAuditTotal(${idx})">
-                                    <button class="btn btn-secondary px-2 print-hide" onclick="AppCore.openCalculator('audit-m-${idx}', document.getElementById('audit-m-${idx}').value)"><i class="fas fa-calculator"></i></button>
+            if (cont) {
+                cont.innerHTML = filteredItems.map(({ item: i, originalIdx: idx }) => {
+                    let mStock = parseInt(i.main_stock)||0;
+                    let sStock = parseInt(i.sub_stock)||0;
+                    return `
+                    <div class="col-12 col-md-6" id="audit-card-${idx}">
+                        <div class="item-card flex-column align-items-start border-secondary" style="transition: all 0.3s ease;">
+                            <div class="fw-bold mb-2 text-dark w-100 d-flex justify-content-between">
+                                <span>${i.seq_num||'-'}. ${i.name || '-'}</span>
+                                <span class="badge bg-info" id="audit-badge-${idx}">ในระบบ: ${mStock + sStock}</span>
+                            </div>
+                            <div class="d-flex w-100 gap-2">
+                                <div class="flex-fill">
+                                    <label class="text-muted" style="font-size:0.8rem;">หลัก</label>
+                                    <div class="input-group input-group-sm">
+                                        <input type="number" id="audit-m-${idx}" class="form-control text-center fw-bold" value="${mStock}" onclick="this.select()" onchange="UI.updateAuditTotal(${idx})" onkeyup="UI.updateAuditTotal(${idx})">
+                                        <button class="btn btn-secondary px-2 print-hide" onclick="AppCore.openCalculator('audit-m-${idx}', document.getElementById('audit-m-${idx}').value)"><i class="fas fa-calculator"></i></button>
+                                    </div>
+                                </div>
+                                <div class="flex-fill">
+                                    <label class="text-danger" style="font-size:0.8rem;">ย่อย</label>
+                                    <div class="input-group input-group-sm">
+                                        <input type="number" id="audit-s-${idx}" class="form-control text-center text-danger fw-bold border-danger" value="${sStock}" onclick="this.select()" onchange="UI.updateAuditTotal(${idx})" onkeyup="UI.updateAuditTotal(${idx})">
+                                        <button class="btn btn-danger px-2 print-hide" onclick="AppCore.openCalculator('audit-s-${idx}', document.getElementById('audit-s-${idx}').value)"><i class="fas fa-calculator"></i></button>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="flex-fill">
-                                <label class="text-danger" style="font-size:0.8rem;">ย่อย</label>
-                                <div class="input-group input-group-sm">
-                                    <input type="number" id="audit-s-${idx}" class="form-control text-center text-danger fw-bold border-danger" value="${sStock}" onclick="this.select()" onchange="UI.updateAuditTotal(${idx})" onkeyup="UI.updateAuditTotal(${idx})">
-                                    <button class="btn btn-danger px-2 print-hide" onclick="AppCore.openCalculator('audit-s-${idx}', document.getElementById('audit-s-${idx}').value)"><i class="fas fa-calculator"></i></button>
-                                </div>
-                            </div>
                         </div>
-                    </div>
-                </div>`;
-                
-                printHtml += `
-                <tr>
-                    <td class="text-center">${i.seq_num || '-'}</td>
-                    <td class="text-center">${i.code || '-'}</td>
-                    <td class="fw-bold">${i.name || '-'}</td>
-                    <td class="text-center text-primary fw-bold fs-5">${totalSystem}</td>
-                    <td class="text-center fw-bold">${mStock}</td>
-                    <td class="text-center fw-bold text-danger">${sStock}</td>
-                    <td></td>
-                </tr>`;
-            });
+                    </div>`;
+                }).join('');
+            }
 
-            if(!hasData){ cardHtml = `<div class="text-center py-4 text-muted w-100">ไม่พบพัสดุที่ค้นหา</div>`; }
-
-            if (cont) cont.innerHTML = cardHtml;
-            if (printTable) printTable.innerHTML = printHtml;
+            if (printTable) {
+                printTable.innerHTML = filteredItems.map(({ item: i }) => {
+                    let mStock = parseInt(i.main_stock)||0;
+                    let sStock = parseInt(i.sub_stock)||0;
+                    return `
+                    <tr>
+                        <td class="text-center">${i.seq_num || '-'}</td>
+                        <td class="text-center">${i.code || '-'}</td>
+                        <td class="fw-bold">${i.name || '-'}</td>
+                        <td class="text-center text-primary fw-bold fs-5">${mStock + sStock}</td>
+                        <td class="text-center fw-bold"></td>
+                        <td class="text-center fw-bold text-danger"></td>
+                        <td></td>
+                    </tr>`;
+                }).join('');
+            }
         } catch(e) { console.error("Audit Error: ", e); }
     },
 
@@ -712,7 +727,6 @@ const UI = {
         }
     },
 
-    // 🌟 หน้าต่างป๊อปอัปให้พิมพ์เลขตรวจนับทันทีหลังสแกน 🌟
     showAuditQuickInput: function(idx) {
         const item = AppCore.allItems[idx];
         if(!item) return;
@@ -786,15 +800,12 @@ const UI = {
         });
     },
 
-    // 📜 4. ประวัติ (History)
+    // 📜 4. ประวัติ (History) - 🚀 Refactored
     renderHistory: function() {
         try {
-            const searchInput = document.getElementById('searchHistory');
-            const term = searchInput ? String(searchInput.value).toLowerCase() : '';
-
+            const term = (document.getElementById('searchHistory')?.value || '').toLowerCase();
             const cont = document.getElementById('historyListContainer');
             const printTable = document.getElementById('historyTableBodyPrint');
-            let cardHtml = ''; let printHtml = ''; let hasData = false;
             
             if (!AppCore.historyData || AppCore.historyData.length === 0) {
                 if (cont) cont.innerHTML = '<div class="text-center text-muted py-4 w-100">ไม่มีประวัติทำรายการ</div>';
@@ -802,54 +813,60 @@ const UI = {
                 return;
             }
 
-            AppCore.historyData.forEach(log => {
-                let itemName = String(log.name || "").toLowerCase();
-                let user = String(log.user || "").toLowerCase();
-                let action = String(log.action || "").toLowerCase();
-                let code = String(log.code || "").toLowerCase(); 
-
-                if (term && !itemName.includes(term) && !user.includes(term) && !action.includes(term) && !code.includes(term)) return;
-                hasData = true;
-
-                let actionStr = String(log.action || "");
-                let aColor = "secondary";
-                if (actionStr.includes("รับเข้า")) aColor = "success";
-                else if (actionStr.includes("ใช้งาน")) aColor = "warning";
-                else if (actionStr.includes("โอน") || actionStr.includes("คืนเข้า")) aColor = "primary";
-
-                let totalBal = (parseInt(log.main_bal) || 0) + (parseInt(log.sub_bal) || 0);
-
-                cardHtml += `
-                <div class="col-12">
-                    <div class="bg-white p-3 rounded mb-2 shadow-sm border-start border-4 border-${aColor}">
-                        <div class="d-flex justify-content-between mb-1">
-                            <span class="badge bg-light text-dark border">${log.date || '-'}</span>
-                            <span class="text-${aColor} fw-bold"><i class="fas fa-caret-right"></i> ${actionStr}</span>
-                        </div>
-                        <div class="fw-bold text-dark">${log.name || '-'}</div>
-                        <div class="d-flex justify-content-between align-items-center mt-2">
-                            <span class="fs-5 fw-bold ${aColor === 'warning' ? 'text-danger' : 'text-dark'}">${log.qty > 0 ? log.qty + ' ' + (log.unit || '') : ''}</span>
-                            <span class="text-muted" style="font-size:0.8rem;">ผู้ทำ: ${log.user || '-'}</span>
-                        </div>
-                    </div>
-                </div>`;
-                
-                printHtml += `
-                <tr>
-                    <td class="text-center"><small>${log.date || '-'}</small></td>
-                    <td class="text-center">${log.code || '-'}</td>
-                    <td class="fw-bold">${log.name || '-'}</td>
-                    <td class="text-center text-${aColor} fw-bold">${actionStr}</td>
-                    <td class="text-center fw-bold fs-5">${log.qty > 0 ? log.qty : '-'}</td>
-                    <td class="text-center text-primary fw-bold fs-5">${totalBal}</td>
-                    <td class="text-center"><small>${log.user || '-'}</small></td>
-                </tr>`;
+            const filteredHistory = AppCore.historyData.filter(log => {
+                if (!term) return true;
+                return String(log.name || '').toLowerCase().includes(term) ||
+                       String(log.user || '').toLowerCase().includes(term) ||
+                       String(log.action || '').toLowerCase().includes(term) ||
+                       String(log.code || '').toLowerCase().includes(term);
             });
 
-            if(!hasData) { cardHtml = `<div class="text-center py-4 text-muted w-100">ไม่พบประวัติที่ค้นหา</div>`; }
+            if (filteredHistory.length === 0) {
+                if (cont) cont.innerHTML = `<div class="text-center py-4 text-muted w-100">ไม่พบประวัติที่ค้นหา</div>`;
+                if (printTable) printTable.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-muted">ไม่พบข้อมูล</td></tr>`;
+                return;
+            }
 
-            if (cont) cont.innerHTML = cardHtml;
-            if (printTable) printTable.innerHTML = printHtml;
+            if (cont) {
+                cont.innerHTML = filteredHistory.map(log => {
+                    let actionStr = String(log.action || "");
+                    let aColor = actionStr.includes("รับเข้า") ? "success" : (actionStr.includes("ใช้งาน") ? "warning" : "primary");
+                    
+                    return `
+                    <div class="col-12">
+                        <div class="bg-white p-3 rounded mb-2 shadow-sm border-start border-4 border-${aColor}">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span class="badge bg-light text-dark border">${log.date || '-'}</span>
+                                <span class="text-${aColor} fw-bold"><i class="fas fa-caret-right"></i> ${actionStr}</span>
+                            </div>
+                            <div class="fw-bold text-dark">${log.name || '-'}</div>
+                            <div class="d-flex justify-content-between align-items-center mt-2">
+                                <span class="fs-5 fw-bold ${aColor === 'warning' ? 'text-danger' : 'text-dark'}">${log.qty > 0 ? log.qty + ' ' + (log.unit || '') : ''}</span>
+                                <span class="text-muted" style="font-size:0.8rem;">ผู้ทำ: ${log.user || '-'}</span>
+                            </div>
+                        </div>
+                    </div>`;
+                }).join('');
+            }
+
+            if (printTable) {
+                printTable.innerHTML = filteredHistory.map(log => {
+                    let actionStr = String(log.action || "");
+                    let aColor = actionStr.includes("รับเข้า") ? "success" : (actionStr.includes("ใช้งาน") ? "warning" : "primary");
+                    let totalBal = (parseInt(log.main_bal) || 0) + (parseInt(log.sub_bal) || 0);
+
+                    return `
+                    <tr>
+                        <td class="text-center"><small>${log.date || '-'}</small></td>
+                        <td class="text-center">${log.code || '-'}</td>
+                        <td class="fw-bold">${log.name || '-'}</td>
+                        <td class="text-center text-${aColor} fw-bold">${actionStr}</td>
+                        <td class="text-center fw-bold fs-5">${log.qty > 0 ? log.qty : '-'}</td>
+                        <td class="text-center text-primary fw-bold fs-5">${totalBal}</td>
+                        <td class="text-center"><small>${log.user || '-'}</small></td>
+                    </tr>`;
+                }).join('');
+            }
         } catch(e) { console.error("History Error: ", e); }
     },
 

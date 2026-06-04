@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>เข้าสู่ระบบ - Smart Inventory</title>
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -18,12 +18,10 @@
             display: flex; 
             justify-content: center; 
             align-items: center; 
-            /* พื้นหลังสี Gradient สบายตา */
             background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
         }
 
         .login-container { 
-            /* ดีไซน์สไตล์ Glassmorphism */
             background: rgba(255, 255, 255, 0.95); 
             padding: 40px 30px; 
             border-radius: 24px; 
@@ -77,7 +75,7 @@
             outline: none; 
             box-sizing: border-box;
             transition: all 0.3s;
-            appearance: none; /* ซ่อนลูกศร select ดั้งเดิมในมือถือบางรุ่น */
+            appearance: none; 
         }
         
         .pin-input { padding-left: 45px; letter-spacing: 5px; font-weight: bold; }
@@ -88,7 +86,6 @@
             box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.1);
         }
 
-        /* ลูกศรจำลองสำหรับ Select */
         .select-arrow {
             position: absolute;
             right: 15px;
@@ -167,7 +164,7 @@
     <div class="login-container">
         <div id="loadingOverlay">
             <div class="spinner"></div>
-            กำลังเชื่อมต่อฐานข้อมูล... ☁️
+            <span id="loadingText">กำลังเชื่อมต่อฐานข้อมูล... ☁️</span>
         </div>
 
         <div class="logo-box">
@@ -181,7 +178,7 @@
             <label>ระบุผู้ทำรายการ</label>
             <i class="fas fa-user input-icon"></i>
             <select id="userSelect" class="user-select">
-                <option>-- กำลังโหลดรายชื่อ --</option>
+                <option value="">-- กำลังโหลดรายชื่อ --</option>
             </select>
             <i class="fas fa-chevron-down select-arrow"></i>
         </div>
@@ -189,7 +186,7 @@
         <div class="input-group">
             <label>รหัสผ่าน (PIN)</label>
             <i class="fas fa-lock input-icon"></i>
-            <input type="password" id="pinInput" class="pin-input" placeholder="••••" onkeypress="checkEnter(event)">
+            <input type="password" id="pinInput" class="pin-input" placeholder="••••" inputmode="numeric" pattern="[0-9]*" onkeypress="checkEnter(event)">
         </div>
         
         <button class="btn-login" onclick="verifyLogin()">
@@ -202,7 +199,9 @@
     </div>
 
     <script>
-        // 🚀 ตั้งค่าการเชื่อมต่อ Firebase Database
+        // เคลียร์ Session เก่าทิ้งทันทีที่เปิดหน้า Login
+        sessionStorage.removeItem('inventory_auth_user');
+
         const firebaseConfig = {
             databaseURL: "https://dialysis-inventory-fab4e-default-rtdb.asia-southeast1.firebasedatabase.app/"
         };
@@ -213,14 +212,26 @@
         const db = firebase.database();
         let ALL_USERS = [];
 
-        // 🚀 ดึงรายชื่อจาก Firebase
+        // 🛡️ [PRO FIX]: เพิ่ม Timeout เผื่ออินเทอร์เน็ตมีปัญหา ไม่ให้โหลดค้างตลอดกาล
+        const loadTimeout = setTimeout(() => {
+            document.getElementById('loadingText').innerHTML = "<span class='text-danger'>การเชื่อมต่อล่าช้า กรุณารีเฟรชหน้าจอ</span>";
+        }, 8000);
+
         db.ref('users_data').once('value').then((snapshot) => {
+            clearTimeout(loadTimeout);
             const data = snapshot.val();
             const select = document.getElementById('userSelect');
             select.innerHTML = ''; 
             
             if (data && data.length > 0) {
                 ALL_USERS = data;
+                
+                // 🌟 เพิ่ม Option ว่างไว้บนสุด เพื่อบังคับให้ผู้ใช้เลือก ไม่เผลอกด Login ด้วยชื่อคนอื่น
+                let defaultOpt = document.createElement('option');
+                defaultOpt.value = "";
+                defaultOpt.textContent = "-- กรุณาเลือกผู้ใช้งาน --";
+                select.appendChild(defaultOpt);
+
                 data.forEach(u => {
                     const userId = u.user || u.username || u.id || "";
                     const userName = u.name || u.fullname || "ไม่ระบุชื่อ";
@@ -234,6 +245,7 @@
                 });
             } else {
                 let opt = document.createElement('option');
+                opt.value = "";
                 opt.textContent = "-- ไม่พบข้อมูลในระบบ --";
                 select.appendChild(opt);
             }
@@ -241,15 +253,26 @@
             document.getElementById('loadingOverlay').style.display = 'none';
             
         }).catch((error) => {
+            clearTimeout(loadTimeout);
             console.error("Firebase Error:", error);
             const overlay = document.getElementById('loadingOverlay');
-            overlay.innerHTML = "<i class='fas fa-exclamation-triangle fa-2x mb-2 text-danger'></i><br><span class='text-danger'>ไม่สามารถเชื่อมต่อ Cloud ได้</span>";
+            overlay.innerHTML = "<i class='fas fa-exclamation-triangle fa-3x mb-3 text-danger'></i><br><span class='text-danger'>ไม่สามารถเชื่อมต่อ Cloud ได้<br>โปรดตรวจสอบอินเทอร์เน็ต</span>";
         });
 
         function verifyLogin() {
             const inputPass = document.getElementById("pinInput").value;
             const errorText = document.getElementById("errorText");
             const selectedUserId = String(document.getElementById("userSelect").value); 
+            
+            if (!selectedUserId) {
+                showError("กรุณาเลือกผู้ทำรายการก่อนครับ");
+                return;
+            }
+
+            if (!inputPass) {
+                showError("กรุณากรอกรหัสผ่าน (PIN)");
+                return;
+            }
             
             const user = ALL_USERS.find(u => (String(u.user) === selectedUserId || String(u.username) === selectedUserId || String(u.id) === selectedUserId));
             
@@ -258,22 +281,33 @@
                 if (inputPass === dbPass) {
                     errorText.style.display = "none";
                     document.getElementById('loadingOverlay').style.display = 'flex';
-                    document.getElementById('loadingOverlay').innerHTML = '<div class="spinner"></div>กำลังพาท่านเข้าสู่ระบบ...';
+                    document.getElementById('loadingText').innerText = 'กำลังพาท่านเข้าสู่ระบบ...';
+                    
+                    // 🛡️ [PRO FIX]: สร้าง Secure Session แทนการส่งรหัสไปกับ URL
+                    const userNameToSave = user.name || user.fullname || selectedUserId;
+                    sessionStorage.setItem('inventory_auth_user', userNameToSave);
                     
                     setTimeout(() => {
-                        window.location.href = `index.html?user=${encodeURIComponent(user.name || user.fullname)}`;
+                        // เปลี่ยนหน้าโดยไม่ส่ง ?user= ไปด้วย เพื่อความปลอดภัย 100%
+                        window.location.replace("index.html");
                     }, 500);
                     return;
                 }
             }
             
             // รหัสผิด
-            errorText.style.display = "block";
+            showError("รหัสผ่านไม่ถูกต้อง!");
+        }
+
+        function showError(msg) {
+            const errorText = document.getElementById("errorText");
             const pinElem = document.getElementById("pinInput");
+            
+            errorText.innerHTML = `<i class="fas fa-exclamation-circle me-1"></i> ${msg}`;
+            errorText.style.display = "block";
             pinElem.value = "";
             pinElem.focus();
             
-            // ล้าง Animation เพื่อให้สั่นใหม่ได้
             errorText.style.animation = 'none';
             errorText.offsetHeight; 
             errorText.style.animation = null; 
