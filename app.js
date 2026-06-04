@@ -13,7 +13,6 @@ const AppCore = {
     scanContext: null,
 
     init: function() {
-        // 🛡️ [PRO FIX]: ดึงชื่อจาก Session Storage แทน URL Parameter
         this.currentUser = sessionStorage.getItem('inventory_auth_user') || "ไม่ระบุ";
         const userDisplay = document.getElementById("activeUserDisplay");
         if (userDisplay) userDisplay.innerText = "👤 " + this.currentUser;
@@ -32,14 +31,12 @@ const AppCore = {
             const firebaseConfig = { databaseURL: "https://dialysis-inventory-fab4e-default-rtdb.asia-southeast1.firebasedatabase.app/" };
             if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
             
-            // 🛡️ [PRO FIX]: ขอคีย์การ์ดเข้าตึกก่อนดึงข้อมูล (ทำตามกฎ Security Rule ใหม่)
-            firebase.auth().signInAnonymously().then(() => {
-                this.db = firebase.database();
-                this.db.ref('.info/connected').on('value', (snap) => {
-                    if (snap.val() === true) { UI.setSyncStatus("ออนไลน์", "success", "wifi"); this.loadOnlineData(); } 
-                    else { UI.setSyncStatus("ออฟไลน์", "secondary", "database"); this.loadLocalData(); }
-                });
-            }).catch(e => console.error("Auth failed:", e));
+            // 🚀 เชื่อมต่อฐานข้อมูลโดยตรง ไม่ต้องผ่านระบบ Auth แต่อย่างใด
+            this.db = firebase.database();
+            this.db.ref('.info/connected').on('value', (snap) => {
+                if (snap.val() === true) { UI.setSyncStatus("ออนไลน์", "success", "wifi"); this.loadOnlineData(); } 
+                else { UI.setSyncStatus("ออฟไลน์", "secondary", "database"); this.loadLocalData(); }
+            });
         } catch (e) { UI.setSyncStatus("ออฟไลน์", "secondary", "database"); this.loadLocalData(); }
     },
 
@@ -49,7 +46,7 @@ const AppCore = {
             showCancelButton: true, confirmButtonText: 'ออกจากระบบ', cancelButtonText: 'ยกเลิก', confirmButtonColor: '#e74c3c'
         }).then((res) => { 
             if (res.isConfirmed) {
-                sessionStorage.removeItem('inventory_auth_user'); // ล้างคีย์การ์ด
+                sessionStorage.removeItem('inventory_auth_user'); 
                 window.location.replace("scanner_login.html?v=" + new Date().getTime()); 
             }
         });
@@ -337,7 +334,6 @@ const AppCore = {
         let expr = disp.value; 
         let finalVal = 0;
         
-        // 🚀 [PRO FIX]: เลิกใช้ eval() ที่อันตราย และใช้ Safe Math Evaluator แทน
         if(/^[0-9+\-*/.\s]+$/.test(expr)) { 
             try { 
                 let res = new Function('return ' + expr)(); 
@@ -487,12 +483,11 @@ const UI = {
         else if (this.currentTabId === 'view-history') this.renderHistory();
     },
 
-    // 📦 1. Dashboard (คลังหลัก) - 🚀 Refactored
+    // 📦 1. Dashboard (คลังหลัก)
     renderDashboard: function() {
         try {
             const term = (document.getElementById('searchDashboard')?.value || '').toLowerCase();
             
-            // 🚀 1. สายพานคัดกรองข้อมูล (เก็บ original index ไว้เพื่อใช้กดปุ่มแก้ไข)
             const filteredItems = (AppCore.allItems || [])
                 .map((item, originalIdx) => ({ item, originalIdx }))
                 .filter(({ item }) => {
@@ -506,7 +501,6 @@ const UI = {
             const tableCont = document.getElementById('dashboardTableBody');
             const printCont = document.getElementById('dashboardTableBodyPrint');
 
-            // 🚀 2. จัดการกรณีไม่พบข้อมูล (Early Exit)
             if (filteredItems.length === 0) {
                 if (cardCont) cardCont.innerHTML = `<div class="text-center py-4 text-muted w-100">ไม่พบข้อมูลพัสดุ</div>`;
                 if (tableCont) tableCont.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">ไม่พบข้อมูลพัสดุ</td></tr>`;
@@ -514,7 +508,6 @@ const UI = {
                 return;
             }
 
-            // 🚀 3. สายพานแปลงข้อมูลเป็น HTML (Map -> Join)
             if (cardCont) {
                 cardCont.innerHTML = filteredItems.map(({ item: i, originalIdx: idx }) => {
                     let main = parseInt(i.main_stock || 0), sub = parseInt(i.sub_stock || 0);
@@ -568,7 +561,7 @@ const UI = {
         } catch (e) { console.error("Dashboard Error: ", e); }
     },
 
-    // 🛏️ 2. คิวคนไข้ (Visits) - 🚀 Refactored
+    // 🛏️ 2. คิวคนไข้ (Visits)
     renderVisits: function() {
         try {
             const term = (document.getElementById('searchVisits')?.value || '').toLowerCase();
@@ -650,7 +643,7 @@ const UI = {
         });
     },
 
-    // 📋 3. ตรวจนับสต๊อก (Audit) - 🚀 Refactored
+    // 📋 3. ตรวจนับสต๊อก (Audit)
     renderAudit: function() {
         try {
             const term = (document.getElementById('searchAudit')?.value || '').toLowerCase();
@@ -808,7 +801,7 @@ const UI = {
         });
     },
 
-    // 📜 4. ประวัติ (History) - 🚀 Refactored
+    // 📜 4. ประวัติ (History)
     renderHistory: function() {
         try {
             const term = (document.getElementById('searchHistory')?.value || '').toLowerCase();
