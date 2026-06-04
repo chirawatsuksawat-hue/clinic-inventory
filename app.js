@@ -13,8 +13,8 @@ const AppCore = {
     scanContext: null,
 
     init: function() {
-        const params = new URLSearchParams(window.location.search);
-        this.currentUser = params.get('user') || "ไม่ระบุ";
+        // 🛡️ [PRO FIX]: ดึงชื่อจาก Session Storage แทน URL Parameter
+        this.currentUser = sessionStorage.getItem('inventory_auth_user') || "ไม่ระบุ";
         const userDisplay = document.getElementById("activeUserDisplay");
         if (userDisplay) userDisplay.innerText = "👤 " + this.currentUser;
 
@@ -31,12 +31,15 @@ const AppCore = {
         try {
             const firebaseConfig = { databaseURL: "https://dialysis-inventory-fab4e-default-rtdb.asia-southeast1.firebasedatabase.app/" };
             if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-            this.db = firebase.database();
             
-            this.db.ref('.info/connected').on('value', (snap) => {
-                if (snap.val() === true) { UI.setSyncStatus("ออนไลน์", "success", "wifi"); this.loadOnlineData(); } 
-                else { UI.setSyncStatus("ออฟไลน์", "secondary", "database"); this.loadLocalData(); }
-            });
+            // 🛡️ [PRO FIX]: ขอคีย์การ์ดเข้าตึกก่อนดึงข้อมูล (ทำตามกฎ Security Rule ใหม่)
+            firebase.auth().signInAnonymously().then(() => {
+                this.db = firebase.database();
+                this.db.ref('.info/connected').on('value', (snap) => {
+                    if (snap.val() === true) { UI.setSyncStatus("ออนไลน์", "success", "wifi"); this.loadOnlineData(); } 
+                    else { UI.setSyncStatus("ออฟไลน์", "secondary", "database"); this.loadLocalData(); }
+                });
+            }).catch(e => console.error("Auth failed:", e));
         } catch (e) { UI.setSyncStatus("ออฟไลน์", "secondary", "database"); this.loadLocalData(); }
     },
 
@@ -44,7 +47,12 @@ const AppCore = {
         Swal.fire({
             title: 'ออกจากระบบ?', text: "คุณต้องการออกจากระบบคลังพัสดุใช่หรือไม่?", icon: 'question',
             showCancelButton: true, confirmButtonText: 'ออกจากระบบ', cancelButtonText: 'ยกเลิก', confirmButtonColor: '#e74c3c'
-        }).then((res) => { if (res.isConfirmed) window.location.replace("scanner_login.html?v=" + new Date().getTime()); });
+        }).then((res) => { 
+            if (res.isConfirmed) {
+                sessionStorage.removeItem('inventory_auth_user'); // ล้างคีย์การ์ด
+                window.location.replace("scanner_login.html?v=" + new Date().getTime()); 
+            }
+        });
     },
 
     loadOnlineData: function() {
