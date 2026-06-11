@@ -1,5 +1,5 @@
 // ==========================================
-// 🚀 Core Application Logic
+// 🚀 Core Application Logic (100% Safe Array Sync & Auto-Draft)
 // ==========================================
 const AppCore = {
     db: null,
@@ -11,6 +11,7 @@ const AppCore = {
     currentUser: "ไม่ระบุ",
     currentCalcTargetId: "",
     scanContext: null,
+    auditDrafts: {}, // 🛡️ [PRO FIX]: ระบบเก็บฉบับร่างอัตโนมัติสำหรับหน้าตรวจนับสต๊อก
 
     init: function() {
         this.currentUser = sessionStorage.getItem('inventory_auth_user') || "ไม่ระบุ";
@@ -31,7 +32,6 @@ const AppCore = {
             const firebaseConfig = { databaseURL: "https://dialysis-inventory-fab4e-default-rtdb.asia-southeast1.firebasedatabase.app/" };
             if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
             
-            // 🚀 เชื่อมต่อฐานข้อมูลโดยตรง ไม่ต้องผ่านระบบ Auth แต่อย่างใด
             this.db = firebase.database();
             this.db.ref('.info/connected').on('value', (snap) => {
                 if (snap.val() === true) { UI.setSyncStatus("ออนไลน์", "success", "wifi"); this.loadOnlineData(); } 
@@ -244,12 +244,20 @@ const AppCore = {
                 if ((this.allItems || []).some(i => i && i.code === res.value.code)) return Swal.fire('ผิดพลาด', 'รหัสบาร์โค้ดนี้มีในระบบแล้ว!', 'error');
                 
                 let newItem = { id: "ITM" + new Date().getTime(), ...res.value, main_stock: res.value.target_stock, sub_stock: 0, req_qty: "", req_note: "" };
-                let nextIdx = 0;
-                while(this.allItems[nextIdx] !== undefined) nextIdx++;
                 
                 const syncStatus = document.getElementById('syncStatus');
                 if (this.db && syncStatus && syncStatus.innerText.includes('ออนไลน์')) {
-                    this.db.ref(`inventory_data/${nextIdx}`).set(newItem).then(() => Swal.fire('สำเร็จ', 'เพิ่มพัสดุใหม่เรียบร้อย', 'success'));
+                    Swal.fire({title: 'กำลังบันทึก...', didOpen: () => Swal.showLoading()});
+                    this.db.ref('inventory_data').once('value', snap => {
+                        let arr = snap.val() || [];
+                        if (!Array.isArray(arr)) arr = Object.keys(arr).map(k => arr[k]);
+                        arr = arr.filter(i => i !== null); 
+                        arr.push(newItem);
+                        
+                        this.db.ref('inventory_data').set(arr)
+                            .then(() => Swal.fire('สำเร็จ', 'เพิ่มพัสดุใหม่เรียบร้อย', 'success'))
+                            .catch(e => Swal.fire('Error', e.message, 'error'));
+                    });
                 } else { Swal.fire('ข้อผิดพลาด', 'ต้องต่ออินเทอร์เน็ตเพื่อเพิ่มพัสดุใหม่', 'error'); }
             }
         });
@@ -307,10 +315,19 @@ const AppCore = {
                 if(!res.value.name) return Swal.fire('ผิดพลาด', 'กรุณากรอกชื่อให้ครบ', 'warning');
                 const syncStatus = document.getElementById('syncStatus');
                 if (this.db && syncStatus && syncStatus.innerText.includes('ออนไลน์')) {
-                    this.db.ref('inventory_data').orderByChild('code').equalTo(item.code).once('value', snapshot => {
-                        if(snapshot.exists()){
-                            let fbKey = Object.keys(snapshot.val())[0];
-                            this.db.ref(`inventory_data/${fbKey}`).update(res.value).then(() => Swal.fire('สำเร็จ', 'แก้ไขข้อมูลเรียบร้อย', 'success'));
+                    Swal.fire({title: 'กำลังบันทึก...', didOpen: () => Swal.showLoading()});
+                    this.db.ref('inventory_data').once('value', snap => {
+                        let arr = snap.val() || [];
+                        if (!Array.isArray(arr)) arr = Object.keys(arr).map(k => arr[k]);
+                        
+                        let targetIdx = arr.findIndex(i => i && i.code === item.code);
+                        if(targetIdx > -1) {
+                            arr[targetIdx] = { ...arr[targetIdx], ...res.value };
+                            this.db.ref('inventory_data').set(arr)
+                                .then(() => Swal.fire('สำเร็จ', 'แก้ไขข้อมูลเรียบร้อย', 'success'))
+                                .catch(e => Swal.fire('Error', e.message, 'error'));
+                        } else {
+                            Swal.fire('ข้อผิดพลาด', 'ไม่พบข้อมูลเดิมในระบบ', 'error');
                         }
                     });
                 }
@@ -345,15 +362,8 @@ const AppCore = {
         let el = document.getElementById(this.currentCalcTargetId);
         if(el) {
             el.value = finalVal;
-            if (this.currentCalcTargetId.includes("audit-")) {
-                let idxStr = this.currentCalcTargetId.split('-').pop();
-                let mElem = document.getElementById(`audit-m-${idxStr}`);
-                let sElem = document.getElementById(`audit-s-${idxStr}`);
-                let m = mElem ? (parseInt(mElem.value) || 0) : 0;
-                let s = sElem ? (parseInt(sElem.value) || 0) : 0;
-                let badge = document.getElementById(`audit-badge-${idxStr}`);
-                if(badge) badge.innerText = "รวมนับได้: " + (m + s);
-            }
+            // สั่ง Trigger onchange เพื่อให้ระบบ Auto-Draft บันทึกข้อมูลทันที
+            el.dispatchEvent(new Event('change'));
         }
         const modalEl = document.getElementById('calculatorModal');
         if (modalEl) { const modalInst = bootstrap.Modal.getInstance(modalEl); if (modalInst) modalInst.hide(); }
@@ -383,10 +393,16 @@ const AppCore = {
         if (this.db && syncStatus && syncStatus.innerText.includes('ออนไลน์')) {
             Swal.fire({title: 'กำลังบันทึก...', didOpen: () => Swal.showLoading()});
             
-            this.db.ref('inventory_data').orderByChild('code').equalTo(item.code).once('value', snapshot => {
-                if(snapshot.exists()){
-                    let fbKey = Object.keys(snapshot.val())[0];
-                    this.db.ref(`inventory_data/${fbKey}`).update({ main_stock: nMain, sub_stock: nSub }).then(() => {
+            this.db.ref('inventory_data').once('value', snap => {
+                let arr = snap.val() || [];
+                if (!Array.isArray(arr)) arr = Object.keys(arr).map(k => arr[k]);
+                
+                let targetIdx = arr.findIndex(i => i && i.code === item.code);
+                if(targetIdx > -1) {
+                    arr[targetIdx].main_stock = nMain;
+                    arr[targetIdx].sub_stock = nSub;
+                    
+                    this.db.ref('inventory_data').set(arr).then(() => {
                         let logId = "HIST-" + new Date().getTime();
                         let now = new Date().toLocaleDateString('en-GB') + " " + new Date().toLocaleTimeString('en-GB');
                         let log = { id: logId, date: now, code: item.code, name: item.name, action: actText, qty: qty, unit: item.unit, main_bal: nMain, sub_bal: nSub, user: this.currentUser, raw_action: action, module: fromModule };
@@ -395,6 +411,8 @@ const AppCore = {
                             Swal.fire({title: 'บันทึกสำเร็จ!', icon: 'success', timer: 1500, showConfirmButton: false});
                         });
                     }).catch(e => Swal.fire('Error', e.message, 'error'));
+                } else {
+                    Swal.fire('ข้อผิดพลาด', 'ไม่พบพัสดุในฐานข้อมูลล่าสุด', 'error');
                 }
             });
         } else { Swal.fire('ข้อผิดพลาด', 'ต้องต่ออินเทอร์เน็ตเพื่อบันทึกข้อมูล', 'error'); }
@@ -412,26 +430,30 @@ const AppCore = {
                 Swal.fire({title: 'กำลังตรวจสอบและบันทึก...', didOpen: () => Swal.showLoading()});
 
                 this.db.ref('inventory_data').once('value', snapshot => {
-                    let dbItems = snapshot.val() || {};
-                    let updates = {};
+                    let fullArray = snapshot.val() || [];
+                    if (!Array.isArray(fullArray)) fullArray = Object.keys(fullArray).map(k => fullArray[k]);
+                    
                     let logs = {};
 
                     (this.allItems || []).forEach((item, idx) => {
                         if (!item) return;
+                        
+                        // อ่านค่าจากระบบ Draft ล่าสุด หรือจากช่องอินพุตโดยตรง
+                        let draft = AppCore.auditDrafts[item.code];
                         let mInput = document.getElementById(`audit-m-${idx}`);
                         let sInput = document.getElementById(`audit-s-${idx}`);
-                        if (!mInput || !sInput) return;
-
-                        let nMain = parseInt(mInput.value) || 0;
-                        let nSub = parseInt(sInput.value) || 0;
+                        
+                        let nMain = draft ? draft.m : (mInput ? (parseInt(mInput.value) || 0) : parseInt(item.main_stock || 0));
+                        let nSub = draft ? draft.s : (sInput ? (parseInt(sInput.value) || 0) : parseInt(item.sub_stock || 0));
+                        
                         let oMain = parseInt(item.main_stock || 0);
                         let oSub = parseInt(item.sub_stock || 0);
 
                         if (nMain !== oMain || nSub !== oSub) {
-                            let fbKey = Object.keys(dbItems).find(k => dbItems[k] && dbItems[k].code === item.code);
-                            if(fbKey) {
-                                updates[`inventory_data/${fbKey}/main_stock`] = nMain;
-                                updates[`inventory_data/${fbKey}/sub_stock`] = nSub;
+                            let targetIdx = fullArray.findIndex(i => i && i.code === item.code);
+                            if(targetIdx > -1) {
+                                fullArray[targetIdx].main_stock = nMain;
+                                fullArray[targetIdx].sub_stock = nSub;
                                 
                                 let logId = "HIST-" + new Date().getTime() + "-" + count;
                                 logs[`history_data/${logId}`] = { id: logId, date: now, code: item.code, name: item.name, action: "ปรับยอด (Spot Audit) 📋", qty: 0, unit: item.unit, main_bal: nMain, sub_bal: nSub, user: this.currentUser, raw_action: 'audit' };
@@ -442,9 +464,12 @@ const AppCore = {
 
                     if (count === 0) return Swal.fire('ไม่มีการเปลี่ยนแปลง', 'ยอดตรงกับระบบอยู่แล้ว', 'info');
 
-                    this.db.ref().update({...updates, ...logs}).then(() => {
-                        Swal.fire('สำเร็จ!', `ปรับยอดใหม่ ${count} รายการ`, 'success');
-                    });
+                    this.db.ref('inventory_data').set(fullArray).then(() => {
+                        this.db.ref().update(logs).then(() => {
+                            AppCore.auditDrafts = {}; // บันทึกเสร็จ ล้าง Draft ทิ้ง
+                            Swal.fire('สำเร็จ!', `ปรับยอดใหม่ ${count} รายการ`, 'success');
+                        });
+                    }).catch(e => Swal.fire('Error', e.message, 'error'));
                 });
             }
         });
@@ -643,7 +668,7 @@ const UI = {
         });
     },
 
-    // 📋 3. ตรวจนับสต๊อก (Audit)
+    // 📋 3. ตรวจนับสต๊อก (Audit) - พร้อมระบบ Auto Draft
     renderAudit: function() {
         try {
             const term = (document.getElementById('searchAudit')?.value || '').toLowerCase();
@@ -666,27 +691,32 @@ const UI = {
 
             if (cont) {
                 cont.innerHTML = filteredItems.map(({ item: i, originalIdx: idx }) => {
-                    let mStock = parseInt(i.main_stock)||0;
-                    let sStock = parseInt(i.sub_stock)||0;
+                    // 🛡️ [PRO FIX]: โหลดยอดจาก Draft ก่อน ถ้าไม่มีให้โหลดจาก Database
+                    let draft = AppCore.auditDrafts[i.code];
+                    let mStock = draft !== undefined ? draft.m : (parseInt(i.main_stock)||0);
+                    let sStock = draft !== undefined ? draft.s : (parseInt(i.sub_stock)||0);
+                    
                     return `
                     <div class="col-12 col-md-6" id="audit-card-${idx}">
                         <div class="item-card flex-column align-items-start border-secondary" style="transition: all 0.3s ease;">
                             <div class="fw-bold mb-2 text-dark w-100 d-flex justify-content-between">
                                 <span>${i.seq_num||'-'}. ${i.name || '-'}</span>
-                                <span class="badge bg-info" id="audit-badge-${idx}">ในระบบ: ${mStock + sStock}</span>
+                                <span class="badge ${draft !== undefined ? 'bg-warning text-dark' : 'bg-info'}" id="audit-badge-${idx}">
+                                    ${draft !== undefined ? 'กำลังนับ... ('+(mStock+sStock)+')' : 'ในระบบ: '+(mStock+sStock)}
+                                </span>
                             </div>
                             <div class="d-flex w-100 gap-2">
                                 <div class="flex-fill">
                                     <label class="text-muted" style="font-size:0.8rem;">หลัก</label>
                                     <div class="input-group input-group-sm">
-                                        <input type="number" id="audit-m-${idx}" class="form-control text-center fw-bold" value="${mStock}" onclick="this.select()" onchange="UI.updateAuditTotal(${idx})" onkeyup="UI.updateAuditTotal(${idx})">
+                                        <input type="number" id="audit-m-${idx}" class="form-control text-center fw-bold" value="${mStock}" onclick="this.select()" onchange="UI.updateAuditTotal(${idx}, '${i.code}')" onkeyup="UI.updateAuditTotal(${idx}, '${i.code}')">
                                         <button class="btn btn-secondary px-2 print-hide" onclick="AppCore.openCalculator('audit-m-${idx}', document.getElementById('audit-m-${idx}').value)"><i class="fas fa-calculator"></i></button>
                                     </div>
                                 </div>
                                 <div class="flex-fill">
                                     <label class="text-danger" style="font-size:0.8rem;">ย่อย</label>
                                     <div class="input-group input-group-sm">
-                                        <input type="number" id="audit-s-${idx}" class="form-control text-center text-danger fw-bold border-danger" value="${sStock}" onclick="this.select()" onchange="UI.updateAuditTotal(${idx})" onkeyup="UI.updateAuditTotal(${idx})">
+                                        <input type="number" id="audit-s-${idx}" class="form-control text-center text-danger fw-bold border-danger" value="${sStock}" onclick="this.select()" onchange="UI.updateAuditTotal(${idx}, '${i.code}')" onkeyup="UI.updateAuditTotal(${idx}, '${i.code}')">
                                         <button class="btn btn-danger px-2 print-hide" onclick="AppCore.openCalculator('audit-s-${idx}', document.getElementById('audit-s-${idx}').value)"><i class="fas fa-calculator"></i></button>
                                     </div>
                                 </div>
@@ -715,11 +745,14 @@ const UI = {
         } catch(e) { console.error("Audit Error: ", e); }
     },
 
-    updateAuditTotal: function(idx) {
+    updateAuditTotal: function(idx, code) {
         let mElem = document.getElementById(`audit-m-${idx}`);
         let sElem = document.getElementById(`audit-s-${idx}`);
         let m = mElem ? (parseInt(mElem.value) || 0) : 0;
         let s = sElem ? (parseInt(sElem.value) || 0) : 0;
+        
+        // 🛡️ [PRO FIX]: เซฟฉบับร่างอัตโนมัติ เพื่อกันข้อมูลหายตอนกด Search หรือสลับหน้า
+        if (code) AppCore.auditDrafts[code] = { m: m, s: s };
         
         let badge = document.getElementById(`audit-badge-${idx}`);
         if(badge) {
@@ -732,10 +765,9 @@ const UI = {
         const item = AppCore.allItems[idx];
         if(!item) return;
         
-        let mElem = document.getElementById(`audit-m-${idx}`);
-        let sElem = document.getElementById(`audit-s-${idx}`);
-        let currentM = mElem ? mElem.value : (item.main_stock || 0);
-        let currentS = sElem ? sElem.value : (item.sub_stock || 0);
+        let draft = AppCore.auditDrafts[item.code];
+        let currentM = draft !== undefined ? draft.m : (item.main_stock || 0);
+        let currentS = draft !== undefined ? draft.s : (item.sub_stock || 0);
 
         Swal.fire({
             title: '📋 ตรวจนับสต๊อก (ด่วน)',
@@ -774,9 +806,13 @@ const UI = {
             }
         }).then((result) => {
             if (result.isConfirmed) {
+                let mElem = document.getElementById(`audit-m-${idx}`);
+                let sElem = document.getElementById(`audit-s-${idx}`);
                 if(mElem) mElem.value = result.value.m;
                 if(sElem) sElem.value = result.value.s;
-                UI.updateAuditTotal(idx);
+                
+                // กระตุ้นให้ Draft อัปเดตทันที
+                UI.updateAuditTotal(idx, item.code);
                 
                 let cardDiv = document.getElementById(`audit-card-${idx}`);
                 if(cardDiv) {
@@ -797,6 +833,33 @@ const UI = {
                     title: 'อัปเดตยอดลงในตาราง (อย่าลืมกดปุ่มบันทึกทั้งหมดเมื่อนับเสร็จ!)', 
                     showConfirmButton: false, timer: 3000
                 });
+            }
+        });
+    },
+
+    clearAllAuditInputs: function() {
+        Swal.fire({
+            title: 'ล้างยอดทั้งหมดเป็น 0?',
+            html: "ต้องการปรับยอดช่องนับจริง <b>(หลัก/ย่อย)</b> ทุกรายการบนหน้าจอให้เป็น 0 เพื่อเริ่มนับใหม่ใช่หรือไม่?<br><br><small class='text-danger'>* หากกดยืนยันแล้วกดบันทึก สต๊อกในระบบจะถูกรีเซ็ตเป็น 0 ทันที</small>",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#e74c3c',
+            cancelButtonColor: '#95a5a6',
+            confirmButtonText: 'ล้างยอดเป็น 0',
+            cancelButtonText: 'ยกเลิก'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // ล้าง Draft ทิ้งก่อน
+                AppCore.auditDrafts = {};
+                
+                (AppCore.allItems || []).forEach((item, idx) => {
+                    let mInput = document.getElementById(`audit-m-${idx}`);
+                    let sInput = document.getElementById(`audit-s-${idx}`);
+                    if (mInput) mInput.value = 0;
+                    if (sInput) sInput.value = 0;
+                    UI.updateAuditTotal(idx, item.code);
+                });
+                Swal.fire({toast: true, position: 'top', icon: 'success', title: 'รีเซ็ตยอดนับทั้งหมดเป็น 0 แล้ว', showConfirmButton: false, timer: 1500});
             }
         });
     },
